@@ -356,3 +356,43 @@ class EmailLoginTests(TestCase):
         response=self.client.post('/login/',{'email':'shared@example.test','password':'valid-secret-for-test'})
         self.assertContains(response,'Correo o contraseña incorrectos')
         self.assertNotIn('_auth_user_id',self.client.session)
+
+class PlatformManagementTests(TestCase):
+    def setUp(self):
+        self.admin=User.objects.create_superuser('manager','manager@example.test','test-password-valid')
+        self.client.force_login(self.admin)
+    def test_native_navigation_and_access_control(self):
+        for path in ['/team/','team/new/','/catalog/','/catalog/new/']:
+            self.assertEqual(self.client.get('/'+path.lstrip('/')).status_code,200)
+        response=self.client.get('/')
+        self.assertContains(response,'href="/team/"')
+        self.assertNotContains(response,'href="/admin/auth/user/"')
+        user=User.objects.create_user('athlete',password='test-password-valid')
+        self.client.force_login(user)
+        self.assertEqual(self.client.get('/team/').status_code,403)
+        self.assertEqual(self.client.post('/catalog/new/',{}).status_code,403)
+    def test_roles_password_and_self_protection(self):
+        data={'name':'Coach New','email':'coach@example.test','role':'coach','sex':'F','active':'on','password':'a-unique-pass-321'}
+        self.assertEqual(self.client.post('/team/new/',data).status_code,302)
+        account=User.objects.get(email=data['email']);self.assertTrue(account.check_password(data['password']))
+        self.assertTrue(account.groups.filter(name='Coach').exists());self.assertFalse(account.is_superuser)
+        data.update(role='admin',password='');self.client.post(f'/team/{account.pk}/',data)
+        account.refresh_from_db();self.assertTrue(account.is_superuser);self.assertTrue(account.is_staff);self.assertFalse(account.groups.filter(name='Coach').exists())
+        data.update(email=self.admin.email,role='athlete')
+        self.assertContains(self.client.post(f'/team/{self.admin.pk}/',data),'No puedes desactivar')
+        self.admin.refresh_from_db();self.assertTrue(self.admin.is_superuser)
+    def test_duplicate_email_and_catalog_direction(self):
+        response=self.client.post('/team/new/',{'name':'Duplicate','email':self.admin.email.upper(),'role':'admin','sex':'M','active':'on','password':'a-unique-pass-321'})
+        self.assertContains(response,'ya pertenece')
+        data={'name':'Carrera corta','unit':'seg','capacity':'Velocidad','higher':'False','base':10,'elite':5}
+        self.assertEqual(self.client.post('/catalog/new/',data).status_code,302)
+        exercise=Exercise.objects.get(name='Carrera corta')
+        data.update(elite=20)
+        self.assertContains(self.client.post(f'/catalog/{exercise.pk}/',data),'élite debe ser mejor')
+        exercise.refresh_from_db();self.assertEqual(exercise.elite,5)
+    def test_renamed_catalog_keeps_eight_default_slots(self):
+        seed_catalog()
+        Exercise.objects.filter(name='Sentadilla').update(name='Sentadilla nueva')
+        rules=default_rules()
+        self.assertEqual(len(rules['tests']),8)
+        self.assertIn('Sentadilla nueva',[t['name'] for t in rules['tests']])

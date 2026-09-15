@@ -156,7 +156,12 @@ def event_edit(request,pk=None):
 def default_rules():
     names=['Sentadilla','Press banca','1000 m','Burpees 5 min','50 m','Shuttle 10x10','Salto horizontal','Salto vertical']
     catalog={x['name']:x for x in Exercise.objects.values('name','unit','capacity','higher','base','elite')}
-    return {'tests':[catalog[n] for n in names if n in catalog],'categories':[{'name':'Hombres · abierta','sex':'M','min':0,'max':None},{'name':'Mujeres · abierta','sex':'F','min':0,'max':None}],'bar':0,'rounding':0,'round_mode':'none'}
+    preferred=[catalog[n] for n in names if n in catalog]
+    remaining=[t for name,t in catalog.items() if name not in names]
+    tests=[]
+    for capacity in ['Fuerza','Resistencia','Velocidad','Potencia']:
+        tests.extend([t for t in preferred+remaining if t['capacity']==capacity][:2])
+    return {'tests':tests,'categories':[{'name':'Hombres · abierta','sex':'M','min':0,'max':None},{'name':'Mujeres · abierta','sex':'F','min':0,'max':None}],'bar':0,'rounding':0,'round_mode':'none'}
 
 @administrator
 def operations(request,pk):

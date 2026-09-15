@@ -39,8 +39,8 @@ También puedes usar `./run-local.ps1` para arrancar después de instalar depend
 
 1. Admin → Crear evento. Define sede, fecha, precio, cupo, categorías y ocho pruebas, dos por capacidad. Publicar fija sus reglas.
 2. Crea participantes desde Unirme, o desde inscripción presencial usando su correo habitual. La cuenta se conserva entre ediciones.
-3. Para un coach, crea un usuario en `/admin/auth/user/`, asígnalo al grupo **Coach** y comunica su acceso por tu canal habitual. No necesita ser staff ni superusuario.
-4. Registra efectivo recibido en recepción; confirma peso/asistencia/lote. Para acceso a cuentas creadas allí configura SMTP o establece su contraseña desde administración durante tus pruebas locales.
+3. Para un coach, abre **Usuarios y equipo → Crear usuario**, selecciona el rol **Coach** y comunica su acceso por tu canal habitual. La plataforma asigna sus permisos automáticamente.
+4. Registra efectivo recibido en recepción; confirma peso/asistencia/lote. Para acceso a cuentas creadas allí configura SMTP o establece su contraseña desde Usuarios y equipo durante tus pruebas locales.
 5. Inicia competencia, elige prueba/lote y captura. Abre TV desde el evento. Perfil/radar/evolución aparecen cuando existen participaciones; no hay resultados simulados de respaldo.
 
 Un evento que marques expresamente como **evento de pruebas** bloquea cobros reales. Es una protección opcional, no genera datos.
@@ -63,3 +63,9 @@ Por defecto los pagos están desactivados y el correo usa consola local. Stripe 
 - [Validación](docs/VALIDACION.md)
 - [Pendientes externos y límites](docs/PENDIENTES.md)
 - [Recursos visuales](docs/RECURSOS_VISUALES.md)
+
+## Gestión dentro de la plataforma
+
+Usuarios y equipo permite crear y editar cuentas, elegir Administrador/Coach/Participante, activar o desactivar acceso y establecer contraseña. Los permisos se asignan automáticamente; no necesitas entrar al panel técnico de Django. No puedes desactivar tu propia cuenta administrativa. Desactivar conserva participaciones e historial.
+
+Catálogo de pruebas permite buscar, crear y editar ejercicios, unidad, capacidad, dirección y referencias. Los cambios no alteran reglas ni resultados de eventos guardados. Las dos pantallas usan el diseño y navegación de Optimus Race.

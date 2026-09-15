@@ -9,3 +9,6 @@ if settings.DEBUG: urlpatterns+=static(settings.MEDIA_URL,document_root=settings
 urlpatterns += [path('participants/lookup/',v.participant_lookup,name='participant_lookup'),path('events/<int:pk>/status/',v.registration_status,name='registration_status'),path('events/<int:pk>/cancel-payment/',v.cancel_payment,name='cancel_payment')]
 handler404='race.views.not_found'
 handler500='race.views.server_error'
+
+from race import management_views as management
+urlpatterns += [path("team/",management.team,name="team"),path("team/new/",management.team_edit,name="team_new"),path("team/<int:pk>/",management.team_edit,name="team_edit"),path("catalog/",management.catalog,name="catalog"),path("catalog/new/",management.catalog_edit,name="catalog_new"),path("catalog/<int:pk>/",management.catalog_edit,name="catalog_edit")]
