@@ -4,12 +4,14 @@ from django.contrib.auth.models import User
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     sex = models.CharField(max_length=1, choices=[('M','Hombres'),('F','Mujeres')])
+    birth_date = models.DateField(null=True, blank=True)
     photo = models.ImageField(upload_to='athletes/', blank=True)
 
 class Exercise(models.Model):
     name = models.CharField(max_length=100, unique=True)
     unit = models.CharField(max_length=15)
     capacity = models.CharField(max_length=20, choices=[(x,x) for x in ['Fuerza','Resistencia','Velocidad','Potencia']])
+    parameters = models.JSONField(default=dict, blank=True)
     higher = models.BooleanField(default=True)
     base = models.FloatField(null=True, blank=True)
     elite = models.FloatField(null=True, blank=True)
@@ -32,6 +34,10 @@ class Event(models.Model):
     closed_at = models.DateTimeField(null=True)
     description = models.TextField(blank=True)
     allow_onsite = models.BooleanField(default=False)
+    @property
+    def current_price(self):
+        from .event_policy import current_price
+        return current_price(self)
     def __str__(self): return self.name
 
 class Registration(models.Model):
@@ -39,12 +45,15 @@ class Registration(models.Model):
     user = models.ForeignKey(User, on_delete=models.PROTECT)
     name = models.CharField(max_length=150)
     sex = models.CharField(max_length=1)
+    birth_date = models.DateField(null=True, blank=True)
     bib = models.PositiveIntegerField()
     state = models.CharField(max_length=15, default='reserved')
     attendance = models.CharField(max_length=15, default='pending')
     weight = models.FloatField(null=True)
     category = models.CharField(max_length=100, blank=True)
     batch = models.PositiveIntegerField(default=1)
+    pricing_code = models.CharField(max_length=40, blank=True)
+    pricing_snapshot = models.JSONField(default=dict, blank=True)
     amount = models.PositiveIntegerField(default=0)
     method = models.CharField(max_length=10, blank=True)
     paid_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name='cash_collected')

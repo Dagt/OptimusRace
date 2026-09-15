@@ -384,7 +384,7 @@ class PlatformManagementTests(TestCase):
     def test_duplicate_email_and_catalog_direction(self):
         response=self.client.post('/team/new/',{'name':'Duplicate','email':self.admin.email.upper(),'role':'admin','sex':'M','active':'on','password':'a-unique-pass-321','password_confirm':'a-unique-pass-321'})
         self.assertContains(response,'ya pertenece')
-        data={'name':'Carrera corta','unit':'seg','capacity':'Velocidad','higher':'False','base':10,'elite':5}
+        data={'metric':'time','load_mode':'none','round_mode':'none','name':'Carrera corta','unit':'seg','capacity':'Velocidad','higher':'False','base':10,'elite':5}
         self.assertEqual(self.client.post('/catalog/new/',data).status_code,302)
         exercise=Exercise.objects.get(name='Carrera corta')
         data.update(elite=20)

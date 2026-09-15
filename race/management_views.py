@@ -26,7 +26,7 @@ def team(request):
 @administrator
 def team_edit(request,pk=None):
     account=get_object_or_404(User,pk=pk) if pk else None
-    initial={'name':account.first_name,'email':account.email or account.username,'role':role_of(account),'active':account.is_active,'sex':account.profile.sex if hasattr(account,'profile') else ''} if account else {}
+    initial={'name':account.first_name,'email':account.email or account.username,'role':role_of(account),'active':account.is_active,'birth_date':account.profile.birth_date if hasattr(account,'profile') else None,'sex':account.profile.sex if hasattr(account,'profile') else ''} if account else {}
     form=TeamForm(request.POST or None,account=account,initial=initial)
     if request.method=='POST' and form.is_valid():
         d=form.cleaned_data
@@ -43,7 +43,7 @@ def team_edit(request,pk=None):
                     if d['role']=='coach':saved.groups.add(group)
                     else:saved.groups.remove(group)
                     if d['role']=='athlete':
-                        profile,_=Profile.objects.get_or_create(user=saved,defaults={'sex':d['sex']});profile.sex=d['sex'];profile.save(update_fields=['sex'])
+                        profile,_=Profile.objects.get_or_create(user=saved,defaults={'sex':d['sex']});profile.sex=d['sex'];profile.birth_date=d.get('birth_date');profile.save(update_fields=['sex','birth_date'])
                 if saved.pk==request.user.pk and d['password']:update_session_auth_hash(request,saved)
                 messages.success(request,'Usuario actualizado.' if account else 'Usuario creado. Ya puede ingresar con su correo y contraseña.')
                 return redirect('team')

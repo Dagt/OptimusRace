@@ -81,4 +81,14 @@ Catálogo de pruebas permite buscar, crear y editar ejercicios, unidad, capacida
 
 El administrador selecciona primero el rol; el formulario muestra la categoría solo para participantes. Las cuentas nuevas nacen activas. Al editar se puede desactivar el acceso y cambiar la contraseña escribiéndola dos veces; dejar ambos campos vacíos conserva la actual. Mostrar contraseñas permite revisar lo escrito antes de guardar. El registro público siempre crea participantes y también exige confirmación.
 
-La foto es opcional en el perfil. Peso, categoría de peso, lote y asistencia corresponden a la inscripción o recepción de cada evento, no al alta del equipo. Cambiar un participante a coach o administrador conserva su perfil deportivo previo e historial. No se solicitan teléfono, domicilio ni fecha de nacimiento en este flujo.
+La foto es opcional en el perfil. Peso, categoría de peso, lote y asistencia corresponden a la inscripción o recepción de cada evento, no al alta del equipo. Cambiar un participante a coach o administrador conserva su perfil deportivo previo e historial. No se solicitan teléfono ni domicilio. La fecha de nacimiento es opcional para participantes al crear la cuenta y se exige al inscribirse si el evento tiene límites de edad.
+
+
+## Configuración flexible (eventos nuevos)
+
+El alta de evento inicia sin plantilla. El catálogo describe tipo de resultado, duración, recorridos, carga, protocolo y límites; cada evento guarda su propia copia. Permite estaciones ordenables, máximos que suman 100, categorías, límites de edad, horarios, tarifas por fecha y descuentos con vigencia/usos. Conserva el cálculo y las reglas de las ediciones anteriores.
+
+- [Guía de configuración flexible](docs/CONFIGURACION_FLEXIBLE.md)
+- [Preguntas para acordar la puntuación con el cliente](docs/PREGUNTAS_PUNTUACION.md)
+
+La paleta usa negro, amarillo y blanco, manteniendo el diseño existente. Tras actualizar ejecutar `python manage.py migrate` y `python manage.py collectstatic --noinput`.

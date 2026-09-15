@@ -7,6 +7,8 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.conf import settings
 import stripe
+from .event_policy import current_price, validate_eligibility,validate_policies,quote_price,registration_open,instant
+from .exercise_parameters import validate_parameters,validate_mark,needs_load,load_for
 from .models import Event, Registration, Result, Audit, Payment, Webhook
 
 CAPACITIES = ['Fuerza','Resistencia','Velocidad','Potencia']
@@ -20,18 +22,36 @@ def number(value, minimum=0):
 def validate_rules(rules, complete=True):
     try:
         tests, cats = rules['tests'], rules['categories']
-        if len(tests) != 8 or Counter(t['capacity'] for t in tests) != Counter({c:2 for c in CAPACITIES}):
+        modern = rules.get('schema_version',1)==2
+        if modern:
+            if len(tests)>32 or (complete and not tests):raise ValidationError('Configura entre 1 y 32 estaciones.')
+            if any(t['capacity'] not in CAPACITIES for t in tests):raise ValidationError('Capacidad inválida.')
+            if complete and abs(sum(number(t.get('max_points'),.01) for t in tests)-100)>.000001:raise ValidationError('Los máximos por estación deben sumar 100 puntos.')
+            for t in tests:
+                number(t.get('max_points'),.01);validate_parameters(t.get('parameters',{}))
+            validate_policies(rules)
+        elif len(tests) != 8 or Counter(t['capacity'] for t in tests) != Counter({c:2 for c in CAPACITIES}):
             raise ValidationError('Se requieren ocho pruebas: dos por capacidad.')
-        if len({t['name'] for t in tests}) != 8: raise ValidationError('Las pruebas deben ser distintas.')
+        if len({t['name'] for t in tests}) != len(tests): raise ValidationError('Las pruebas deben ser distintas.')
         for t in tests:
             if not t['name'].strip() or not t['unit'].strip() or not isinstance(t['higher'],bool): raise ValidationError('Nombre, unidad y dirección obligatorios.')
+            method=t.get('scoring','linear')
+            if method not in ['pending','linear','judge']:raise ValidationError('Método de puntuación inválido.')
+            if method=='pending':
+                if complete:raise ValidationError(f"Confirma la escala de puntuación de {t['name']}.")
+                continue
+            if method=='judge':
+                if complete and not rules.get('judging_standard','').strip():raise ValidationError('Describe la escala acordada con los jueces antes de publicar.')
+                continue
             if t.get('base') is None or t.get('elite') is None:
                 if complete: raise ValidationError(f"Faltan benchmarks de {t['name']}.")
                 continue
             base, elite = number(t['base']), number(t['elite'])
             t['base'],t['elite']=base,elite
             if (elite <= base if t['higher'] else elite >= base): raise ValidationError('El benchmark élite debe mejorar al base.')
-        if not cats or set(c['sex'] for c in cats) != {'M','F'}: raise ValidationError('Configura categorías para hombres y mujeres.')
+        if any(c['sex'] not in ['M','F'] for c in cats):raise ValidationError('Categoría por sexo inválida.')
+        if complete and not cats:raise ValidationError('Agrega al menos una categoría de participantes.')
+        if not modern and set(c['sex'] for c in cats)!={'M','F'}:raise ValidationError('Configura categorías para hombres y mujeres.')
         if len({c['name'] for c in cats}) != len(cats): raise ValidationError('Nombres de categoría únicos.')
         for sex in ['M','F']:
             previous = 0
@@ -41,15 +61,26 @@ def validate_rules(rules, complete=True):
                 c['min']=low; c['max']=None if high==math.inf else high
                 if not c['name'].strip(): raise ValidationError('Cada categoría requiere nombre.')
                 previous = high
+        if modern:
+            age=number(rules.get('minimum_age',0))
+            if not age.is_integer() or age>120:raise ValidationError('Edad mínima inválida.')
+            rules['minimum_age']=int(age)
+            if rules.get('attempts',1)!=1:raise ValidationError('El motor actual registra una marca final por estación; las correcciones requieren motivo.')
         rules['bar']=number(rules.get('bar',0)); rules['rounding']=number(rules.get('rounding',0))
         if rules.get('round_mode','none') not in ['none','nearest','down','up']: raise ValidationError('Redondeo inválido.')
-    except (KeyError,TypeError,AttributeError): raise ValidationError('Configuración incompleta.')
+    except (KeyError,TypeError,AttributeError,ValueError): raise ValidationError('Configuración incompleta.')
     return rules
 
-def score(value, test):
+def score(value, test, judged_points=None):
     value = number(value)
+    maximum=number(test.get('max_points',100),.01)
+    if test.get('scoring')=='pending':raise ValidationError('La escala de jueces todavía está pendiente.')
+    if test.get('scoring')=='judge':
+        points=number(judged_points)
+        if points>maximum:raise ValidationError(f'El puntaje debe estar entre 0 y {maximum:g}.')
+        return round(points,6)
     if test.get('base') is None or test.get('elite') is None: raise ValidationError('Configura los benchmarks antes de capturar.')
-    return round(max(0,min(100,50+50*(value-test['base'])/(test['elite']-test['base']))),6)
+    return round(maximum*max(0,min(1,.5+.5*(value-test['base'])/(test['elite']-test['base']))),6)
 
 def category(rules, sex, weight):
     weight = number(weight,0.01)
@@ -59,7 +90,7 @@ def category(rules, sex, weight):
 
 def suggested_load(event, weight):
     if weight is None: return None
-    value = weight*.75
+    value = weight*event.rules.get('load_percent',75)/100
     step, mode, bar = event.rules.get('rounding',0),event.rules.get('round_mode','none'),event.rules.get('bar',0)
     if step and mode != 'none':
         fn = {'nearest':lambda x: math.floor(x+.5),'down':math.floor,'up':math.ceil}[mode]
@@ -76,13 +107,14 @@ def board(event):
     for r in Registration.objects.filter(event=event,state='confirmed').order_by('bib').prefetch_related('result_set'):
         marks = {m.test:m for m in r.result_set.all()}
         done = [m for m in marks.values() if m.status=='done']
-        capacities = {c:round(sum((marks[i].points or 0) for i,t in enumerate(event.rules['tests']) if t['capacity']==c and i in marks)/2,2) for c in CAPACITIES}
-        details = [{'test':t['name'],'unit':t['unit'],'capacity':t['capacity'],'value':marks[i].value if i in marks else None,'points':marks[i].points if i in marks else None,'status':marks[i].status if i in marks else 'pending','load':marks[i].load if i in marks else None} for i,t in enumerate(event.rules['tests'])]
-        rows.append({'id':r.id,'user_id':r.user_id,'name':r.name,'bib':r.bib,'category':r.category or 'Sin pesaje','batch':r.batch,'attendance':r.attendance,'total':round(sum(m.points for m in done)/8,4),'completed':len(done),'capacities':capacities,'marks':details,'rank':None})
-    rows.sort(key=lambda r:(-r['total'],r['bib']))
+        modern=event.rules.get('schema_version',1)==2
+        capacities = {c:round(100*sum((marks[i].points or 0) for i,t in enumerate(event.rules['tests']) if t['capacity']==c and i in marks)/(sum(t.get('max_points',100) for t in event.rules['tests'] if t['capacity']==c) or 1),2) for c in CAPACITIES}
+        details = [{'test':t['name'],'unit':t['unit'],'capacity':t['capacity'],'value':marks[i].value if i in marks else None,'points':marks[i].points if i in marks else None,'max_points':t.get('max_points',100),'normalized_points':round(100*marks[i].points/t.get('max_points',100),4) if i in marks and marks[i].points is not None else None,'status':marks[i].status if i in marks else 'pending','load':marks[i].load if i in marks else None} for i,t in enumerate(event.rules['tests'])]
+        rows.append({'id':r.id,'user_id':r.user_id,'name':r.name,'bib':r.bib,'category':r.category or 'Sin pesaje','batch':r.batch,'attendance':r.attendance,'total':round(sum(m.points for m in done)/(1 if modern else len(event.rules['tests'])),4),'completed':len(done),'test_count':len(event.rules['tests']),'capacities':capacities,'marks':details,'rank':None})
+    rows.sort(key=lambda r:(r['attendance']=='disqualified',-r['total'],r['bib']))
     for row in rows:
-        if row['category']!='Sin pesaje' and row['completed']:
-            row['rank']=1+sum(other['category']==row['category'] and other['completed']>0 and other['total']>row['total'] for other in rows)
+        if row['category']!='Sin pesaje' and row['completed'] and row['attendance']!='disqualified':
+            row['rank']=1+sum(other['attendance']!='disqualified' and other['category']==row['category'] and other['completed']>0 and other['total']>row['total'] for other in rows)
     return rows
 
 @transaction.atomic
@@ -91,6 +123,7 @@ def configure(event_id, actor, data):
     if Registration.objects.filter(event=e).exists() or e.status!='draft': raise ValidationError('Las reglas se bloquean al publicar o inscribir. Crea otro evento para nuevas reglas.')
     validate_rules(data['rules'],False)
     e.name=data['name']; e.location=data['location']; e.rules=data['rules']; e.capacity=data['capacity']; e.price=data['price']; e.date=data['date']; e.registration_end=data['registration_end']; e.demo=data['demo']; e.description=data.get('description',''); e.allow_onsite=data.get('allow_onsite',False)
+    validate_policies(e.rules,e)
     e.version+=1; e.full_clean(); e.save()
     audit(e,actor,'configuration',{'version':e.version,'rules':e.rules})
     return e
@@ -101,35 +134,41 @@ def change_phase(event_id, actor, phase, test=0,batch=1):
     allowed={'draft':['open'],'open':['live'],'live':['live','closed'],'closed':[]}
     if phase not in allowed[e.status]: raise ValidationError('Transición de evento no permitida.')
     validate_rules(e.rules)
+    validate_policies(e.rules,e)
+    if phase=='open' and e.capacity<1:raise ValidationError('Confirma el cupo del evento antes de publicar.')
     if phase=='live':
-        if not 0<=test<8 or batch<1: raise ValidationError('Prueba o lote inválido.')
+        if e.rules.get('ordered_stations') and test not in ([0] if e.status=='open' else [e.active_test,e.active_test+1]):raise ValidationError('Debes seguir el orden de estaciones: conserva la actual o avanza a la siguiente.')
+        if not 0<=test<len(e.rules['tests']) or batch<1: raise ValidationError('Prueba o lote inválido.')
         e.active_test=test; e.active_batch=batch
     if phase=='closed':
         if Registration.objects.filter(event=e,state='reserved').exists(): raise ValidationError('Resuelve las reservas de pago antes de cerrar.')
         e.final_board=board(e); e.closed_at=timezone.now()
     e.status=phase; e.save(); audit(e,actor,'phase',{'phase':phase,'test':test,'batch':batch})
 
-def reserve_locked(e,user, onsite=False):
+def reserve_locked(e,user, onsite=False,discount_code=""):
     if not hasattr(user,'profile'): raise ValidationError('Completa tu perfil antes de inscribirte.')
-    regular=e.status=='open' and timezone.now()<=e.registration_end
-    if not regular and not (onsite and e.status=='live' and e.allow_onsite): raise ValidationError('Las inscripciones están cerradas.')
+    validate_eligibility(e,user.profile.birth_date)
+    if not registration_open(e,onsite=onsite): raise ValidationError('Las inscripciones están cerradas.')
     r=Registration.objects.filter(event=e,user=user).first()
-    if r and r.state in ['confirmed','reserved']: return r
+    if r and r.state in ['confirmed','reserved']:
+        if discount_code.strip().upper() not in ['',r.pricing_code]:raise ValidationError('La reserva conserva su precio y descuento. Cancélala antes de cambiar el código.')
+        return r
     if Registration.objects.filter(event=e,state__in=['reserved','confirmed']).count()>=e.capacity: raise ValidationError('Cupo agotado.')
+    quote=quote_price(e,discount_code,exclude_registration=r.pk if r else None)
     if not r:
         bib=(Registration.objects.filter(event=e).aggregate(m=Max('bib'))['m'] or 0)+1
-        r=Registration.objects.create(event=e,user=user,name=user.first_name or user.username,sex=user.profile.sex,bib=bib,amount=e.price)
+        r=Registration.objects.create(event=e,user=user,name=user.first_name or user.username,sex=user.profile.sex,bib=bib,amount=quote['amount'],pricing_code=quote['discount_code'],pricing_snapshot=quote,birth_date=user.profile.birth_date)
     else:
-        r.state='reserved'; r.amount=e.price; r.save()
+        r.state='reserved'; r.amount=quote['amount']; r.pricing_code=quote['discount_code']; r.pricing_snapshot=quote; r.birth_date=user.profile.birth_date; r.save()
     return r
 
 @transaction.atomic
-def cash_register(event_id,user,actor,amount):
+def cash_register(event_id,user,actor,amount,discount_code=""):
     e=Event.objects.select_for_update().get(pk=event_id)
-    r=reserve_locked(e,user,onsite=True)
+    r=reserve_locked(e,user,onsite=True,discount_code=discount_code)
     if r.state=='confirmed': raise ValidationError('La inscripción ya está confirmada. No se registró otro cobro.')
     if Payment.objects.filter(registration=r,state__in=['creating','pending']).exists(): raise ValidationError('Hay un Checkout activo. Expíralo y concilia antes de cobrar efectivo.')
-    if int(amount)!=e.price: raise ValidationError('El monto debe coincidir con el precio del evento, en centavos.')
+    if int(amount)!=r.amount: raise ValidationError(f'El importe a registrar es ${r.amount/100:.2f} MXN. Recalcula el precio y descuento antes de confirmar.')
     r.state='confirmed'; r.method='cash'; r.paid_by=actor; r.paid_at=timezone.now(); r.save()
     audit(e,actor,'cash',{'registration':r.id,'amount':r.amount})
     return r
@@ -144,17 +183,18 @@ def payment_mode():
     if not key.startswith('sk_live_' if live else 'sk_test_'): raise ValidationError('La clave Stripe no coincide con el modo configurado.')
     return live
 
-def checkout(event_id,user):
+def checkout(event_id,user,discount_code=""):
     live=payment_mode()
     with transaction.atomic():
         e=Event.objects.select_for_update().get(pk=event_id)
+        if not e.rules.get('online_payments',True):raise ValidationError('Este evento recibe inscripciones en recepción o por DM. Consulta los canales de inscripción.')
         if live and e.demo: raise ValidationError('Los eventos de demostración no aceptan cobros reales.')
-        r=reserve_locked(e,user)
+        r=reserve_locked(e,user,discount_code=discount_code)
         if r.state=='confirmed': raise ValidationError('Ya estás inscrito.')
         p=Payment.objects.filter(registration=r,state__in=['creating','pending']).first()
         if p and p.livemode!=live: raise ValidationError('Hay una reserva en otro modo de pago. Resuélvela antes de continuar.')
         if p and p.url: return p.url
-        if not p: p=Payment.objects.create(registration=r,key=str(uuid.uuid4()),amount=e.price,expires_at=timezone.now()+timedelta(minutes=40),livemode=live)
+        if not p: p=Payment.objects.create(registration=r,key=str(uuid.uuid4()),amount=r.amount,expires_at=timezone.now()+timedelta(minutes=40),livemode=live)
     # Stable request and key survive a lost response; a timeout never releases inventory.
     s=stripe.checkout.Session.create(api_key=settings.STRIPE_SECRET_KEY,idempotency_key=p.key,mode='payment',payment_method_types=['card'],client_reference_id=str(r.id),metadata={'payment_id':str(p.id)},line_items=[{'price_data':{'currency':'mxn','unit_amount':p.amount,'product_data':{'name':e.name}},'quantity':1}],expires_at=int(p.expires_at.timestamp()),success_url=settings.PUBLIC_URL+'/profile/?payment=returned',cancel_url=settings.PUBLIC_URL+f'/events/{e.id}/?payment=cancelled')
     with transaction.atomic():
@@ -191,6 +231,10 @@ def check_in(reg_id,actor,weight,batch,attendance,reason='',revision=None):
     r=Registration.objects.select_for_update().select_related('event').get(pk=reg_id)
     e=Event.objects.select_for_update().get(pk=r.event_id)
     if e.status=='closed' or r.state!='confirmed': raise ValidationError('La inscripción debe estar pagada y el evento abierto.')
+    if r.attendance=='disqualified':raise ValidationError('Resuelve la descalificación antes de modificar la recepción.')
+    now=timezone.now()
+    if e.rules.get('reception_start') and now<instant(e.rules['reception_start']):raise ValidationError('La recepción todavía no abre.')
+    if e.rules.get('reception_end') and now>=instant(e.rules['reception_end']):raise ValidationError('El horario de recepción terminó.')
     if attendance not in ['present','absent','withdrawn']: raise ValidationError('Asistencia inválida.')
     if revision is not None and revision!=r.revision: raise ValidationError('La recepción cambió en otra pantalla. Recarga antes de guardar.')
     changed_weight=r.weight != number(weight,.01)
@@ -202,11 +246,12 @@ def check_in(reg_id,actor,weight,batch,attendance,reason='',revision=None):
     audit(e,actor,'weight_correction' if changed_weight and r.result_set.exists() else 'reception',{'registration':r.id,'before':old,'after':{'weight':r.weight,'category':r.category,'batch':r.batch,'attendance':r.attendance},'reason':reason})
 
 @transaction.atomic
-def capture(reg_id,actor,test,value,load,status,revision,reason,administrative=False):
+def capture(reg_id,actor,test,value,load,status,revision,reason,administrative=False,judged_points=None):
     r=Registration.objects.select_for_update().select_related('event').get(pk=reg_id)
     e=Event.objects.select_for_update().get(pk=r.event_id)
+    if r.attendance=='disqualified':raise ValidationError('El participante está descalificado.')
     correction=administrative and actor.is_superuser and reason.strip()
-    if not 0<=test<8: raise ValidationError('Prueba inválida.')
+    if not 0<=test<len(e.rules['tests']): raise ValidationError('Prueba inválida.')
     if e.status!='live' or (not correction and (test!=e.active_test or r.batch!=e.active_batch)): raise ValidationError('La prueba o el lote activo cambió. Actualiza la pantalla.')
     if r.state!='confirmed' or (r.attendance!='present' and not correction): raise ValidationError('El atleta debe tener recepción confirmada y estar presente.')
     if status not in ['done','absent','withdrawn','pending']: raise ValidationError('Estado inválido.')
@@ -217,11 +262,12 @@ def capture(reg_id,actor,test,value,load,status,revision,reason,administrative=F
     before={'value':existing.value,'points':existing.points,'load':existing.load,'status':existing.status,'revision':existing.revision} if existing else None
     t=e.rules['tests'][test]
     v=number(value) if status=='done' else None
+    if status=='done':validate_mark(v,t)
     if status=='done' and t['unit']=='reps' and not v.is_integer(): raise ValidationError('Las repeticiones deben ser enteras.')
     if status=='done' and not t['higher'] and v<=0: raise ValidationError('El tiempo debe ser mayor a cero.')
-    kg=number(load,.01) if status=='done' and t['capacity']=='Fuerza' else None
+    kg=number(load,.01) if status=='done' and needs_load(t) else None
     mark=existing or Result(registration=r,test=test,revision=0)
-    mark.value=v; mark.load=kg; mark.points=score(v,t) if v is not None else None; mark.status=status; mark.revision+=1; mark.save()
+    mark.value=v; mark.load=kg; mark.points=score(v,t,judged_points) if v is not None else None; mark.status=status; mark.revision+=1; mark.save()
     audit(e,actor,'correction' if existing else 'capture',{'registration':r.id,'test':test,'before':before,'after':{'value':v,'load':kg,'points':mark.points,'status':status,'revision':mark.revision},'reason':reason})
     return mark
 
@@ -237,3 +283,16 @@ def cancel_checkout(reg_id,actor):
     if s.status!='expired': raise ValidationError('Stripe todavía no confirmó la cancelación. No se ha liberado el lugar.')
     fulfill({'id':f'cancel:{s.id}','type':'checkout.session.expired','data':{'object':s}})
     audit(r.event,actor,'checkout_cancelled',{'registration':r.id,'payment':p.id})
+
+
+@transaction.atomic
+def discipline(reg_id, actor, disqualified, reason, revision):
+    r=Registration.objects.select_for_update().select_related('event').get(pk=reg_id)
+    e=Event.objects.select_for_update().get(pk=r.event_id)
+    if not actor.is_superuser or not reason.strip():raise ValidationError('La decisión requiere administrador y motivo.')
+    if e.status not in ['open','live'] or r.state!='confirmed':raise ValidationError('Solo se puede resolver disciplina en eventos abiertos con inscripción confirmada.')
+    if r.revision!=revision:raise ValidationError('La inscripción cambió. Recarga antes de continuar.')
+    before=r.attendance
+    if not disqualified and before!='disqualified':raise ValidationError('El participante no está descalificado.')
+    r.attendance='disqualified' if disqualified else 'pending';r.revision+=1;r.save()
+    audit(e,actor,'disqualification' if disqualified else 'disqualification_correction',{'registration':r.pk,'before':before,'after':r.attendance,'reason':reason})

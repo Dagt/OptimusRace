@@ -36,3 +36,10 @@ TV usa polling de 5 s y rotación de 10 s. Coach comprueba cambio de prueba/lote
 Un servidor con disco persistente y SQLite local, Waitress detrás de proxy HTTPS. WhiteNoise sirve estáticos colectados; el proxy/almacenamiento sirve fotos. BD activa fuera de OneDrive. Para múltiples servidores se requiere migración y pruebas con PostgreSQL y almacenamiento compartido. No se afirma capacidad de tráfico de producción sin medir.
 
 No hay infraestructura contratada ni despliegue público. Consulta OPERACION_TECNICA.md para preparación y verificación.
+
+
+## Extensión de configuración
+
+`Exercise.parameters` almacena el protocolo técnico validado por `exercise_parameters.py`. Los eventos nuevos usan `rules.schema_version = 2` y guardan copias completas de sus estaciones. El catálogo y las reglas de puntuación están separados. `event_policy.py` valida horarios, edades y tarifas, y cotiza descuentos en centavos; `Registration.pricing_snapshot` conserva la cotización y `pricing_code` permite controlar usos dentro de la transacción de reserva. La fecha de nacimiento se copia a cada inscripción. `policy_forms.py` y `config-editor.js` exponen los controles sin exigir edición de JSON.
+
+Los eventos anteriores conservan su escala de resultados; no se migra ni recalcula el historial. Las nuevas estaciones tienen máximo propio y el tablero suma sus puntos. El radar se normaliza a 100 por capacidad. El conteo de estaciones del frontend deja de asumir ocho.
