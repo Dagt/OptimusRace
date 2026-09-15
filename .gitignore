@@ -1,0 +1,21 @@
+.venv/
+__pycache__/
+*.pyc
+*.sqlite3
+*.sqlite3-*
+.env
+.local-secret
+media/
+staticfiles/
+artifacts/
+backups/
+
+# Referencias privadas: se conservan localmente, no se distribuyen.
+/Optimus_Race_Sistema.xlsx
+/WhatsApp Image 2026-09-14 at 12.51.23.jpeg
+.env.*
+!.env.example
+*.log
+*.zip
+*.pem
+*.key

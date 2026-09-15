@@ -1,0 +1,6 @@
+Django==5.2.17
+stripe==14.4.1
+Pillow==12.3.0
+waitress==3.0.2
+python-dotenv==1.1.1
+whitenoise==6.11.0
