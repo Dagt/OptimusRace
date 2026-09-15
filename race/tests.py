@@ -372,17 +372,17 @@ class PlatformManagementTests(TestCase):
         self.assertEqual(self.client.get('/team/').status_code,403)
         self.assertEqual(self.client.post('/catalog/new/',{}).status_code,403)
     def test_roles_password_and_self_protection(self):
-        data={'name':'Coach New','email':'coach@example.test','role':'coach','sex':'F','active':'on','password':'a-unique-pass-321'}
+        data={'name':'Coach New','email':'coach@example.test','role':'coach','sex':'F','active':'on','password':'a-unique-pass-321','password_confirm':'a-unique-pass-321'}
         self.assertEqual(self.client.post('/team/new/',data).status_code,302)
         account=User.objects.get(email=data['email']);self.assertTrue(account.check_password(data['password']))
         self.assertTrue(account.groups.filter(name='Coach').exists());self.assertFalse(account.is_superuser)
-        data.update(role='admin',password='');self.client.post(f'/team/{account.pk}/',data)
+        data.update(role='admin',password='',password_confirm='');self.client.post(f'/team/{account.pk}/',data)
         account.refresh_from_db();self.assertTrue(account.is_superuser);self.assertTrue(account.is_staff);self.assertFalse(account.groups.filter(name='Coach').exists())
         data.update(email=self.admin.email,role='athlete')
         self.assertContains(self.client.post(f'/team/{self.admin.pk}/',data),'No puedes desactivar')
         self.admin.refresh_from_db();self.assertTrue(self.admin.is_superuser)
     def test_duplicate_email_and_catalog_direction(self):
-        response=self.client.post('/team/new/',{'name':'Duplicate','email':self.admin.email.upper(),'role':'admin','sex':'M','active':'on','password':'a-unique-pass-321'})
+        response=self.client.post('/team/new/',{'name':'Duplicate','email':self.admin.email.upper(),'role':'admin','sex':'M','active':'on','password':'a-unique-pass-321','password_confirm':'a-unique-pass-321'})
         self.assertContains(response,'ya pertenece')
         data={'name':'Carrera corta','unit':'seg','capacity':'Velocidad','higher':'False','base':10,'elite':5}
         self.assertEqual(self.client.post('/catalog/new/',data).status_code,302)
@@ -396,3 +396,66 @@ class PlatformManagementTests(TestCase):
         rules=default_rules()
         self.assertEqual(len(rules['tests']),8)
         self.assertIn('Sentadilla nueva',[t['name'] for t in rules['tests']])
+
+
+class AccountFieldTests(TestCase):
+    def setUp(self):
+        self.admin=User.objects.create_superuser('owner','owner@example.test','existing-password-329')
+        self.client.force_login(self.admin)
+        self.data={'name':'New Account','email':'new@example.test','role':'admin',
+                   'password':'unique-account-password-429','password_confirm':'unique-account-password-429'}
+
+    def test_staff_accounts_need_no_competition_profile(self):
+        for role in ['admin','coach']:
+            with self.subTest(role=role):
+                data={**self.data,'role':role,'email':f'{role}@example.test'}
+                self.assertRedirects(self.client.post('/team/new/',data),'/team/')
+                user=User.objects.get(email=data['email'])
+                self.assertTrue(user.is_active)
+                self.assertFalse(Profile.objects.filter(user=user).exists())
+                response=self.client.get(f'/team/{user.pk}/')
+                self.assertContains(response,'data-participant-field hidden')
+                self.assertContains(response,'name="password_confirm"')
+
+    def test_participant_requires_category_and_staff_promotion_preserves_it(self):
+        data={**self.data,'role':'athlete'}
+        response=self.client.post('/team/new/',data)
+        self.assertIn('sex',response.context['form'].errors)
+        self.assertFalse(User.objects.filter(email=data['email']).exists())
+        data['sex']='F'
+        self.assertRedirects(self.client.post('/team/new/',data),'/team/')
+        user=User.objects.get(email=data['email'])
+        self.assertEqual(user.profile.sex,'F')
+        data.update(role='coach',active='on',password='',password_confirm='')
+        data.pop('sex')
+        self.assertRedirects(self.client.post(f'/team/{user.pk}/',data),'/team/')
+        user.refresh_from_db()
+        self.assertEqual(user.profile.sex,'F')
+        self.assertTrue(user.check_password(self.data['password']))
+
+    def test_confirmation_is_required_and_must_match_before_creation(self):
+        for confirm in ['', 'mistyped-password-429']:
+            response=self.client.post('/team/new/',{**self.data,'password_confirm':confirm})
+            self.assertIn('password_confirm',response.context['form'].errors)
+            self.assertFalse(User.objects.filter(email=self.data['email']).exists())
+
+    def test_password_edit_rejects_mismatch_and_accepts_confirmed_change(self):
+        data={**self.data,'email':self.admin.email,'active':'on','password_confirm':'different'}
+        response=self.client.post(f'/team/{self.admin.pk}/',data)
+        self.assertIn('password_confirm',response.context['form'].errors)
+        self.admin.refresh_from_db()
+        self.assertTrue(self.admin.check_password('existing-password-329'))
+        data['password_confirm']=data['password']
+        self.assertRedirects(self.client.post(f'/team/{self.admin.pk}/',data),'/team/')
+        self.admin.refresh_from_db()
+        self.assertTrue(self.admin.check_password(data['password']))
+        self.assertEqual(int(self.client.session['_auth_user_id']),self.admin.pk)
+
+    def test_public_signup_requires_matching_confirmation(self):
+        from .forms import SignupForm
+        data={**self.data,'sex':'M'}
+        for confirm in ['', 'wrong-password']:
+            form=SignupForm({**data,'password_confirm':confirm})
+            self.assertFalse(form.is_valid())
+            self.assertIn('password_confirm',form.errors)
+        self.assertTrue(SignupForm(data).is_valid())

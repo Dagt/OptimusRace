@@ -9,13 +9,32 @@ class TeamForm(forms.Form):
     name=forms.CharField(label='Nombre completo',max_length=150)
     email=forms.EmailField(label='Correo electrónico')
     role=forms.ChoiceField(label='Rol',choices=[('athlete','Participante'),('coach','Coach'),('admin','Administrador')])
-    sex=forms.ChoiceField(label='Categoría por sexo para futuras inscripciones',choices=Profile._meta.get_field('sex').choices)
+    sex=forms.ChoiceField(label='Categoría por sexo',required=False,choices=[('', 'Selecciona una categoría')]+Profile._meta.get_field('sex').choices,help_text='Solo para participantes. El peso y la categoría de peso se registran en cada evento.')
     active=forms.BooleanField(label='Acceso activo',required=False,initial=True)
     password=forms.CharField(label='Contraseña',required=False,strip=False,widget=forms.PasswordInput,help_text='Al editar, déjala vacía para conservar la contraseña actual.')
+    password_confirm=forms.CharField(label='Confirmar contraseña',required=False,strip=False,widget=forms.PasswordInput(attrs={'autocomplete':'new-password'}))
     def __init__(self,*args,account=None,**kwargs):
         self.account=account
         super().__init__(*args,**kwargs)
-        if account is None:self.fields['password'].required=True
+        self.order_fields(['role','name','email','sex','active','password','password_confirm'])
+        self.fields['password'].widget.attrs['autocomplete']='new-password'
+        self.participant=(self.data.get('role') if self.is_bound else self.initial.get('role','athlete'))=='athlete'
+        if account is None:
+            self.fields.pop('active')
+            self.fields['password'].required=True
+            self.fields['password_confirm'].required=True
+            self.fields['password'].help_text='Mínimo 8 caracteres. Evita contraseñas comunes o solo numéricas.'
+        else:
+            self.fields['password'].label='Nueva contraseña'
+            self.fields['password_confirm'].label='Confirmar nueva contraseña'
+            self.fields['password'].help_text='Deja ambos campos vacíos para conservar la contraseña actual.'
+        self.fields['sex'].required=self.participant
+    def clean(self):
+        d=super().clean()
+        if d.get('role')!='athlete':d['sex']=''
+        if d.get('password','')!=d.get('password_confirm',''):
+            self.add_error('password_confirm','Las contraseñas no coinciden. Escríbelas de nuevo.')
+        return d
     def clean_email(self):
         email=self.cleaned_data['email'].strip().lower()
         existing=User.objects.filter(Q(email__iexact=email)|Q(username__iexact=email))

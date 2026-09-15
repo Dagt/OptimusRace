@@ -26,7 +26,7 @@ def team(request):
 @administrator
 def team_edit(request,pk=None):
     account=get_object_or_404(User,pk=pk) if pk else None
-    initial={'name':account.first_name,'email':account.email or account.username,'role':role_of(account),'active':account.is_active,'sex':account.profile.sex if hasattr(account,'profile') else 'M'} if account else {}
+    initial={'name':account.first_name,'email':account.email or account.username,'role':role_of(account),'active':account.is_active,'sex':account.profile.sex if hasattr(account,'profile') else ''} if account else {}
     form=TeamForm(request.POST or None,account=account,initial=initial)
     if request.method=='POST' and form.is_valid():
         d=form.cleaned_data
@@ -36,13 +36,14 @@ def team_edit(request,pk=None):
             try:
                 with transaction.atomic():
                     saved=User.objects.select_for_update().get(pk=account.pk) if account else User()
-                    saved.username=d['email'];saved.email=d['email'];saved.first_name=d['name'];saved.is_active=d['active'];saved.is_superuser=d['role']=='admin';saved.is_staff=saved.is_superuser
+                    saved.username=d['email'];saved.email=d['email'];saved.first_name=d['name'];saved.is_active=d.get('active',True);saved.is_superuser=d['role']=='admin';saved.is_staff=saved.is_superuser
                     if d['password']:saved.set_password(d['password'])
                     saved.save()
                     group,_=Group.objects.get_or_create(name='Coach')
                     if d['role']=='coach':saved.groups.add(group)
                     else:saved.groups.remove(group)
-                    profile,_=Profile.objects.get_or_create(user=saved,defaults={'sex':d['sex']});profile.sex=d['sex'];profile.save(update_fields=['sex'])
+                    if d['role']=='athlete':
+                        profile,_=Profile.objects.get_or_create(user=saved,defaults={'sex':d['sex']});profile.sex=d['sex'];profile.save(update_fields=['sex'])
                 if saved.pk==request.user.pk and d['password']:update_session_auth_hash(request,saved)
                 messages.success(request,'Usuario actualizado.' if account else 'Usuario creado. Ya puede ingresar con su correo y contraseña.')
                 return redirect('team')

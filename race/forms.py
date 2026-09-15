@@ -7,7 +7,13 @@ class SignupForm(forms.Form):
     name=forms.CharField(label='Nombre completo',max_length=150)
     email=forms.EmailField(label='Correo electrónico')
     sex=forms.ChoiceField(label='Categoría por sexo',choices=Profile._meta.get_field('sex').choices)
-    password=forms.CharField(label='Contraseña',widget=forms.PasswordInput,validators=[validate_password])
+    password=forms.CharField(label='Contraseña',strip=False,widget=forms.PasswordInput(attrs={'autocomplete':'new-password'}),validators=[validate_password])
+    password_confirm=forms.CharField(label='Confirmar contraseña',strip=False,widget=forms.PasswordInput(attrs={'autocomplete':'new-password'}))
+    def clean(self):
+        data=super().clean()
+        if data.get('password','')!=data.get('password_confirm',''):
+            self.add_error('password_confirm','Las contraseñas no coinciden. Escríbelas de nuevo.')
+        return data
     def clean_email(self):
         email=self.cleaned_data['email'].lower()
         if User.objects.filter(username=email).exists(): raise forms.ValidationError('Este correo ya tiene cuenta. Inicia sesión o recupera tu contraseña.')

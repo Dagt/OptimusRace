@@ -69,3 +69,16 @@ Por defecto los pagos están desactivados y el correo usa consola local. Stripe 
 Usuarios y equipo permite crear y editar cuentas, elegir Administrador/Coach/Participante, activar o desactivar acceso y establecer contraseña. Los permisos se asignan automáticamente; no necesitas entrar al panel técnico de Django. No puedes desactivar tu propia cuenta administrativa. Desactivar conserva participaciones e historial.
 
 Catálogo de pruebas permite buscar, crear y editar ejercicios, unidad, capacidad, dirección y referencias. Los cambios no alteran reglas ni resultados de eventos guardados. Las dos pantallas usan el diseño y navegación de Optimus Race.
+
+
+### Campos de cuentas por rol
+
+| Rol | Datos obligatorios al crear | Datos deportivos |
+| --- | --- | --- |
+| Administrador | Nombre completo, correo, contraseña y confirmación | Ninguno |
+| Coach | Nombre completo, correo, contraseña y confirmación | Ninguno |
+| Participante | Nombre completo, correo, contraseña y confirmación | Categoría por sexo |
+
+El administrador selecciona primero el rol; el formulario muestra la categoría solo para participantes. Las cuentas nuevas nacen activas. Al editar se puede desactivar el acceso y cambiar la contraseña escribiéndola dos veces; dejar ambos campos vacíos conserva la actual. Mostrar contraseñas permite revisar lo escrito antes de guardar. El registro público siempre crea participantes y también exige confirmación.
+
+La foto es opcional en el perfil. Peso, categoría de peso, lote y asistencia corresponden a la inscripción o recepción de cada evento, no al alta del equipo. Cambiar un participante a coach o administrador conserva su perfil deportivo previo e historial. No se solicitan teléfono, domicilio ni fecha de nacimiento en este flujo.
