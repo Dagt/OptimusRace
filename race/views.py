@@ -18,7 +18,7 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.db.models import Sum
+from django.db.models import Sum,Q
 from decimal import Decimal, InvalidOperation
 import stripe
 from .models import *
@@ -86,7 +86,10 @@ def signin(request):
             attempt.count+=1; attempt.save()
         if attempt.count>10: messages.error(request,'Demasiados intentos. Espera 15 minutos.')
         else:
-            user=authenticate(request,username=email,password=request.POST.get('password'))
+            # createsuperuser/admin may store a username different from the email.
+            # Reject ambiguous identities rather than choosing somebody's account.
+            candidates=list(User.objects.filter(Q(username__iexact=email)|Q(email__iexact=email))[:2])
+            user=authenticate(request,username=candidates[0].username,password=request.POST.get('password')) if len(candidates)==1 else None
             if user:
                 LoginAttempt.objects.filter(key=key).delete(); login(request,user); return redirect(next_url(request))
             messages.error(request,'Correo o contraseña incorrectos.')
