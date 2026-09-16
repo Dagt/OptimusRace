@@ -68,7 +68,7 @@ class CashParticipantTests(TestCase):
             self.assertEqual(self.client.post(self.url,data).status_code,302)
         entries=list(Registration.objects.order_by('bib'))
         self.assertEqual([entry.amount for entry in entries],[32000]*3)
-        self.assertEqual([entry.batch for entry in entries],[1,1,2])
+        self.assertEqual([entry.batch for entry in entries],[1,1,1])
         self.assertEqual(entries[0].pricing_snapshot['base_amount'],40000)
     def test_reuse_person_public_history_privacy_and_private_drafts(self):
         self.client.post(self.url,self.data());person=Participant.objects.get()
@@ -94,6 +94,23 @@ class CashParticipantTests(TestCase):
         mark=capture(entry.pk,self.admin,0,45,None,'done',0,'')
         self.assertEqual(mark.value,45)
         self.client.logout();self.assertContains(self.client.get(f'/results/participants/{entry.participant_id}/'),'45')
+    def test_historical_batch_never_hides_or_blocks_a_participant(self):
+        self.client.post(self.url,self.data());entry=Registration.objects.get()
+        entry.batch=9;entry.save(update_fields=['batch'])
+        change_phase(self.event.pk,self.admin,'live')
+        self.assertContains(self.client.get(f'/events/{self.event.pk}/coach/'),entry.name)
+        mark=capture(entry.pk,self.admin,0,45,None,'done',0,'')
+        self.assertEqual(mark.value,45)
+        page=self.client.get(f'/events/{self.event.pk}/operations/')
+        self.assertNotContains(page,'Lote');self.assertNotContains(page,'name="batch"')
+    def test_reprocess_saved_original_without_changing_participant_data(self):
+        self.client.post(self.url,self.data());person=Participant.objects.get()
+        previous_photo=person.photo.name;original=person.original_photo.name
+        response=self.client.post(f'/participants/{person.pk}/edit/',{'action':'refresh_photo'})
+        self.assertEqual(response.status_code,302);person.refresh_from_db()
+        self.assertEqual(person.original_photo.name,original)
+        self.assertNotEqual(person.photo.name,previous_photo)
+        self.assertEqual(person.name,'Ana')
     def test_no_public_account_checkout_or_staff_write(self):
         self.client.logout()
         self.assertEqual(self.client.get(self.url).status_code,302)

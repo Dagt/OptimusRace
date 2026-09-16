@@ -1,0 +1,1 @@
+{% if profile.original_photo %}<form method="post" class="refresh-photo-action" data-busy-form>{% csrf_token %}<input type="hidden" name="action" value="refresh_photo"><div><strong>Mejorar la foto guardada</strong><p>Vuelve a ajustar luz y encuadre desde el original, sin tomar otra foto.</p></div><button class="button secondary">Mejorar foto actual</button></form>{% endif %}

@@ -24,19 +24,29 @@ def balance_portrait_light(image,alpha):
     upper=(np.indices(mask.shape)[0] <= ys.min()+(ys.max()-ys.min())*.6)
     samples=luminance[(mask>.8)&upper&(luminance>.05)]
     if len(samples)<100:return image
-    exposure=float(np.clip(.52/max(float(np.percentile(samples,65)),.08),.78,1.35))
+    exposure=float(np.clip(.48/max(float(np.percentile(samples,65)),.08),.65,1.45))
     radius=max(12,min(image.size)*.09)
     def blur(values):
         return np.asarray(Image.fromarray(np.uint8(np.clip(values,0,1)*255)).filter(ImageFilter.GaussianBlur(radius)),dtype=np.float32)/255
     local=blur(luminance*mask)/np.maximum(blur(mask),.01)
     center=float(np.median(samples))
-    correction=np.clip((max(center,.08)/np.maximum(local,.08))**.22,.88,1.12)
+    correction=np.clip((max(center,.08)/np.maximum(local,.08))**.4,.75,1.25)
     adjusted=luminance*exposure*correction
     # Gentle highlight roll-off instead of further clipping bright skin.
     adjusted=np.where(adjusted>.75,.75+(adjusted-.75)*.65,adjusted)
     ratio=adjusted/np.maximum(luminance,.001)
     corrected=np.clip(rgb*ratio[...,None],0,1)
     return Image.fromarray(np.uint8(corrected*255))
+
+def refresh_saved_portrait(person):
+    """Reprocess the preserved source, never repeatedly filter an already edited image."""
+    import uuid
+    from django.core.files.base import ContentFile
+    if not person.original_photo:
+        raise ValidationError('Esta ficha no tiene foto original. Toma una foto nueva.')
+    with person.original_photo.open('rb') as source:
+        result=sports_photo(source)
+    person.photo.save(f'{uuid.uuid4()}.jpg',ContentFile(result),save=True)
 
 MODEL_SHA256='07c308cf0fc7e6e8b2065a12ed7fc07e1de8febb7dc7839d7b7f15dd66584df9'
 MODEL_URL='https://huggingface.co/Xenova/modnet/resolve/fa2fa546052fba4c08921230a26cc69a333fca12/onnx/model.onnx'

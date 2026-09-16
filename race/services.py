@@ -304,7 +304,7 @@ def capture(reg_id,actor,test,value,load,status,revision,reason,administrative=F
     if r.attendance=='disqualified':raise ValidationError('El participante está descalificado.')
     correction=administrative and actor.is_superuser and reason.strip()
     if not 0<=test<len(e.rules['tests']): raise ValidationError('Prueba inválida.')
-    if e.status!='live' or (not correction and (test!=e.active_test or r.batch!=e.active_batch)): raise ValidationError('La prueba o el lote activo cambió. Actualiza la pantalla.')
+    if e.status!='live' or (not correction and test!=e.active_test): raise ValidationError('La prueba activa cambió. Actualiza la pantalla.')
     if r.state!='confirmed' or (r.attendance!='present' and not correction): raise ValidationError('El atleta debe tener recepción confirmada y estar presente.')
     if status not in ['done','absent','withdrawn','pending']: raise ValidationError('Estado inválido.')
     existing=Result.objects.filter(registration=r,test=test).first()
@@ -368,9 +368,7 @@ def register_person_cash(event_id,person,actor,weight,discount_code='',request_k
     quote=quote_price(event,discount_code)
     amount=quote['amount']
     bib=(Registration.objects.filter(event=event).aggregate(m=Max('bib'))['m'] or 0)+1
-    group_size=int(event.rules.get('group_size') or 10)
-    if group_size<1:raise ValidationError('Revisa el tamaño de los grupos del evento.')
-    batch=(bib-1)//group_size+1
+    batch=1  # Historical field only; capture includes every confirmed participant.
     entry=Registration.objects.create(request_key=request_key,event=event,participant=person,name=person.full_name,sex=person.sex,birth_date=person.birth_date,bib=bib,state='confirmed',weight=weight,category=category_name,batch=batch,attendance='present',amount=amount,method='cash',paid_by=actor,paid_at=timezone.now(),pricing_code=quote['discount_code'],pricing_snapshot=quote)
     audit(event,actor,'cash_registration',{'registration':entry.pk,'participant':person.pk,'amount':amount,'weight':weight,'category':category_name})
     return entry

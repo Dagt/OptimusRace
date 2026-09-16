@@ -1,0 +1,24 @@
+{% load race_labels %}
+<section data-pane="reception" hidden>
+  <div class="section-heading"><div><h2>Participantes inscritos</h2><p>Consulta su ficha o corrige el peso y la asistencia.</p></div><label class="search-box">{% icon 'search' %}<input type="search" placeholder="Nombre o número" data-search-list="reception-list" aria-label="Buscar inscripción"></label></div>
+  <div class="reception-list" id="reception-list">
+    {% for r in entries %}
+    <details class="participant-entry" data-search-item data-search="{{ r.name }} P{{ r.participant_id }} {{ r.bib }}">
+      <summary><span class="avatar">{% if r.participant.photo %}<img src="{{ r.participant.photo.url }}" alt="Foto de {{ r.name }}" loading="lazy">{% else %}{{ r.name|initials }}{% endif %}</span><span class="participant-entry-name"><strong>{{ r.name }}</strong><small>#{{ r.bib|stringformat:'03d' }} · {{ r.category|default:'Sin pesaje' }}</small></span><span class="pill">{{ r.attendance|state_label }}</span>{% icon 'edit' %}</summary>
+      <div class="participant-entry-body">
+        <div class="participant-entry-links">{% if r.participant_id %}<a class="button secondary small" href="{% url 'participant_edit' r.participant_id %}">Editar ficha y foto</a><a class="button secondary small" href="{% url 'public_participant' r.participant_id %}">Ver historial</a>{% endif %}<span>{{ r.state|state_label }}</span></div>
+        <form method="post" class="participant-correction" data-busy-form>{% csrf_token %}<input type="hidden" name="action" value="reception"><input type="hidden" name="tab" value="reception"><input type="hidden" name="registration" value="{{ r.id }}"><input type="hidden" name="revision" value="{{ r.revision }}">
+          <label>Peso registrado · kg<input type="number" step="any" min="0.01" name="weight" value="{{ r.weight|numeric }}" required></label>
+          <label>Asistencia<select name="attendance">{% if r.attendance == 'disqualified' %}<option selected value="disqualified">Descalificado</option>{% endif %}<option value="present" {% if r.attendance == 'present' %}selected{% endif %}>Presente</option><option value="absent" {% if r.attendance == 'absent' %}selected{% endif %}>Ausente</option><option value="withdrawn" {% if r.attendance == 'withdrawn' %}selected{% endif %}>Retirado</option></select></label>
+          {% if r.marks %}<label>Motivo de la corrección<input name="reason" placeholder="Explica el cambio de peso"></label>{% endif %}
+          <button class="button" {% if r.state != 'confirmed' or event.status == 'closed' %}disabled{% endif %}>Guardar cambios</button>
+        </form>
+        {% if r.marks %}<p class="field-help">Cambiar el peso recalcula categoría y referencias. Las cargas usadas se conservan.</p>{% endif %}
+        {% if event.status != 'closed' and r.state == 'confirmed' %}
+        <details class="participant-discipline"><summary>{% if r.attendance == 'disqualified' %}Corregir descalificación{% else %}Descalificar participante{% endif %}</summary><form method="post">{% csrf_token %}<input type="hidden" name="action" value="discipline"><input type="hidden" name="registration" value="{{ r.id }}"><input type="hidden" name="revision" value="{{ r.revision }}"><input type="hidden" name="disqualified" value="{% if r.attendance == 'disqualified' %}0{% else %}1{% endif %}"><label>Motivo de la decisión<input name="reason" required maxlength="300"></label><button class="button secondary small">Confirmar decisión</button></form></details>
+        {% endif %}
+      </div>
+    </details>
+    {% empty %}<div class="empty-state panel"><h3>Aún no hay participantes inscritos.</h3></div>{% endfor %}
+  </div>
+</section>

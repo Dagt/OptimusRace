@@ -109,3 +109,10 @@ class PortraitIntegrationTests(TestCase):
             profile=Profile.objects.get(user=admin)
             with Image.open(profile.photo.path) as saved:self.assertEqual(saved.size,(600,750))
             self.assertTrue(profile.original_photo)
+            old_photo=profile.photo.name;original=profile.original_photo.name
+            response=self.client.post('/profile/',{'action':'refresh_photo'})
+            self.assertRedirects(response,'/profile/')
+            profile.refresh_from_db()
+            self.assertNotEqual(profile.photo.name,old_photo)
+            self.assertEqual(profile.original_photo.name,original)
+            with Image.open(profile.photo.path) as saved:self.assertEqual(saved.size,(600,750))

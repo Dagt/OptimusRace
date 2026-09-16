@@ -66,6 +66,14 @@ def participants(request):
 @administrator
 def edit_person(request,pk):
     person=get_object_or_404(Participant,pk=pk)
+    if request.method=='POST' and request.POST.get('action')=='refresh_photo':
+        from .portrait import refresh_saved_portrait
+        try:
+            refresh_saved_portrait(person)
+            messages.success(request,'Foto mejorada desde el original. Revisa el nuevo retrato.')
+        except (ValidationError,OSError) as exc:
+            messages.error(request,' '.join(exc.messages) if isinstance(exc,ValidationError) else 'No se pudo leer la foto original. Toma una foto nueva.')
+        return redirect('participant_edit',pk=pk)
     form=PersonForm(request.POST or None,request.FILES or None,instance=person)
     if request.method=='POST' and form.is_valid():
         with transaction.atomic():
@@ -105,7 +113,7 @@ def desk_register(request,pk):
                 saved.save()
                 entry=register_person_cash(event.pk,saved,request.user,form.cleaned_data['weight'],form.cleaned_data.get('discount_code',''),payload['key'])
                 if request.FILES.get('photo'):save_photo(saved,photo,form.cleaned_data.get('original_photo'))
-            messages.success(request,f'Inscripción confirmada: P{saved.pk} · dorsal #{entry.bib}. Grupo {entry.batch} asignado automáticamente. Foto, peso y efectivo registrados. Consulta su historial sin cuenta ni contraseña.')
+            messages.success(request,f'Inscripción confirmada: P{saved.pk} · número de participante #{entry.bib}. Foto, peso y efectivo registrados. Consulta su historial sin cuenta ni contraseña.')
             return redirect('operations',pk=event.pk)
         except ValidationError as exc:form.add_error(None,exc)
         except IntegrityError:

@@ -202,12 +202,12 @@ def operations(request,pk):
     if request.method=='POST':
         try:
             action=request.POST['action']
-            if action=='phase': change_phase(pk,request.user,request.POST['phase'],int(request.POST.get('test',0)),int(request.POST.get('batch',1)))
+            if action=='phase': change_phase(pk,request.user,request.POST['phase'],int(request.POST.get('test',0)),1)
             elif action=='cash':
                 raise ValidationError('Usa Inscribir en mostrador para registrar participante, foto, peso y efectivo juntos.')
             elif action=='reception':
                 r=get_object_or_404(Registration,pk=request.POST['registration'],event=e)
-                check_in(r.id,request.user,request.POST['weight'],request.POST['batch'],request.POST['attendance'],request.POST.get('reason',''),int(request.POST['revision']))
+                check_in(r.id,request.user,request.POST['weight'],r.batch,request.POST['attendance'],request.POST.get('reason',''),int(request.POST['revision']))
             elif action=='correct':
                 r=get_object_or_404(Registration,pk=request.POST['registration'],event=e)
                 capture(r.id,request.user,int(request.POST['test']),request.POST.get('value'),request.POST.get('load'),request.POST['status'],int(request.POST['revision']),request.POST.get('reason',''),administrative=True,judged_points=request.POST.get('judged_points'))
@@ -265,7 +265,7 @@ def coach(request,pk):
     if not e.rules.get('tests'):
         messages.info(request,'Agrega estaciones antes de abrir la captura.');return redirect('operations',pk=pk)
     rows=[]
-    for r in Registration.objects.filter(event=e,state='confirmed',batch=e.active_batch).order_by('bib'):
+    for r in Registration.objects.filter(event=e,state='confirmed').order_by('bib'):
         rows.append({'entry':r,'mark':Result.objects.filter(registration=r,test=e.active_test).first(),'suggested':load_for(e.rules['tests'][e.active_test],r.weight) if e.rules.get('schema_version')==2 else suggested_load(e,r.weight)})
     if e.rules['tests'][e.active_test].get('scoring')=='relative':
         computed={item['id']:item for item in board(e)}
@@ -290,6 +290,14 @@ def live_data(request,pk):
 def profile(request):
     if request.user.is_superuser or request.user.groups.filter(name='Coach').exists():
         person=Profile.objects.filter(user=request.user).first() or Profile(user=request.user,sex='')
+        if request.method=='POST' and request.POST.get('action')=='refresh_photo':
+            from .portrait import refresh_saved_portrait
+            try:
+                refresh_saved_portrait(person)
+                messages.success(request,'Foto mejorada desde el original.')
+            except (ValidationError,OSError) as exc:
+                messages.error(request,' '.join(exc.messages) if isinstance(exc,ValidationError) else 'No se pudo leer el original. Toma una foto nueva.')
+            return redirect('profile')
         form=ParticipantPhotoForm(request.POST or None,request.FILES or None,instance=person)
         if request.method=='POST' and form.is_valid():
             if not person.pk:person.save()
