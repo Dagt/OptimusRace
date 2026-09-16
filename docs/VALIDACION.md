@@ -32,3 +32,12 @@ Verificación de navegador en servidor y base SQLite aislados (puerto 8001): acc
 77 pruebas automatizadas aprobadas. Nuevas comprobaciones: desglose de lugares, exclusión de reservas expiradas, ajuste de cupo con ocupación mínima y permisos, elección del próximo evento, privacidad de borradores, subida/limpieza de foto, conversión JPEG, imagen inválida y retorno seguro. Prueba independiente de concurrencia: 8 solicitudes, 1 lugar, exactamente 1 confirmación.
 
 Recorrido de navegador en base y medios aislados: countdown activo, desglose 24/25, selección de archivo, vista previa, guardar foto y avatar visible en Usuarios y equipo. No se activó la cámara física del usuario en la revisión; requiere su permiso y dispositivo compatible.
+
+
+## Puntuación relativa y desempates (15 septiembre 2026)
+
+90 pruebas automatizadas aprobadas. Cobertura: extremos por categoría, mayor/menor mejor, empate completo y participante único, marcas cero, faltantes, descalificación, cambio de categoría, correcciones, decisiones obsoletas, permisos, formularios HTTP de desempate/cierre, campeón único y resultados congelados. También se verificó que la evolución separe protocolos físicos distintos.
+
+Navegador con base aislada: login, resultados provisionales, registro de destreza/juez/orden y clasificación actualizada; los empatados conservaron 100 puntos y recibieron posiciones 1 y 2. La confirmación de cierre bloqueó la herramienta del navegador; el cierre completo, rechazo de empates pendientes y etiqueta de campeón se comprobaron mediante la prueba HTTP automatizada, no como recorrido visual completado.
+
+Arranque limpio aprobado sin usuarios/eventos/inscripciones operativos. Migración 0005 aplicada localmente tras backup verificado. JavaScript comprobado con node --check, Django check sin problemas y archivos estáticos recopilados. No se cargaron eventos de ejemplo en la base local de trabajo.

@@ -1,39 +1,34 @@
-# Puntuación: confirmado y lo que falta precisar
+# Puntuación relativa y desempates
 
-## Ya confirmado; no volver a preguntar
+## Regla implementada
 
-La convocatoria establece cuatro capacidades, ocho estaciones de hasta 12.5 puntos cada una (100 total), un intento por estación, orden de estaciones, carga de fuerza del 75% del peso corporal, participantes desde 16 años y categorías por peso/sexo. Todos reciben medalla y solo el primer lugar por categoría recibe pin. El cliente añadió que se evaluará conforme al mejor y peor resultado y que los empates se resolverán con una destreza sorpresa elegida en cada evento.
+Cada estación compara marcas realizadas dentro de la misma categoría y evento. El mejor resultado recibe el máximo configurado; el peor, cero; las marcas intermedias reciben puntos proporcionales.
 
-## Propuesta concreta para confirmar con el cliente
+- Mayor es mejor: `máximo × (marca − peor) / (mejor − peor)`.
+- Menor es mejor: `máximo × (peor − marca) / (peor − mejor)`.
+- Si todos tienen la misma marca o hay un único participante con marca válida, reciben el máximo.
+- Pruebas no realizadas y descalificados no determinan extremos; no aportan puntos.
+- Una marca válida de cero sí participa en la comparación.
 
-“Proponemos comparar cada estación entre participantes de la misma categoría. El mejor resultado recibiría 12.5 puntos; el peor, 0; las marcas intermedias se repartirían proporcionalmente. Los puntos se recalcularían mientras faltan resultados y quedarían fijados al cerrar el evento. ¿Es esa la interpretación que desean? Si todos logran la misma marca o solo hay un participante en la categoría, ¿les asignamos el máximo por igual? ¿Una estación no realizada queda sin puntos y sin usarse para calcular el mejor y peor?”
+Ejemplo: 20, 30 y 40 repeticiones con máximo 12.5 producen 0, 6.25 y 12.5 puntos. Cero describe la posición relativa en ese grupo, no ausencia de capacidad física.
 
-Esta confirmación define lo que ‘mejor y peor’ no resuelve. No necesita volver a pedir el número de intentos, premios ni las estaciones que ya aparecen en la convocatoria.
+Los puntos se recalculan al capturar o corregir marcas, cambiar categoría o descalificar. Son provisionales hasta cerrar el evento. Se calculan con seis decimales por estación y cuatro en el total; los empates se determinan por ese total. La presentación habitual muestra dos decimales.
 
-## Fórmula propuesta, aún no aplicada como regla oficial
+## Flujo administrativo
 
-Para repeticiones, distancia o altura (mayor es mejor):
+1. Crear ejercicios en **Catálogo de pruebas**, con unidad, dirección, duración, recorrido, carga y protocolo.
+2. Crear evento vacío y agregar sus estaciones. Elegir **Relativa: mejor y peor de la categoría**. Los máximos deben sumar 100. También siguen disponibles referencias lineales y puntos del juez.
+3. Configurar categorías, fechas, cupo, edad, tarifas y descuentos; publicar.
+4. Inscribir, confirmar recepción/peso y comenzar competencia. El coach registra marcas originales y carga cuando corresponda.
+5. En **Operación → Resultados → Desempates por categoría**, registrar destreza, juez, resultado observado y una posición distinta para cada empatado. La posición 1 corresponde al ganador de ese grupo empatado.
+6. Revisar completitud y resolver empates del podio. En **Resumen → Cerrar edición y fijar resultados**, cerrar: se conserva la clasificación final y se identifica al campeón de cada categoría para el pin. No hay reapertura.
 
-`puntos = máximo × (marca − peor) / (mejor − peor)`
+La destreza sorpresa solo cambia posiciones entre empatados: no cambia las marcas, los puntos ni el radar. Si cambian las marcas o participantes de la categoría, la decisión anterior deja de ser vigente y debe revisarse. Se conserva auditoría de las decisiones. El cierre de eventos con puntuación relativa exige resolver los empates que afecten los primeros tres lugares; permite conservar faltantes explícitos.
 
-Para tiempos (menor es mejor):
+## Gráficos
 
-`puntos = máximo × (peor − marca) / (peor − mejor)`
+- Radar: desempeño relativo de 0 a 100, ponderado por los máximos de las estaciones de cada capacidad. Con máximos iguales equivale al promedio. Identifica puntos provisionales.
+- Evolución: marcas originales; separa ejercicios con distinta duración, recorrido, carga prescrita, equipo o protocolo. Muestra la carga real registrada.
+- Un aumento de puntos entre eventos puede deberse al grupo de competidores. No representa por sí solo mejora física ni un percentil.
 
-Ejemplo: peor = 20 repeticiones, mejor = 40, máximo = 12.5. Las marcas 20 / 30 / 40 reciben 0 / 6.25 / 12.5 puntos. Ser el peor de una categoría fuerte no significa no tener capacidad física: cero representa la posición relativa en ese grupo.
-
-Si mejor = peor, las fórmulas dividen entre cero. El caso debe tener una regla explícita. La propuesta es mismo máximo para los empatados o participante único, con indicador de que no hubo dispersión. No se ha asumido esa decisión por el cliente.
-
-## Gráficos recomendados
-
-- Radar del evento: normalizar cada estación relativa a 0–100 y promediar dentro de cada capacidad. Etiqueta: “Desempeño relativo en tu categoría”. Los valores son provisionales durante la captura.
-- Evolución personal: usar marcas originales, conservando unidad, duración, recorridos, carga y protocolo. Un mejor puntaje en otro evento puede deberse al grupo, no a una mejora física.
-- Si se requiere un radar comparable de condición física entre años, acordar referencias estables independientes de los competidores. No inventar benchmarks ni llamar a un percentil condición física absoluta.
-
-## Desempate sorpresa
-
-Debe registrarse como decisión separada: evento, categoría, atletas empatados, destreza, resultado, ganador, juez y fecha. Determina campeón/pin y orden de puestos, pero no modifica las ocho marcas ni añade una novena dimensión al radar. Su implementación se definirá con el flujo de puntuación relativa; por ahora el motor conserva empates.
-
-## Estado del sistema
-
-Se conservan las opciones existentes de puntuación lineal por referencias o puntos del juez. La fórmula relativa, su recálculo y el registro del desempate descritos aquí son una propuesta; no se han activado como política oficial.
+No se inventaron referencias físicas absolutas ni se cargaron eventos predefinidos. Los datos de la convocatoria son una referencia de lo que el organizador puede configurar. La medalla para todos y el pin para el campeón no requieren modificar el puntaje.

@@ -29,6 +29,8 @@ from .policy_forms import PolicyForm
 from .forms import BirthDateField,ParticipantPhotoForm
 from .photos import save_photo
 from .availability import availability,set_capacity
+from .relative_scoring import is_relative,tie_groups,resolve_tie
+from .progress import comparison_key,comparison_label
 
 def next_url(request):
     target=request.POST.get('next',request.GET.get('next','/'))
@@ -121,7 +123,7 @@ def event_detail(request,pk):
     if e.status=='draft' and not request.user.is_superuser: return HttpResponseForbidden()
     entry=Registration.objects.filter(event=e,user=request.user).first() if request.user.is_authenticated else None
     seats=availability(e);occupied=seats['occupied']
-    return render(request,'event.html',{'event':e,'seats':seats,'server_now':timezone.now().isoformat(),'entry':entry,'board':board(e),'occupied':occupied,'remaining':max(0,e.capacity-occupied),'can_enroll':registration_open(e),'online_enrollment':e.rules.get('online_payments',True),'stripe_ready':bool(settings.STRIPE_SECRET_KEY),'payment_mode':settings.STRIPE_MODE})
+    return render(request,'event.html',{'event':e,'seats':seats,'server_now':timezone.now().isoformat(),'entry':entry,'board':board(e),'relative_scoring':is_relative(e),'occupied':occupied,'remaining':max(0,e.capacity-occupied),'can_enroll':registration_open(e),'online_enrollment':e.rules.get('online_payments',True),'stripe_ready':bool(settings.STRIPE_SECRET_KEY),'payment_mode':settings.STRIPE_MODE})
 
 @login_required
 @require_POST
@@ -205,6 +207,12 @@ def operations(request,pk):
             elif action=='correct':
                 r=get_object_or_404(Registration,pk=request.POST['registration'],event=e)
                 capture(r.id,request.user,int(request.POST['test']),request.POST.get('value'),request.POST.get('load'),request.POST['status'],int(request.POST['revision']),request.POST.get('reason',''),administrative=True,judged_points=request.POST.get('judged_points'))
+            elif action=='tiebreak':
+                ids=[int(value) for value in request.POST.getlist('member')]
+                places=[int(value) for value in request.POST.getlist('place')]
+                if len(ids)!=len(places) or set(places)!=set(range(1,len(ids)+1)):raise ValidationError('Asigna una posición distinta a cada participante empatado.')
+                order=[member for place,member in sorted(zip(places,ids))]
+                resolve_tie(pk,request.user,request.POST['category'],float(request.POST['total']),order,request.POST['fingerprint'],request.POST.get('challenge',''),request.POST.get('details',''),request.POST.get('judge',''))
             elif action=='capacity':
                 set_capacity(pk,request.user,int(request.POST['capacity']),request.POST.get('reason',''))
             elif action=='discipline':
@@ -229,12 +237,17 @@ def operations(request,pk):
         r.marks=[{'mark':m,'test_name':e.rules['tests'][m.test]['name'],'unit':e.rules['tests'][m.test]['unit'],'strength':needs_load(e.rules['tests'][m.test]),'scoring':e.rules['tests'][m.test].get('scoring'),'max_points':e.rules['tests'][m.test].get('max_points',100)} for m in r.result_set.all()]
     confirmed=[r for r in entries if r.state=='confirmed']
     summary={'registered':len(confirmed),'present':sum(r.attendance=='present' for r in confirmed),'pending':sum(r.attendance=='pending' for r in confirmed),'remaining':max(0,e.capacity-sum(r.state in ['confirmed','reserved'] for r in entries)),'cash':sum(r.amount for r in confirmed if r.method=='cash'),'stripe':sum(r.amount for r in confirmed if r.method=='stripe')}
+    standings=board(e)
+    ties=tie_groups(standings) if e.status!='closed' else []
+    for group in ties:
+        group['positions']=range(1,len(group['members'])+1)
+        group['resolved']=not any(row.get('tie_pending') for row in group['members'])
     publish_issues=[]
     if e.status=='draft':
         try:validate_rules(e.rules);validate_policies(e.rules,e)
         except ValidationError as exc:publish_issues.extend(exc.messages)
         if not e.capacity:publish_issues.append('Define el cupo de participantes.')
-    return render(request,'operations.html',{'event':e,'seats':availability(e),'publish_issues':publish_issues,'can_cash':registration_open(e,onsite=True),'entries':entries,'summary':summary,'board':board(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
+    return render(request,'operations.html',{'event':e,'seats':availability(e),'publish_issues':publish_issues,'can_cash':registration_open(e,onsite=True),'entries':entries,'summary':summary,'board':standings,'ties':ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
 
 @staff
 def coach(request,pk):
@@ -243,13 +256,17 @@ def coach(request,pk):
         try:
             reg=get_object_or_404(Registration,pk=request.POST['registration'],event=e)
             m=capture(reg.id,request.user,int(request.POST['test']),request.POST.get('value'),request.POST.get('load'),request.POST['status'],int(request.POST['revision']),request.POST.get('reason',''),judged_points=request.POST.get('judged_points'))
-            return JsonResponse({'ok':True,'points':m.points,'revision':m.revision,'status':m.status})
+            return JsonResponse({'ok':True,'points':m.points,'revision':m.revision,'status':m.status,'provisional':e.rules['tests'][int(request.POST['test'])].get('scoring')=='relative'})
         except (ValidationError,ValueError,KeyError) as exc: return JsonResponse({'ok':False,'error':' '.join(exc.messages) if isinstance(exc,ValidationError) else 'Datos inválidos.'},status=400)
     if not e.rules.get('tests'):
         messages.info(request,'Agrega estaciones antes de abrir la captura.');return redirect('operations',pk=pk)
     rows=[]
     for r in Registration.objects.filter(event=e,state='confirmed',batch=e.active_batch).order_by('bib'):
         rows.append({'entry':r,'mark':Result.objects.filter(registration=r,test=e.active_test).first(),'suggested':load_for(e.rules['tests'][e.active_test],r.weight) if e.rules.get('schema_version')==2 else suggested_load(e,r.weight)})
+    if e.rules['tests'][e.active_test].get('scoring')=='relative':
+        computed={item['id']:item for item in board(e)}
+        for row in rows:
+            if row['mark']:row['mark'].points=computed[row['entry'].pk]['marks'][e.active_test]['points']
     complete=sum(1 for row in rows if row['mark'] and row['mark'].status=='done')
     return render(request,'coach.html',{'event':e,'test':e.rules['tests'][e.active_test],'requires_load':needs_load(e.rules['tests'][e.active_test]),'rows':rows,'complete':complete,'pending':len(rows)-complete})
 
@@ -261,7 +278,7 @@ def tv(request,pk):
 def live_data(request,pk):
     e=get_object_or_404(Event,pk=pk)
     if e.status=='draft': return HttpResponseForbidden()
-    response=JsonResponse({'status':e.get_status_display(),'phase':e.status,'test':e.rules['tests'][e.active_test]['name'],'test_index':e.active_test,'batch':e.active_batch,'board':board(e),'updated':timezone.now().isoformat()})
+    response=JsonResponse({'status':e.get_status_display(),'phase':e.status,'test':e.rules['tests'][e.active_test]['name'],'test_index':e.active_test,'relative_scoring':is_relative(e),'batch':e.active_batch,'board':board(e),'updated':timezone.now().isoformat()})
     response['Cache-Control']='no-store'
     return response
 
@@ -278,7 +295,7 @@ def profile(request):
         row=next((x for x in board(r.event) if x['id']==r.id),None)
         history.append({'entry':r,'row':row})
     selected=next((h for h in history if str(h['entry'].event_id)==request.GET.get('event')),history[0] if history else None)
-    chart_history=[{'id':h['entry'].event_id,'name':h['entry'].event.name,'date':h['entry'].event.date.isoformat(),'label':timezone.localtime(h['entry'].event.date).strftime('%d %b %Y'),'version':h['entry'].event.version,'demo':h['entry'].event.demo,'rules':h['entry'].event.rules['tests'],'row':h['row']} for h in reversed(history)]
+    chart_history=[{'id':h['entry'].event_id,'name':h['entry'].event.name,'date':h['entry'].event.date.isoformat(),'label':timezone.localtime(h['entry'].event.date).strftime('%d %b %Y'),'version':h['entry'].event.version,'demo':h['entry'].event.demo,'rules':[{**test,'comparison_key':comparison_key(test),'comparison_label':comparison_label(test)} for test in h['entry'].event.rules['tests']],'row':h['row'],'relative':is_relative(h['entry'].event),'closed':h['entry'].event.status=='closed'} for h in reversed(history)]
     return render(request,'profile.html',{'profile':p,'form':form,'history':history,'selected':selected,'chart_history':chart_history})
 
 @administrator

@@ -36,7 +36,7 @@ El administrador puede descalificar con motivo. Se conserva el historial y se ex
 
 Las ediciones anteriores conservan su cálculo original; las nuevas guardan puntos por estación y suman el total. El radar y la comparación de puntos se normalizan a 0–100 y las marcas originales permanecen disponibles. El catálogo no modifica copias guardadas en eventos.
 
-Capacidades disponibles: Fuerza, Resistencia, Velocidad, Potencia. Una métrica principal por estación, unidades libres, moneda MXN, un descuento por inscripción. No hay agregación de múltiples intentos ni penalizaciones automáticas sin reglas acordadas. Consultar PREGUNTAS_PUNTUACION.md para especificar la escala oficial.
+Capacidades disponibles: Fuerza, Resistencia, Velocidad, Potencia. Una métrica principal por estación, unidades libres, moneda MXN, un descuento por inscripción. No hay agregación de múltiples intentos ni penalizaciones automáticas sin reglas acordadas. La puntuación relativa y los desempates están implementados; consultar PREGUNTAS_PUNTUACION.md para fórmulas y operación.
 
 ## Identidad visual
 

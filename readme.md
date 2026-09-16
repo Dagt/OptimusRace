@@ -89,7 +89,7 @@ La foto es opcional en el perfil. Peso, categoría de peso, lote y asistencia co
 El alta de evento inicia sin plantilla. El catálogo describe tipo de resultado, duración, recorridos, carga, protocolo y límites; cada evento guarda su propia copia. Permite estaciones ordenables, máximos que suman 100, categorías, límites de edad, horarios, tarifas por fecha y descuentos con vigencia/usos. Conserva el cálculo y las reglas de las ediciones anteriores.
 
 - [Guía de configuración flexible](docs/CONFIGURACION_FLEXIBLE.md)
-- [Preguntas para acordar la puntuación con el cliente](docs/PREGUNTAS_PUNTUACION.md)
+- [Guía de puntuación relativa y desempates](docs/PREGUNTAS_PUNTUACION.md)
 
 La paleta usa negro, amarillo y blanco, manteniendo el diseño existente. Tras actualizar ejecutar `python manage.py migrate` y `python manage.py collectstatic --noinput`.
 
@@ -97,3 +97,8 @@ La paleta usa negro, amarillo y blanco, manteniendo el diseño existente. Tras a
 ## Cupo, countdown y fotos
 
 Disponible el desglose actualizado de cupo/confirmados/reservas/lugares libres, ajustes auditados sin desplazar inscritos, cuenta regresiva al próximo evento publicado y fotos por archivo o cámara desde perfil, usuarios y recepción. [Guía de uso](docs/CUPO_Y_FOTOS.md).
+
+
+## Puntuación relativa y cierre
+
+En cada estación puedes elegir evaluación relativa al mejor/peor de la categoría. Se recalcula durante la competencia, excluye faltantes/descalificados y fija los resultados al cerrar. Operación → Resultados permite documentar la destreza sorpresa y ordenar empatados sin alterar puntos. El radar identifica desempeño relativo y la evolución separa protocolos físicos distintos. [Fórmulas y flujo completo](docs/PREGUNTAS_PUNTUACION.md).

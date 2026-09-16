@@ -101,3 +101,16 @@ class LoginAttempt(models.Model):
     key = models.CharField(max_length=64,unique=True)
     count = models.PositiveIntegerField(default=0)
     until = models.DateTimeField()
+
+
+class TieBreak(models.Model):
+    event = models.ForeignKey(Event,on_delete=models.PROTECT)
+    category = models.CharField(max_length=100)
+    total = models.FloatField()
+    order = models.JSONField(default=list)
+    fingerprint = models.CharField(max_length=64)
+    challenge = models.CharField(max_length=150)
+    details = models.TextField()
+    judge = models.CharField(max_length=150)
+    actor = models.ForeignKey(User,on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)

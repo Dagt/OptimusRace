@@ -9,6 +9,7 @@ from django.conf import settings
 import stripe
 from .event_policy import current_price, validate_eligibility,validate_policies,quote_price,registration_open,instant
 from .exercise_parameters import validate_parameters,validate_mark,needs_load,load_for
+from .relative_scoring import relative_points,is_relative,apply_tiebreaks
 from .models import Event, Registration, Result, Audit, Payment, Webhook
 
 CAPACITIES = ['Fuerza','Resistencia','Velocidad','Potencia']
@@ -36,9 +37,12 @@ def validate_rules(rules, complete=True):
         for t in tests:
             if not t['name'].strip() or not t['unit'].strip() or not isinstance(t['higher'],bool): raise ValidationError('Nombre, unidad y dirección obligatorios.')
             method=t.get('scoring','linear')
-            if method not in ['pending','linear','judge']:raise ValidationError('Método de puntuación inválido.')
+            if method not in ['pending','linear','judge','relative']:raise ValidationError('Método de puntuación inválido.')
             if method=='pending':
                 if complete:raise ValidationError(f"Confirma la escala de puntuación de {t['name']}.")
+                continue
+            if method=='relative':
+                if not modern:raise ValidationError('La puntuación relativa requiere un evento con reglas versión 2.')
                 continue
             if method=='judge':
                 if complete and not rules.get('judging_standard','').strip():raise ValidationError('Describe la escala acordada con los jueces antes de publicar.')
@@ -74,6 +78,7 @@ def validate_rules(rules, complete=True):
 def score(value, test, judged_points=None):
     value = number(value)
     maximum=number(test.get('max_points',100),.01)
+    if test.get('scoring')=='relative':return None
     if test.get('scoring')=='pending':raise ValidationError('La escala de jueces todavía está pendiente.')
     if test.get('scoring')=='judge':
         points=number(judged_points)
@@ -103,18 +108,36 @@ def audit(event,actor,action,details):
 
 def board(event):
     if event.status == 'closed': return event.final_board
-    rows=[]
-    for r in Registration.objects.filter(event=event,state='confirmed').order_by('bib').prefetch_related('result_set'):
-        marks = {m.test:m for m in r.result_set.all()}
-        done = [m for m in marks.values() if m.status=='done']
-        modern=event.rules.get('schema_version',1)==2
-        capacities = {c:round(100*sum((marks[i].points or 0) for i,t in enumerate(event.rules['tests']) if t['capacity']==c and i in marks)/(sum(t.get('max_points',100) for t in event.rules['tests'] if t['capacity']==c) or 1),2) for c in CAPACITIES}
-        details = [{'test':t['name'],'unit':t['unit'],'capacity':t['capacity'],'value':marks[i].value if i in marks else None,'points':marks[i].points if i in marks else None,'max_points':t.get('max_points',100),'normalized_points':round(100*marks[i].points/t.get('max_points',100),4) if i in marks and marks[i].points is not None else None,'status':marks[i].status if i in marks else 'pending','load':marks[i].load if i in marks else None} for i,t in enumerate(event.rules['tests'])]
-        rows.append({'id':r.id,'user_id':r.user_id,'name':r.name,'bib':r.bib,'category':r.category or 'Sin pesaje','batch':r.batch,'attendance':r.attendance,'total':round(sum(m.points for m in done)/(1 if modern else len(event.rules['tests'])),4),'completed':len(done),'test_count':len(event.rules['tests']),'capacities':capacities,'marks':details,'rank':None})
+    rows=[];modern=event.rules.get('schema_version',1)==2
+    entries=list(Registration.objects.filter(event=event,state='confirmed').order_by('bib').prefetch_related('result_set'))
+    marks_by_entry={r.pk:{m.test:m for m in r.result_set.all()} for r in entries}
+    pools={}
+    for r in entries:
+        if not r.category or r.attendance=='disqualified':continue
+        for i,m in marks_by_entry[r.pk].items():
+            if m.status=='done' and m.value is not None:pools.setdefault((r.category,i),[]).append(m.value)
+    ranges={key:[min(values),max(values)] for key,values in pools.items()}
+    for r in entries:
+        marks=marks_by_entry[r.pk];details=[]
+        for i,t in enumerate(event.rules['tests']):
+            m=marks.get(i);maximum=t.get('max_points',100);points=m.points if m and m.status=='done' else None
+            relative=t.get('scoring')=='relative'
+            if relative:
+                points=relative_points(m.value,ranges.get((r.category,i),[]),maximum,t['higher']) if m and m.status=='done' and m.value is not None and r.category and r.attendance!='disqualified' else None
+            details.append({'test':t['name'],'unit':t['unit'],'capacity':t['capacity'],'value':m.value if m else None,'points':points,'max_points':maximum,
+                            'normalized_points':round(100*points/maximum,4) if points is not None else None,'status':m.status if m else 'pending','load':m.load if m else None,
+                            'revision':m.revision if m else 0,'relative':relative,'provisional':relative,'sample_size':len(pools.get((r.category,i),[])) if relative else None})
+        capacities={c:round(100*sum(m['points'] or 0 for m in details if m['capacity']==c)/(sum(m['max_points'] for m in details if m['capacity']==c) or 1),2) for c in CAPACITIES}
+        done=sum(m['status']=='done' for m in details)
+        rows.append({'id':r.id,'user_id':r.user_id,'name':r.name,'bib':r.bib,'category':r.category or 'Sin pesaje','batch':r.batch,'attendance':r.attendance,
+                     'total':round(sum(m['points'] or 0 for m in details)/(1 if modern else (len(details) or 1)),4),'completed':done,'test_count':len(details),
+                     'capacities':capacities,'marks':details,'rank':None,'relative':is_relative(event),'provisional':is_relative(event),'tie_pending':False,'champion':False})
     rows.sort(key=lambda r:(r['attendance']=='disqualified',-r['total'],r['bib']))
     for row in rows:
         if row['category']!='Sin pesaje' and row['completed'] and row['attendance']!='disqualified':
             row['rank']=1+sum(other['attendance']!='disqualified' and other['category']==row['category'] and other['completed']>0 and other['total']>row['total'] for other in rows)
+    apply_tiebreaks(event,rows)
+    rows.sort(key=lambda r:(r['attendance']=='disqualified',-r['total'],r['rank'] if r['rank'] is not None else float('inf'),r['bib']))
     return rows
 
 @transaction.atomic
@@ -142,7 +165,14 @@ def change_phase(event_id, actor, phase, test=0,batch=1):
         e.active_test=test; e.active_batch=batch
     if phase=='closed':
         if Registration.objects.filter(event=e,state='reserved').exists(): raise ValidationError('Resuelve las reservas de pago antes de cerrar.')
-        e.final_board=board(e); e.closed_at=timezone.now()
+        frozen=board(e)
+        if is_relative(e) and any(r['tie_pending'] and r['rank']<=3 for r in frozen if r['rank'] is not None):raise ValidationError('Resuelve los empates del podio por categoría antes de cerrar el evento.')
+        for row in frozen:
+            row['provisional']=False;row['champion']=row['rank']==1 and not row['tie_pending']
+            for index,mark in enumerate(row['marks']):
+                mark['provisional']=False
+                if mark['relative']:Result.objects.filter(registration_id=row['id'],test=index).update(points=mark['points'])
+        e.final_board=frozen; e.closed_at=timezone.now()
     e.status=phase; e.save(); audit(e,actor,'phase',{'phase':phase,'test':test,'batch':batch})
 
 def reserve_locked(e,user, onsite=False,discount_code=""):
@@ -269,6 +299,9 @@ def capture(reg_id,actor,test,value,load,status,revision,reason,administrative=F
     mark=existing or Result(registration=r,test=test,revision=0)
     mark.value=v; mark.load=kg; mark.points=score(v,t,judged_points) if v is not None else None; mark.status=status; mark.revision+=1; mark.save()
     audit(e,actor,'correction' if existing else 'capture',{'registration':r.id,'test':test,'before':before,'after':{'value':v,'load':kg,'points':mark.points,'status':status,'revision':mark.revision},'reason':reason})
+    if t.get('scoring')=='relative':
+        row=next(item for item in board(e) if item['id']==r.id)
+        mark.points=row['marks'][test]['points']
     return mark
 
 def cancel_checkout(reg_id,actor):

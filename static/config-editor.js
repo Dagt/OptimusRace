@@ -13,7 +13,7 @@ if(q('#config-form')){
   const body=node('div',undefined,'config-test-body'),grid=node('div',undefined,'form-grid');body.append(grid);row.append(body);q('#test-editor').append(row);
   const select=field(grid,'Ejercicio del catálogo','','text',[['','Definir para este evento'],...catalog.map((c,i)=>[String(i),c.name])]);
   const name=field(grid,'Nombre',t.name),unit=field(grid,'Unidad de captura',t.unit),capacity=field(grid,'Capacidad',t.capacity||caps[0],'text',caps.map(c=>[c,c])),higher=field(grid,'Mejor resultado',String(t.higher??true),'text',[['true','Mayor'],['false','Menor']]);
-  const scoring=field(grid,'Evaluación',t.scoring||(!modern?'linear':'pending'),'text',[['pending','Seleccionar criterio'],['linear','Lineal: base 50%, élite 100%'],['judge','Puntos otorgados por juez']]);
+  const scoring=field(grid,'Evaluación',t.scoring||(!modern?'linear':'relative'),'text',[['relative','Relativa: mejor y peor de la categoría'],['pending','Seleccionar criterio'],['linear','Lineal: base 50%, élite 100%'],['judge','Puntos otorgados por juez']]);
   const max=field(grid,'Puntos máximos',t.max_points??(modern?1:12.5),'number'),base=field(grid,'Referencia base · 50% del máximo',t.base,'number'),elite=field(grid,'Referencia élite · 100% del máximo',t.elite,'number');
   const params={},p=t.parameters||{};specs.forEach(([key,label,options])=>params[key]=field(grid,label,p[key]??(key==='metric'?'custom':key==='load_mode'||key==='round_mode'?'none':''),options?'text':'number',options));
   const instructions=field(grid,'Protocolo / criterios de ejecución',p.instructions||''),equipment=field(grid,'Equipo permitido',p.equipment||'');
