@@ -1,5 +1,7 @@
 # Estado y pendientes reales
 
+> **Cambio de flujo (16/09/2026):** las instrucciones anteriores de cuentas de participantes, pagos en línea y recepción posterior quedaron sustituidas por [Mostrador y consulta pública](MOSTRADOR_Y_CONSULTA_PUBLICA.md). Se conservan referencias técnicas a Stripe para operaciones históricas.
+
 ## Entregado y comprobado localmente
 
 Frontend por rol en negro/amarillo, campaña editorial, foto de perfil, radar comparativo, evolución por ejercicio, marca/puntos, editor visual, recepción y correcciones, coach móvil y TV Full HD. Persistencia Django/SQLite, permisos, auditoría, cupo, recuperación y pagos test/live con guardas. Backup/restauración con validación. Pruebas automatizadas aprobadas y revisión real en navegador.

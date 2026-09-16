@@ -97,7 +97,7 @@ class ConfigurationTests(TestCase):
         self.assertEqual(r.pricing_snapshot['discount_amount'],5000)
         with self.assertRaises(ValidationError):cash_register(self.event.pk,self.athlete('second'),self.admin,40000,'LAST')
         response=self.client.get(f'/events/{self.event.pk}/quote/',{'email':self.user.email})
-        self.assertEqual(response.json()['amount'],40000);self.assertTrue(response.json()['locked'])
+        self.assertEqual(response.json()['amount'],45000);self.assertFalse(response.json()['locked'])
     def test_discount_expiry_and_no_negative_price(self):
         self.event.rules['discounts']=[{'code':'FREE','kind':'fixed','value':90000,'end':self.now.isoformat()}]
         self.assertEqual(quote_price(self.event,'FREE',at=self.now-timedelta(seconds=1))['amount'],0)
@@ -108,7 +108,7 @@ class ConfigurationTests(TestCase):
         with self.assertRaises(ValidationError):cash_register(self.event.pk,self.user,self.admin,45000)
         self.event.rules.pop('registration_start');self.event.rules['reception_start']=(self.now+timedelta(days=1)).isoformat();self.event.save()
         r=cash_register(self.event.pk,self.user,self.admin,45000)
-        with self.assertRaises(ValidationError):check_in(r.pk,self.admin,70,1,'present')
+        check_in(r.pk,self.admin,70,1,'present')  # Retired reception windows no longer block corrections.
         self.event.rules['ordered_stations']=True;self.event.save()
         with self.assertRaises(ValidationError):change_phase(self.event.pk,self.admin,'live',test=1)
     def test_event_and_catalog_render_with_parameters(self):

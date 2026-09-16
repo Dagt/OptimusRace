@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.contrib.auth.models import User,Group
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from .models import Event,Profile,Registration,Exercise
+from .models import Event,Profile,Registration,Exercise,Participant
 from .services import reserve_locked
 
 class RoleExperienceTests(TestCase):
@@ -82,6 +82,7 @@ class RoleExperienceTests(TestCase):
     def test_team_and_participant_lists_are_isolated(self):
         admin=User.objects.create_superuser('owner','owner@example.test','test-password')
         athlete=User.objects.create_user('runner',email='runner@example.test',first_name='Solo participante')
+        Participant.objects.create(name='Solo participante',sex='M')
         self.client.force_login(admin)
         self.assertNotContains(self.client.get('/team/'),'Solo participante')
         self.assertContains(self.client.get('/participants/'),'Solo participante')

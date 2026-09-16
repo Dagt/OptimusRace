@@ -1,5 +1,7 @@
 # Operación técnica
 
+> **Cambio de flujo (16/09/2026):** las instrucciones anteriores de cuentas de participantes, pagos en línea y recepción posterior quedaron sustituidas por [Mostrador y consulta pública](MOSTRADOR_Y_CONSULTA_PUBLICA.md). Se conservan referencias técnicas a Stripe para operaciones históricas.
+
 ## Arranque y configuración
 
 Requisitos y comandos de instalación están en readme.md. `run-local.ps1` prepara migraciones/catálogo y arranca local; no crea usuarios, eventos ni resultados. Tras actualizar código, instala requirements.txt, respalda, ejecuta migrate y reinicia. El servidor de desarrollo se detiene con Ctrl+C.

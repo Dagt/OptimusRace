@@ -8,6 +8,20 @@ class Profile(models.Model):
     photo = models.ImageField(upload_to='athletes/', blank=True)
     original_photo = models.ImageField(upload_to='athletes/originals/', blank=True)
 
+class Participant(models.Model):
+    legacy_user = models.OneToOneField(User,null=True,blank=True,on_delete=models.SET_NULL,related_name='participant_record')
+    name = models.CharField(max_length=150)
+    paternal = models.CharField(max_length=74,blank=True)
+    maternal = models.CharField(max_length=74,blank=True)
+    sex = models.CharField(max_length=1,choices=[('M','Hombre'),('F','Mujer')])
+    birth_date = models.DateField(null=True,blank=True)
+    email = models.EmailField(blank=True)
+    photo = models.ImageField(upload_to='athletes/',blank=True)
+    original_photo = models.ImageField(upload_to='athletes/originals/',blank=True)
+    @property
+    def full_name(self):return ' '.join(filter(None,[self.name,self.paternal,self.maternal]))
+    def __str__(self):return f'P{self.pk} · {self.full_name}'
+
 class Exercise(models.Model):
     name = models.CharField(max_length=100, unique=True)
     unit = models.CharField(max_length=15)
@@ -42,8 +56,10 @@ class Event(models.Model):
     def __str__(self): return self.name
 
 class Registration(models.Model):
+    request_key = models.CharField(max_length=32,unique=True,null=True,blank=True)
     event = models.ForeignKey(Event, on_delete=models.PROTECT)
-    user = models.ForeignKey(User, on_delete=models.PROTECT)
+    user = models.ForeignKey(User, on_delete=models.PROTECT,null=True,blank=True)
+    participant = models.ForeignKey(Participant,on_delete=models.PROTECT,null=True,blank=True)
     name = models.CharField(max_length=300)
     sex = models.CharField(max_length=1)
     birth_date = models.DateField(null=True, blank=True)
@@ -62,7 +78,7 @@ class Registration(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     revision = models.PositiveIntegerField(default=0)
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['event','user'],name='one_entry'), models.UniqueConstraint(fields=['event','bib'],name='one_bib')]
+        constraints = [models.UniqueConstraint(fields=['event','participant'],name='one_participant_entry'), models.UniqueConstraint(fields=['event','user'],name='one_entry'), models.UniqueConstraint(fields=['event','bib'],name='one_bib')]
 
 class Payment(models.Model):
     registration = models.ForeignKey(Registration,on_delete=models.PROTECT)

@@ -150,9 +150,9 @@ class RaceTests(TestCase):
     def test_views_render_all_roles(self):
         self.live()
         self.client.force_login(self.admin)
-        for path in ['/',f'/events/{self.event.id}/',f'/events/{self.event.id}/operations/',f'/events/{self.event.id}/coach/',f'/events/{self.event.id}/configure/',f'/events/{self.event.id}/tv/','/events/new/','/profile/','/login/','/signup/','/reset/']:
+        for path in ['/',f'/events/{self.event.id}/',f'/events/{self.event.id}/operations/',f'/events/{self.event.id}/coach/',f'/events/{self.event.id}/configure/',f'/events/{self.event.id}/tv/','/events/new/','/profile/','/login/','/results/','/reset/']:
             with self.subTest(path=path):self.assertEqual(self.client.get(path).status_code,200)
-        self.client.force_login(self.user);self.assertEqual(self.client.get('/profile/').status_code,200)
+        self.client.force_login(self.user);self.assertRedirects(self.client.get('/profile/'),'/results/')
     def test_recurrent_account_and_history(self):
         self.entry();clone=Event.objects.create(name='Next',date=self.event.date,registration_end=self.event.registration_end,location='Test',rules=deepcopy(self.rules),status='open')
         cash_register(clone.id,self.user,self.admin,50000)
@@ -233,18 +233,18 @@ class RaceTests(TestCase):
     def test_private_status_and_lookup(self):
         self.entry();self.client.force_login(self.person('other@test.com'))
         self.assertIsNone(self.client.get(f'/events/{self.event.id}/status/').json()['state'])
-        self.assertEqual(self.client.get('/participants/lookup/?email=one@test.com').status_code,403)
+        self.assertEqual(self.client.get('/participants/lookup/?email=one@test.com').status_code,410)
         self.client.force_login(self.admin)
-        self.assertTrue(self.client.get('/participants/lookup/?email=one@test.com').json()['found'])
+        self.assertEqual(self.client.get('/participants/lookup/?email=one@test.com').status_code,410)
         self.client.force_login(self.user)
         response=self.client.get(f'/events/{self.event.id}/status/')
         self.assertEqual(response.json()['state'],'confirmed');self.assertEqual(response['Cache-Control'],'no-store')
 
     def test_safe_login_return_and_decimal_price(self):
         from .forms import EventForm
-        response=self.client.post('/login/',{'email':self.user.username,'password':'good-password-821','next':'https://evil.example/path'})
+        response=self.client.post('/login/',{'email':self.admin.username,'password':'good-password-821','next':'https://evil.example/path'})
         self.assertEqual(response.url,'/')
-        response=self.client.post('/login/',{'email':self.user.username,'password':'good-password-821','next':f'/events/{self.event.id}/'})
+        response=self.client.post('/login/',{'email':self.admin.username,'password':'good-password-821','next':f'/events/{self.event.id}/'})
         self.assertEqual(response.url,f'/events/{self.event.id}/')
         form=EventForm({'name':'Decimal','location':'Test','date':self.event.date,'registration_end':self.event.registration_end,'price':'500.75','capacity':3})
         self.assertTrue(form.is_valid(),form.errors);self.assertEqual(form.save().price,50075)
@@ -264,19 +264,16 @@ class RaceTests(TestCase):
             self.assertRedirects(self.client.post('/reset/',{'email':self.user.email}),'/reset/sent/')
 
     def test_photo_is_reencoded_and_owned(self):
-        import tempfile
-        from pathlib import Path
-        from io import BytesIO
+        from tempfile import TemporaryDirectory
         from PIL import Image
-        from django.core.files.uploadedfile import SimpleUploadedFile
-        buffer=BytesIO();Image.new('RGB',(1200,600),'gold').save(buffer,'PNG')
-        self.client.force_login(self.user)
-        with tempfile.TemporaryDirectory() as tmp,override_settings(MEDIA_ROOT=Path(tmp)):
-            response=self.client.post('/profile/',{'sex':'F','photo':SimpleUploadedFile('portrait.png',buffer.getvalue(),content_type='image/png')})
-            self.assertEqual(response.status_code,302);self.user.profile.refresh_from_db()
-            self.assertTrue(self.user.profile.photo.name.endswith('.jpg'))
-            with Image.open(self.user.profile.photo.path) as picture:self.assertEqual(picture.size,(1000,500));self.assertEqual(picture.format,'JPEG')
-            self.assertEqual(self.user.profile.sex,'F')
+        from .test_portraits import picture
+        self.client.force_login(self.admin)
+        with TemporaryDirectory() as tmp,override_settings(MEDIA_ROOT=tmp):
+            self.assertRedirects(self.client.post('/profile/',{'photo':picture(size=(1200,600))}),'/profile/')
+            profile=Profile.objects.get(user=self.admin)
+            with Image.open(profile.photo.path) as photo:
+                self.assertEqual(photo.size,(1000,500));self.assertEqual(photo.format,'JPEG')
+            self.assertFalse(self.user.profile.photo)
 
 from django.test import SimpleTestCase
 class BackupTests(SimpleTestCase):
@@ -333,14 +330,9 @@ class CleanInstallTests(TestCase):
     def test_empty_account_has_no_synthetic_chart_or_photo(self):
         user=User.objects.create_user('fresh@example.test',password='new-test-only-password',first_name='Nuevo')
         self.client.force_login(user)
-        response=self.client.get('/profile/')
-        self.assertContains(response,'La primera marca')
-        self.assertContains(response,'Sin foto de perfil')
-        self.assertNotContains(response,'id="capacity-chart"')
-        self.assertNotContains(response,'images/campaign.png')
-        user.is_superuser=True;user.is_staff=True;user.save()
-        self.assertContains(self.client.get('/'),'Crear evento')
+        self.assertRedirects(self.client.get('/profile/'),'/results/')
         self.assertEqual(Registration.objects.count(),0)
+        self.assertEqual(Participant.objects.count(),0)
 
 class EmailLoginTests(TestCase):
     def test_admin_with_distinct_mixed_case_username_can_login_by_email(self):
@@ -421,17 +413,10 @@ class AccountFieldTests(TestCase):
         data={**self.data,'role':'athlete'}
         response=self.client.post('/team/new/',data)
         self.assertIn('role',response.context['form'].errors)
-        response=self.client.post('/participants/new/',data)
-        self.assertIn('sex',response.context['form'].errors)
+        self.assertEqual(self.client.post('/participants/new/',data).status_code,200)
         self.assertFalse(User.objects.filter(email=data['email']).exists())
-        data.update(sex='F',role='admin')
-        self.assertRedirects(self.client.post('/participants/new/',data),'/participants/')
-        user=User.objects.get(email=data['email'])
-        self.assertEqual(user.profile.sex,'F')
-        self.assertFalse(user.is_superuser)
-        self.assertEqual(self.client.get(f'/team/{user.pk}/').status_code,404)
-        self.assertEqual(self.client.get(f'/participants/{self.admin.pk}/edit/').status_code,404)
-        self.assertTrue(user.check_password(self.data['password']))
+        self.assertFalse(Participant.objects.exists())
+        self.assertContains(self.client.get('/participants/new/'),'Las fichas nuevas se crean al inscribir')
 
     def test_confirmation_is_required_and_must_match_before_creation(self):
         for confirm in ['', 'mistyped-password-429']:

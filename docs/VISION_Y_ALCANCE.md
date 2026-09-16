@@ -1,5 +1,7 @@
 # Visión y alcance
 
+> **Cambio de flujo (16/09/2026):** las instrucciones anteriores de cuentas de participantes, pagos en línea y recepción posterior quedaron sustituidas por [Mostrador y consulta pública](MOSTRADOR_Y_CONSULTA_PUBLICA.md). Se conservan referencias técnicas a Stripe para operaciones históricas.
+
 Optimus Race es una plataforma independiente de Gymforce, abierta al público. La cuenta del participante persiste entre ediciones; cada evento conserva sus reglas, pesaje, marcas y resultados. Sustituye fórmulas frágiles de una hoja por validaciones explícitas y trazabilidad.
 
 El producto cubre preparación del evento, inscripción en línea o recepción, pagos, captura, clasificación, pantalla pública e historial del atleta. La experiencia visual prioriza teléfonos para atletas/coaches y lectura a distancia para TV.

@@ -8,7 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth.models import User,Group
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from .models import Event,Profile,Registration,Audit
+from .models import Event,Profile,Registration,Audit,Participant
 from .availability import availability,set_capacity
 from .services import cash_register,fulfill
 
@@ -18,6 +18,7 @@ class ParticipationTests(TestCase):
         self.admin=User.objects.create_superuser('admin','admin@example.test','password-valid')
         self.user=User.objects.create_user('person','person@example.test','password-valid')
         Profile.objects.create(user=self.user,sex='F')
+        self.person=Participant.objects.create(name='Persona',sex='F')
         self.event=Event.objects.create(name='Próxima edición',date=timezone.now()+timedelta(days=5),registration_end=timezone.now()+timedelta(days=4),capacity=2,price=10000,status='open',rules={'tests':[]})
     def picture(self):
         b=BytesIO();Image.new('RGB',(1200,600),'yellow').save(b,'PNG');return SimpleUploadedFile('foto.png',b.getvalue(),content_type='image/png')
@@ -62,25 +63,25 @@ class ParticipationTests(TestCase):
     def test_photo_upload_authorization_and_normalization(self):
         with TemporaryDirectory() as tmp,override_settings(MEDIA_ROOT=Path(tmp)):
             self.client.force_login(self.user)
-            self.assertEqual(self.client.post(f'/participants/{self.user.pk}/photo/',{'photo':self.picture()}).status_code,403)
+            self.assertEqual(self.client.post(f'/participants/{self.person.pk}/photo/',{'photo':self.picture()}).status_code,403)
             self.client.force_login(self.admin)
-            response=self.client.post(f'/participants/{self.user.pk}/photo/',{'photo':self.picture(),'next':'/team/'})
-            self.assertRedirects(response,'/team/')
-            self.user.profile.refresh_from_db()
-            with Image.open(self.user.profile.photo.path) as image:
+            response=self.client.post(f'/participants/{self.person.pk}/photo/',{'name':'Persona','sex':'F','photo':self.picture(),'next':'/team/'})
+            self.assertRedirects(response,'/participants/')
+            self.person.refresh_from_db()
+            with Image.open(self.person.photo.path) as image:
                 self.assertEqual(image.format,'JPEG');self.assertEqual(image.size,(1000,500));self.assertFalse(image.getexif())
-            self.assertContains(self.client.get('/participants/'),self.user.profile.photo.url)
-            self.client.post(f'/participants/{self.user.pk}/photo/',{'photo-clear':'on','next':'/team/'})
-            self.user.profile.refresh_from_db();self.assertFalse(self.user.profile.photo)
+            self.assertContains(self.client.get('/participants/'),self.person.photo.url)
+            self.client.post(f'/participants/{self.person.pk}/photo/',{'name':'Persona','sex':'F','photo-clear':'on','next':'/team/'})
+            self.person.refresh_from_db();self.assertFalse(self.person.photo)
     def test_invalid_photo_and_safe_return(self):
         self.client.force_login(self.admin)
-        response=self.client.post(f'/participants/{self.user.pk}/photo/',{'photo':SimpleUploadedFile('bad.jpg',b'not-an-image',content_type='image/jpeg')})
+        response=self.client.post(f'/participants/{self.person.pk}/photo/',{'photo':SimpleUploadedFile('bad.jpg',b'not-an-image',content_type='image/jpeg')})
         self.assertEqual(response.status_code,200);self.assertTrue(response.context['form'].errors)
-        response=self.client.post(f'/participants/{self.user.pk}/photo/',{'next':'https://external.example/'})
-        self.assertRedirects(response,'/')
+        response=self.client.post(f'/participants/{self.person.pk}/photo/',{'name':'Persona','sex':'F','next':'https://external.example/'})
+        self.assertRedirects(response,'/participants/')
     def test_photo_camera_is_explicit_and_available_in_both_flows(self):
-        self.client.force_login(self.user)
+        self.client.force_login(self.admin)
         self.assertContains(self.client.get('/profile/'),'data-camera-open')
         self.client.force_login(self.admin)
-        response=self.client.get(f'/participants/{self.user.pk}/photo/')
+        response=self.client.get(f'/participants/{self.person.pk}/photo/')
         self.assertContains(response,'data-camera-capture');self.assertContains(response,'multipart/form-data')

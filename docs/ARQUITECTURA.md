@@ -1,5 +1,7 @@
 # Arquitectura
 
+> **Cambio de flujo (16/09/2026):** las instrucciones anteriores de cuentas de participantes, pagos en línea y recepción posterior quedaron sustituidas por [Mostrador y consulta pública](MOSTRADOR_Y_CONSULTA_PUBLICA.md). Se conservan referencias técnicas a Stripe para operaciones históricas.
+
 ## Stack ejecutable
 
 Python 3.13, Django 5.2.17, SQLite, Stripe SDK 14.4.1, Pillow 12.3.0, Waitress 3.0.2, WhiteNoise 6.11.0, python-dotenv 1.1.1. Versiones fijadas en requirements.txt. Chart.js 4.5.1 y fuentes se sirven desde static; no hay dependencia de CDN ni compilación Node al ejecutar.

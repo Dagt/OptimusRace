@@ -107,8 +107,10 @@ class RelativeScoringTests(TestCase):
         self.client.force_login(self.admin)
         response=self.client.get(f'/events/{self.event.pk}/operations/')
         self.assertContains(response,'Registrar desempate');self.assertContains(response,'Empate desde el lugar 1')
-        self.client.force_login(self.b.user)
-        response=self.client.get('/profile/')
+        from .models import Participant
+        person=Participant.objects.create(name=self.b.name,sex='M');self.b.participant=person;self.b.save()
+        self.client.logout()
+        response=self.client.get(f'/results/participants/{person.pk}/')
         self.assertContains(response,'Desempeño relativo en tu categoría.')
         self.assertContains(response,'comparison_key')
 

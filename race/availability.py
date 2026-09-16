@@ -9,7 +9,7 @@ def availability(event):
     confirmed=counts.get('confirmed',0);reserved=counts.get('reserved',0)
     return {'capacity':event.capacity,'confirmed':confirmed,'reserved':reserved,'occupied':confirmed+reserved,
             'remaining':max(0,event.capacity-confirmed-reserved),'full':confirmed+reserved>=event.capacity,
-            'registration_open':registration_open(event),'status':event.status,'date':event.date.isoformat()}
+            'registration_open':registration_open(event,onsite=True),'status':event.status,'date':event.date.isoformat()}
 
 @transaction.atomic
 def set_capacity(event_id,actor,capacity,reason):

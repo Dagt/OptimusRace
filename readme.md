@@ -35,15 +35,22 @@ git pull --ff-only
 
 También puedes usar `./run-local.ps1` para arrancar después de instalar dependencias. Mantén la consola abierta; Ctrl+C detiene el servidor. No es necesario Docker ni Node/npm.
 
-## Preparar una demostración con tus datos
+## Flujo actual: mostrador y consulta pública
 
-1. Admin → Crear evento. Define sede, fecha, precio, cupo, categorías y ocho pruebas, dos por capacidad. Publicar fija sus reglas.
-2. Crea participantes desde Unirme, o desde inscripción presencial usando su correo habitual. La cuenta se conserva entre ediciones.
-3. Para un coach, abre **Usuarios y equipo → Crear usuario**, selecciona el rol **Coach** y comunica su acceso por tu canal habitual. La plataforma asigna sus permisos automáticamente.
-4. Registra efectivo recibido en recepción; confirma peso/asistencia/lote. Para acceso a cuentas creadas allí configura SMTP o establece su contraseña desde Usuarios y equipo durante tus pruebas locales.
-5. Inicia competencia, elige prueba/lote y captura. Abre TV desde el evento. Perfil/radar/evolución aparecen cuando existen participaciones; no hay resultados simulados de respaldo.
+1. Administración crea las pruebas y el evento, revisa las reglas y publica. No hay plantillas precargadas.
+2. **Evento → Administrar → Inscribir en mostrador**. Primero busca a la persona por nombre o número P para reutilizar su ficha; si es nueva, completa sus datos. No se crea usuario, contraseña ni acceso para participantes.
+3. En el mismo formulario toma/selecciona la **foto**, registra el **peso medido**, lote y **efectivo**. El sistema comprueba edad, horarios, cupo, tarifa/descuento y categoría. Confirma una vez; repetir el envío no duplica la inscripción.
+4. Entrega el número permanente **P123** y el dorsal de ese evento. Desde **Buscar participante**, cualquier visitante consulta foto, resultados, radar e historial sin login. El dorsal se busca indicando el evento para evitar confusiones; correo y fecha de nacimiento son privados.
+5. Inicia competencia y selecciona estación/lote. Los coaches capturan las marcas. No hace falta una recepción o un segundo pesaje; en **Participantes** se pueden corregir datos con los controles y auditoría existentes.
+6. Administradores y coaches conservan sus cuentas y fotos. Crea sus accesos desde **Equipo**.
 
-Un evento que marques expresamente como **evento de pruebas** bloquea cobros reales. Es una protección opcional, no genera datos.
+En ediciones siguientes reutiliza la ficha de la persona y registra nuevamente su peso. Puede conservar su foto o tomar otra. Una edición marcada de pruebas no genera cobros electrónicos ni datos simulados; el efectivo capturado es un registro de prueba.
+
+### Actualización de cuentas anteriores
+
+Haz un respaldo antes de `migrate`. Las migraciones 0011–0013 crean las fichas independientes, vinculan inscripciones existentes y conservan fotos, nombres y resultados. Desactivan el login de las cuentas antiguas de participantes sin borrar los registros de auditoría; administradores y coaches conservan su acceso. Los eventos cerrados mantienen su clasificación fijada. No se modifican ni eliminan pagos históricos.
+
+Consulta la [guía del mostrador y resultados públicos](docs/MOSTRADOR_Y_CONSULTA_PUBLICA.md).
 
 ## Qué viaja con GitHub
 
@@ -53,7 +60,8 @@ Cada laptop crea su propia base local. `git pull` actualiza código, no sincroni
 
 ## Servicios externos
 
-Por defecto los pagos están desactivados y el correo usa consola local. Stripe requiere cuenta/claves/webhook y prueba sandbox; SMTP requiere credenciales y entrega verificada. No se cobran tarjetas ni se envían correos externos por instalar. [.env.example](.env.example) contiene opciones y [Operación técnica](docs/OPERACION_TECNICA.md) explica configuración, respaldo y despliegue.
+Las nuevas inscripciones solo registran **efectivo en mostrador**. No hay alta pública de cuentas de participante ni inicio de pagos en línea. El adaptador y webhook de Stripe se conservan exclusivamente para conciliar pagos históricos; las claves no son necesarias para operar el nuevo flujo. SMTP se usa para recuperar las cuentas del equipo; localmente los mensajes aparecen en consola. El acabado fotográfico se procesa localmente sin API de pago.
+
 
 ## Documentación
 

@@ -1,5 +1,7 @@
 # Validación de instalación limpia
 
+> **Cambio de flujo (16/09/2026):** las instrucciones anteriores de cuentas de participantes, pagos en línea y recepción posterior quedaron sustituidas por [Mostrador y consulta pública](MOSTRADOR_Y_CONSULTA_PUBLICA.md). Se conservan referencias técnicas a Stripe para operaciones históricas.
+
 La aplicación se distribuye sin base operativa ni datos demo. La limpieza local se hizo después de backup y restauración verificada en una carpeta privada fuera del repositorio. Se eliminaron únicamente cuentas/eventos identificados como sembrados; no había registros reales o inciertos. Los archivos originales de referencia permanecen locales e ignorados.
 
 ## Comprobaciones reproducibles

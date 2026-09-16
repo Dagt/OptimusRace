@@ -16,7 +16,7 @@ def picture(color='red',size=(640,480)):
 
 class PortraitTests(TestCase):
     def setUp(self):
-        self.user=User.objects.create_user('portrait',email='portrait@example.test')
+        self.user=User.objects.create_superuser('portrait',email='portrait@example.test',password='test-password')
         self.profile=Profile.objects.create(user=self.user,sex='M')
         self.client.force_login(self.user)
 

@@ -1,5 +1,7 @@
 # Implementación
 
+> **Cambio de flujo (16/09/2026):** las instrucciones anteriores de cuentas de participantes, pagos en línea y recepción posterior quedaron sustituidas por [Mostrador y consulta pública](MOSTRADOR_Y_CONSULTA_PUBLICA.md). Se conservan referencias técnicas a Stripe para operaciones históricas.
+
 ## Puntuación
 
 `puntos = clamp(50 + 50 × (marca − base) / (élite − base), 0, 100)`.

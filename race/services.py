@@ -133,7 +133,7 @@ def board(event):
                             'revision':m.revision if m else 0,'relative':relative,'provisional':relative,'sample_size':len(pools.get((r.category,i),[])) if relative else None})
         capacities={c:round(100*sum(m['points'] or 0 for m in details if m['capacity']==c)/(sum(m['max_points'] for m in details if m['capacity']==c) or 1),2) for c in CAPACITIES}
         done=sum(m['status']=='done' for m in details)
-        rows.append({'id':r.id,'user_id':r.user_id,'name':r.name,'bib':r.bib,'category':r.category or 'Sin pesaje','batch':r.batch,'attendance':r.attendance,
+        rows.append({'id':r.id,'participant_id':r.participant_id,'user_id':r.user_id,'name':r.name,'bib':r.bib,'category':r.category or 'Sin pesaje','batch':r.batch,'attendance':r.attendance,
                      'total':round(sum(m['points'] or 0 for m in details)/(1 if modern else (len(details) or 1)),4),'completed':done,'test_count':len(details),
                      'capacities':capacities,'marks':details,'rank':None,'relative':is_relative(event),'provisional':is_relative(event),'tie_pending':False,'champion':False})
     rows.sort(key=lambda r:(r['attendance']=='disqualified',-r['total'],r['bib']))
@@ -274,9 +274,6 @@ def check_in(reg_id,actor,weight,batch,attendance,reason='',revision=None):
     e=Event.objects.select_for_update().get(pk=r.event_id)
     if e.status=='closed' or r.state!='confirmed': raise ValidationError('La inscripción debe estar pagada y el evento abierto.')
     if r.attendance=='disqualified':raise ValidationError('Resuelve la descalificación antes de modificar la recepción.')
-    now=timezone.now()
-    if e.rules.get('reception_start') and now<instant(e.rules['reception_start']):raise ValidationError('La recepción todavía no abre.')
-    if e.rules.get('reception_end') and now>=instant(e.rules['reception_end']):raise ValidationError('El horario de recepción terminó.')
     if attendance not in ['present','absent','withdrawn']: raise ValidationError('Asistencia inválida.')
     if revision is not None and revision!=r.revision: raise ValidationError('La recepción cambió en otra pantalla. Recarga antes de guardar.')
     changed_weight=r.weight != number(weight,.01)
@@ -341,3 +338,25 @@ def discipline(reg_id, actor, disqualified, reason, revision):
     if not disqualified and before!='disqualified':raise ValidationError('El participante no está descalificado.')
     r.attendance='disqualified' if disqualified else 'pending';r.revision+=1;r.save()
     audit(e,actor,'disqualification' if disqualified else 'disqualification_correction',{'registration':r.pk,'before':before,'after':r.attendance,'reason':reason})
+
+
+@transaction.atomic
+def register_person_cash(event_id,person,actor,amount,weight,batch=1,discount_code='',request_key=None):
+    """One atomic cash transaction, category and measured weight at registration."""
+    from .models import Participant
+    if not actor.is_superuser:raise ValidationError('Solo administración puede registrar pagos.')
+    event=Event.objects.select_for_update().get(pk=event_id)
+    person=Participant.objects.select_for_update().get(pk=person.pk)
+    if not registration_open(event,onsite=True):raise ValidationError('Las inscripciones están cerradas.')
+    validate_eligibility(event,person.birth_date)
+    if Registration.objects.filter(event=event,participant=person).exists():raise ValidationError('Este participante ya tiene una inscripción en el evento. Revisa su registro; no se cobró de nuevo.')
+    if Registration.objects.filter(event=event,state__in=['reserved','confirmed']).count()>=event.capacity:raise ValidationError('Cupo agotado.')
+    weight=number(weight,.01);category_name=category(event.rules,person.sex,weight)
+    quote=quote_price(event,discount_code)
+    if amount!=quote['amount']:raise ValidationError(f"El importe exacto es ${quote['amount']/100:.2f} MXN. Revisa la tarifa y descuento.")
+    batch=int(batch)
+    if batch<1:raise ValidationError('El lote comienza en 1.')
+    bib=(Registration.objects.filter(event=event).aggregate(m=Max('bib'))['m'] or 0)+1
+    entry=Registration.objects.create(request_key=request_key,event=event,participant=person,name=person.full_name,sex=person.sex,birth_date=person.birth_date,bib=bib,state='confirmed',weight=weight,category=category_name,batch=batch,attendance='present',amount=amount,method='cash',paid_by=actor,paid_at=timezone.now(),pricing_code=quote['discount_code'],pricing_snapshot=quote)
+    audit(event,actor,'cash_registration',{'registration':entry.pk,'participant':person.pk,'amount':amount,'weight':weight,'category':category_name})
+    return entry

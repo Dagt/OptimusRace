@@ -99,7 +99,7 @@ def signin(request):
             # Reject ambiguous identities rather than choosing somebody's account.
             candidates=list(User.objects.filter(Q(username__iexact=email)|Q(email__iexact=email))[:2])
             user=authenticate(request,username=candidates[0].username,password=request.POST.get('password')) if len(candidates)==1 else None
-            if user:
+            if user and (user.is_superuser or user.groups.filter(name='Coach').exists()):
                 LoginAttempt.objects.filter(key=key).delete(); login(request,user); return redirect(next_url(request))
             messages.error(request,'Correo o contraseña incorrectos.')
     return render(request,'login.html',{'next':next_url(request),'email':request.POST.get('email','')})
@@ -126,7 +126,7 @@ def event_detail(request,pk):
     if e.status=='draft' and not request.user.is_superuser: return HttpResponseForbidden()
     entry=Registration.objects.filter(event=e,user=request.user).first() if request.user.is_authenticated else None
     seats=availability(e);occupied=seats['occupied']
-    return render(request,'event.html',{'event':e,'seats':seats,'server_now':timezone.now().isoformat(),'entry':entry,'board':board(e),'capacity_boards':capacity_boards(board(e)),'relative_scoring':is_relative(e),'occupied':occupied,'remaining':max(0,e.capacity-occupied),'can_enroll':registration_open(e),'online_enrollment':e.rules.get('online_payments',True),'stripe_ready':bool(settings.STRIPE_SECRET_KEY),'payment_mode':settings.STRIPE_MODE})
+    return render(request,'event.html',{'event':e,'seats':seats,'server_now':timezone.now().isoformat(),'entry':entry,'board':board(e),'capacity_boards':capacity_boards(board(e)),'relative_scoring':is_relative(e),'occupied':occupied,'remaining':max(0,e.capacity-occupied),'can_enroll':registration_open(e),'online_enrollment':False,'stripe_ready':bool(settings.STRIPE_SECRET_KEY),'payment_mode':settings.STRIPE_MODE})
 
 @login_required
 @require_POST
@@ -197,28 +197,7 @@ def operations(request,pk):
             action=request.POST['action']
             if action=='phase': change_phase(pk,request.user,request.POST['phase'],int(request.POST.get('test',0)),int(request.POST.get('batch',1)))
             elif action=='cash':
-                with transaction.atomic():
-                    email=request.POST['email'].lower().strip(); validate_email(email)
-                    user=User.objects.filter(username=email).first()
-                    if not user:
-                        name=request.POST.get('name','').strip(); sex=request.POST.get('sex')
-                        if not name or sex not in ['M','F']: raise ValidationError('Nombre y género son obligatorios para un participante nuevo.')
-                        user=User.objects.create_user(username=email,email=email,first_name=name,password=secrets.token_urlsafe(32))
-                        parts={'name':name,'paternal':request.POST.get('paternal','').strip(),'maternal':request.POST.get('maternal','').strip()}
-                        if len(name)>150 or any(len(parts[k])>74 for k in ['paternal','maternal']):raise ValidationError('El nombre o apellido supera el límite permitido.')
-                        save_name(user,parts)
-                        Profile.objects.create(user=user,sex=sex,birth_date=BirthDateField(required=False).clean(request.POST.get('birth_date')))
-                    elif user.is_superuser or user.groups.filter(name='Coach').exists():
-                        raise ValidationError('Solo las cuentas de participante pueden inscribirse.')
-                    elif not Profile.objects.filter(user=user).exists():
-                        if request.POST.get('sex') not in ['M','F']: raise ValidationError('Selecciona el género del participante.')
-                        Profile.objects.create(user=user,sex=request.POST['sex'],birth_date=BirthDateField(required=False).clean(request.POST.get('birth_date')))
-                    elif request.POST.get('birth_date'):
-                        user.profile.birth_date=BirthDateField().clean(request.POST['birth_date']);user.profile.save(update_fields=['birth_date'])
-                    amount=Decimal(request.POST['amount'])*100
-                    if amount!=amount.to_integral_value(): raise ValidationError('El monto admite máximo dos decimales.')
-                    cash_register(pk,user,request.user,int(amount),request.POST.get('discount_code',''))
-                messages.success(request,'Inscripción y efectivo registrados. Si es su primera vez, el participante debe abrir Crear o recuperar contraseña y usar este mismo correo. Si ya tenía cuenta, conserva su contraseña.')
+                raise ValidationError('Usa Inscribir en mostrador para registrar participante, foto, peso y efectivo juntos.')
             elif action=='reception':
                 r=get_object_or_404(Registration,pk=request.POST['registration'],event=e)
                 check_in(r.id,request.user,request.POST['weight'],request.POST['batch'],request.POST['attendance'],request.POST.get('reason',''),int(request.POST['revision']))
@@ -249,7 +228,7 @@ def operations(request,pk):
             messages.success(request,'Cambios guardados.')
         except (ValidationError,ValueError,InvalidOperation,IntegrityError,KeyError) as exc: error(request,exc)
         return redirect(f'/events/{pk}/operations/?tab='+request.POST.get('tab','overview'))
-    entries=list(Registration.objects.filter(event=e).select_related('user','user__profile').prefetch_related('result_set').order_by('bib'))
+    entries=list(Registration.objects.filter(event=e).select_related('user','user__profile','participant').prefetch_related('result_set').order_by('bib'))
     for r in entries:
         r.done=sum(m.status=='done' for m in r.result_set.all());r.suggested=suggested_load(e,r.weight)
         r.marks=[{'mark':m,'test_name':e.rules['tests'][m.test]['name'],'unit':e.rules['tests'][m.test]['unit'],'strength':needs_load(e.rules['tests'][m.test]),'scoring':e.rules['tests'][m.test].get('scoring'),'max_points':e.rules['tests'][m.test].get('max_points',100)} for m in r.result_set.all()]
@@ -265,7 +244,7 @@ def operations(request,pk):
         try:validate_rules(e.rules);validate_policies(e.rules,e)
         except ValidationError as exc:publish_issues.extend(exc.messages)
         if not e.capacity:publish_issues.append('Define el cupo de participantes.')
-    return render(request,'operations.html',{'event':e,'seats':availability(e),'publish_issues':publish_issues,'reception_start':instant(e.rules['reception_start']) if e.rules.get('reception_start') else None,'reception_end':instant(e.rules['reception_end']) if e.rules.get('reception_end') else None,'email_console':settings.EMAIL_BACKEND.endswith('console.EmailBackend'),'can_cash':registration_open(e,onsite=True),'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
+    return render(request,'operations.html',{'event':e,'seats':availability(e),'publish_issues':publish_issues,'can_cash':registration_open(e,onsite=True),'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
 
 @staff
 def coach(request,pk):
@@ -311,19 +290,7 @@ def profile(request):
             messages.success(request,'Foto de perfil actualizada.')
             return redirect('profile')
         return render(request,'staff_profile.html',{'profile':person,'form':form})
-    p,_=Profile.objects.get_or_create(user=request.user,defaults={'sex':'M'})
-    form=PhotoForm(request.POST or None,request.FILES or None,instance=p)
-    if request.method=='POST' and form.is_valid():
-        p.sex=form.cleaned_data['sex'];p.birth_date=form.cleaned_data.get('birth_date');p.save(update_fields=['sex','birth_date'])
-        if form.cleaned_data['photo'] is False or request.FILES.get('photo'):save_photo(p,form.cleaned_data['photo'],form.cleaned_data.get('original_photo'))
-        messages.success(request,'Perfil actualizado.');return redirect('profile')
-    history=[]
-    for r in Registration.objects.filter(user=request.user).select_related('event').order_by('-event__date'):
-        row=next((x for x in board(r.event) if x['id']==r.id),None)
-        history.append({'entry':r,'row':row})
-    selected=next((h for h in history if str(h['entry'].event_id)==request.GET.get('event')),history[0] if history else None)
-    chart_history=[{'id':h['entry'].event_id,'name':h['entry'].event.name,'date':h['entry'].event.date.isoformat(),'label':timezone.localtime(h['entry'].event.date).strftime('%d %b %Y'),'version':h['entry'].event.version,'demo':h['entry'].event.demo,'rules':[{**test,'comparison_key':comparison_key(test),'comparison_label':comparison_label(test)} for test in h['entry'].event.rules['tests']],'row':h['row'],'relative':is_relative(h['entry'].event),'closed':h['entry'].event.status=='closed'} for h in reversed(history)]
-    return render(request,'profile.html',{'profile':p,'form':form,'history':history,'selected':selected,'chart_history':chart_history})
+    return redirect('public_search')
 
 @administrator
 def participant_lookup(request):
@@ -347,18 +314,12 @@ def not_found(request,exception):return render(request,'error.html',{'code':'404
 def server_error(request):return render(request,'error.html',{'code':'500','title':'No pudimos completar esta acción.','detail':'Intenta otra vez. Si guardabas una marca o un pago, verifica su estado antes de repetirlo.'},status=500)
 
 
-@login_required
+@administrator
 def price_quote(request,pk):
     e=get_object_or_404(Event,pk=pk)
-    if e.status=='draft' and not request.user.is_superuser:return denied(request)
     try:
-        entry=None
-        if request.user.is_superuser and request.GET.get('email'):
-            email=request.GET['email'].strip()
-            entry=Registration.objects.filter(event=e,state__in=['reserved','confirmed']).filter(Q(user__email__iexact=email)|Q(user__username__iexact=email)).first()
-        else:entry=Registration.objects.filter(event=e,user=request.user,state__in=['reserved','confirmed']).first()
-        result=entry.pricing_snapshot or {'amount':entry.amount} if entry else quote_price(e,request.GET.get('code',''))
-        return JsonResponse({**result,'locked':bool(entry)})
+        result=quote_price(e,request.GET.get('code',''))
+        return JsonResponse({**result,'locked':False})
     except ValidationError as exc:return JsonResponse({'error':' '.join(exc.messages)},status=400)
 
 
