@@ -112,3 +112,20 @@
 .config-nav button{display:block;text-align:left;background:transparent;border:0;color:#aaa;padding:14px;width:100%;cursor:pointer;font:inherit}.config-nav button[aria-current="step"]{color:#f2ed00;background:#252525;border-radius:8px}.optional-config summary{font-weight:700;cursor:pointer;margin-bottom:16px}.simple-toggle{display:flex;gap:10px;align-items:center;margin:18px 0}.simple-toggle input{width:auto}.wizard-actions{justify-content:space-between;margin:20px 0}.measurement-summary{grid-column:1/-1;color:#ddd}.config-test-body .exercise-section{margin-top:12px}
 
 .editor-section{padding:18px 0;border-bottom:1px solid #333;margin-bottom:18px}.editor-section>p{color:#bbb}.compact-editor{max-width:960px}.config-test h3{margin:0 0 16px}.config-test input:disabled,.config-test select:disabled,[data-catalog-form] input:disabled{opacity:.5}.optional-config h2{margin-bottom:14px}
+
+/* Compact stations keep selection, scoring and points visible together. */
+#test-editor{margin-top:16px}
+.config-test.station-row{margin:0;border-radius:0;border:0;border-bottom:1px solid var(--border)}
+.station-row .config-test-body{padding:12px 0;display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:5px 12px;align-items:center}
+.station-index{color:var(--gold);font-weight:600;align-self:center}
+.station-fields{display:grid;grid-template-columns:minmax(160px,1.2fr) minmax(190px,1.2fr) minmax(85px,.45fr);gap:12px}
+.station-row label{margin:0;font-size:10px}
+.station-row input,.station-row select{margin-top:4px;min-height:38px;padding:8px 10px;font-size:12px}
+.station-actions{grid-column:3;grid-row:1;display:flex;gap:10px;align-items:center}
+.station-actions button{font-size:11px;padding:9px 0}
+.station-row .measurement-summary{grid-column:2/-1;font-size:11px;line-height:1.4;margin:2px 0 0;overflow-wrap:anywhere}
+.station-references{grid-column:2/-1;grid-row:3;padding:12px;background:var(--panel-2);border-radius:8px}
+.station-references>p{font-size:12px;margin-bottom:8px}
+.station-row .station-references .form-grid{grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:1100px){.station-actions{grid-column:2/-1;grid-row:3;justify-content:flex-end}.station-references{grid-row:4}.station-fields{grid-template-columns:minmax(130px,1fr) minmax(160px,1fr) 85px}}
+@media(max-width:650px){.station-row .config-test-body{grid-template-columns:22px minmax(0,1fr);gap:8px}.station-fields{grid-template-columns:minmax(0,1fr) 85px}.station-fields>label:first-child{grid-column:1/-1}.station-row input,.station-row select{font-size:12px}.station-row label{font-size:11px}.station-row .station-references .form-grid{grid-template-columns:1fr}}

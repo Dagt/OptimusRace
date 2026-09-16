@@ -78,3 +78,10 @@ La administración de equipo solo admite administradores y coaches. Los particip
 Los perfiles de administradores y coaches conservan la tarjeta visual, carga de foto y cámara, sin estadísticas ni datos de competencia. El inicio del participante presenta sus inscripciones y los eventos disponibles. Participantes y mostrador enlaza al registro presencial del evento; se respetan sus restricciones de inscripción.
 
 Verificación: 103 pruebas aprobadas, incluyendo separación de cuentas, permisos, alta de participante, inicio diferenciado y carga/eliminación de foto para ambos roles del equipo. Sin cambios de esquema ni datos operativos de prueba. Cámara física no verificada.
+
+
+## Estaciones compactas
+
+Las estaciones se presentan como filas con selector de prueba, método y puntos; las marcas objetivo solo se muestran para referencias fijas, explicando la unidad y los puntos que otorgan. Se conservan selección, reglas guardadas y condiciones del catálogo.
+
+Verificado en navegador sobre base aislada: ocho estaciones con 12.5 puntos cada una, activación y retirada de referencias fijas, reordenamiento y eliminación con total de 100 puntos. Revisión visual de filas y 11 pruebas del módulo de experiencia aprobadas; JavaScript válido. Sin cambios en las pruebas creadas por el usuario.
