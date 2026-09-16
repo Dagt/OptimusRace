@@ -30,7 +30,7 @@ with tempfile.TemporaryDirectory(prefix='optimus-startup-') as temporary:
         'call_command("seed_catalog"); call_command("seed_catalog"); '
         'assert (User.objects.count(),Event.objects.count(),Registration.objects.count())==(0,0,0); '
         'assert Group.objects.filter(name="Coach").count()==1; '
-        'assert Exercise.objects.get(name="Press banca").base is None; '
+        'assert Exercise.objects.count()==0; '
         'print("PASS clean bootstrap: no users, events or entries; Coach group available")'
     )
     print(run('shell','-c',check_code).strip())

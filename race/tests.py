@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from .models import *
 from .services import *
-from .catalog import seed_catalog
+from .test_catalog_fixture import seed_catalog
 from .views import default_rules
 
 @override_settings(PASSWORD_HASHERS=['django.contrib.auth.hashers.MD5PasswordHasher'])
@@ -326,8 +326,7 @@ class CleanInstallTests(TestCase):
         self.assertEqual(Event.objects.count(),0)
         self.assertEqual(Registration.objects.count(),0)
         self.assertEqual(Group.objects.filter(name='Coach').count(),1)
-        self.assertEqual(Exercise.objects.count(),9)
-        self.assertIsNone(Exercise.objects.get(name='Press banca').base)
+        self.assertEqual(Exercise.objects.count(),0)
         self.assertNotIn('seed_demo',get_commands())
         self.assertContains(self.client.get('/'),'Los eventos estarán aquí cuando se publiquen.')
 

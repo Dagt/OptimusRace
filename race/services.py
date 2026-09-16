@@ -176,6 +176,7 @@ def change_phase(event_id, actor, phase, test=0,batch=1):
     e.status=phase; e.save(); audit(e,actor,'phase',{'phase':phase,'test':test,'batch':batch})
 
 def reserve_locked(e,user, onsite=False,discount_code=""):
+    if user.is_superuser or user.groups.filter(name="Coach").exists():raise ValidationError("Solo las cuentas de participante pueden inscribirse a eventos.")
     if not hasattr(user,'profile'): raise ValidationError('Completa tu perfil antes de inscribirte.')
     validate_eligibility(e,user.profile.birth_date)
     if not registration_open(e,onsite=onsite): raise ValidationError('Las inscripciones están cerradas.')

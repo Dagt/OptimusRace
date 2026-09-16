@@ -67,4 +67,4 @@ def catalog_edit(request,pk=None):
             messages.success(request,'Prueba guardada. Las reglas de eventos existentes se conservan.')
             return redirect('catalog')
         except IntegrityError:form.add_error('name','Ya existe una prueba con ese nombre.')
-    return render(request,'management_edit.html',{'form':form,'heading':'Editar prueba' if exercise else 'Crear prueba','kind':'catalog'})
+    return render(request,'catalog_form.html',{'form':form,'heading':'Editar prueba' if exercise else 'Crear prueba','kind':'catalog'})

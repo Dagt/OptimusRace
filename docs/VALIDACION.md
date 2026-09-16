@@ -41,3 +41,12 @@ Recorrido de navegador en base y medios aislados: countdown activo, desglose 24/
 Navegador con base aislada: login, resultados provisionales, registro de destreza/juez/orden y clasificación actualizada; los empatados conservaron 100 puntos y recibieron posiciones 1 y 2. La confirmación de cierre bloqueó la herramienta del navegador; el cierre completo, rechazo de empates pendientes y etiqueta de campeón se comprobaron mediante la prueba HTTP automatizada, no como recorrido visual completado.
 
 Arranque limpio aprobado sin usuarios/eventos/inscripciones operativos. Migración 0005 aplicada localmente tras backup verificado. JavaScript comprobado con node --check, Django check sin problemas y archivos estáticos recopilados. No se cargaron eventos de ejemplo en la base local de trabajo.
+
+
+## Formularios claros y separación de roles
+
+90 pruebas existentes y 2 pruebas nuevas aprobadas. Los casos nuevos verifican que administradores/coaches no creen perfil deportivo al consultar su cuenta, no vean inscripción deportiva y no puedan reservar aun si conservan un perfil antiguo. El catálogo de instalación permanece vacío tras ejecutar dos veces el comando de preparación.
+
+Verificación real en navegador: confirmación de contraseña distinta muestra aviso al escribir, coincidencia cambia a confirmación positiva y editar de nuevo la contraseña original restaura el aviso. No se envió el formulario ni se crearon cuentas.
+
+Se retiraron las nueve pruebas precargadas locales, comprobando que coincidían íntegramente con los originales y tras backup verificado. Las cuentas existentes se conservaron. Los ejercicios sintéticos utilizados por pruebas automatizadas están exclusivamente en un módulo de fixtures de test.

@@ -3,8 +3,8 @@ from django.contrib.auth.models import Group
 from race.catalog import seed_catalog
 
 class Command(BaseCommand):
-    help='Instala catálogo técnico y grupo Coach, sin usuarios ni eventos.'
+    help='Prepara el grupo Coach; deja el catálogo vacío.'
     def handle(self,*args,**options):
         seed_catalog()
         Group.objects.get_or_create(name='Coach')
-        self.stdout.write('Catálogo y grupo Coach preparados. No se crean datos operativos.')
+        self.stdout.write('Grupo Coach preparado. No se crean pruebas ni datos operativos.')

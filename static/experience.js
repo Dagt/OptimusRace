@@ -65,3 +65,25 @@ qa('[data-quote-url]').forEach(form=>{const button=q('[data-quote]',form);if(!bu
 
 // Optional load controls follow the selected exercise modality.
 if(q('#id_load_mode')){const mode=q('#id_load_mode');function syncLoad(){for(const name of ['load_value','bar_weight','load_step','round_mode']){const input=q('#id_'+name);if(input)input.closest('label').parentElement.hidden=mode.value==='none'}}mode.addEventListener('change',syncLoad);syncLoad()}
+
+// Compare on every edit, including edits to the original password.
+qa('form').forEach(form=>{
+ const first=form.elements.namedItem('password')||form.elements.namedItem('new_password1');
+ const confirm=form.elements.namedItem('password_confirm')||form.elements.namedItem('new_password2');
+ if(!first||!confirm)return;
+ const hint=document.createElement('small');hint.className='password-match';hint.id=(confirm.id||'password-confirm')+'-match';hint.setAttribute('role','status');hint.setAttribute('aria-live','polite');
+ confirm.closest('label')?.insertAdjacentElement('afterend',hint);
+ if(!hint.isConnected)confirm.insertAdjacentElement('afterend',hint);
+ confirm.setAttribute('aria-describedby',((confirm.getAttribute('aria-describedby')||'')+' '+hint.id).trim());
+ function compare(){
+  const mismatch=first.value!==confirm.value;
+  confirm.setCustomValidity(mismatch?'Las contraseñas no coinciden.':'');
+  confirm.setAttribute('aria-invalid',String(mismatch&&!!confirm.value));
+  hint.textContent=!first.value&&!confirm.value?'':!confirm.value?'Repite la contraseña para confirmarla.':mismatch?'Las contraseñas no coinciden.':'Las contraseñas coinciden.';
+  hint.dataset.state=mismatch&&confirm.value?'error':'ok';
+ }
+ for(const field of [first,confirm]){field.addEventListener('input',compare);field.addEventListener('change',compare)}
+ compare();
+});
+// Native validation must be able to focus fields inside optional sections.
+qa('[data-catalog-form] input,[data-catalog-form] select,[data-catalog-form] textarea').forEach(input=>input.addEventListener('invalid',()=>{const section=input.closest('details');if(section)section.open=true}));

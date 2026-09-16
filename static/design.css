@@ -106,3 +106,5 @@
 @media(max-width:750px){.countdown-panel{align-items:flex-start;flex-direction:column}.countdown-clock{width:100%;justify-content:space-between;gap:8px}.countdown-clock strong{font-size:40px}.seat-breakdown{flex-wrap:wrap;gap:8px 16px}.photo-widget .photo-upload{flex-direction:column}.photo-widget input[type=file]{max-width:100%}}
 
 .tiebreak-entry{padding:20px 0;border-top:1px solid var(--border)}.tiebreak-entry summary{cursor:pointer;margin-bottom:18px;font-weight:600;color:var(--gold)}
+
+.exercise-section{padding:20px 0;border-bottom:1px solid #383838;margin-bottom:18px}.exercise-section summary{font-weight:700;cursor:pointer;font-size:1.1rem}.exercise-section p{color:#bbb;line-height:1.6}.password-match{display:block;margin:8px 0;color:#e8ec9a}.password-match[data-state="error"]{color:#ffb4ab}

@@ -192,6 +192,8 @@ def operations(request,pk):
                         if not name or sex not in ['M','F']: raise ValidationError('Nombre y sexo son obligatorios para un participante nuevo.')
                         user=User.objects.create_user(username=email,email=email,first_name=name,password=secrets.token_urlsafe(32))
                         Profile.objects.create(user=user,sex=sex,birth_date=BirthDateField(required=False).clean(request.POST.get('birth_date')))
+                    elif user.is_superuser or user.groups.filter(name='Coach').exists():
+                        raise ValidationError('Solo las cuentas de participante pueden inscribirse.')
                     elif not Profile.objects.filter(user=user).exists():
                         if request.POST.get('sex') not in ['M','F']: raise ValidationError('Selecciona el sexo del participante.')
                         Profile.objects.create(user=user,sex=request.POST['sex'],birth_date=BirthDateField(required=False).clean(request.POST.get('birth_date')))
@@ -284,6 +286,8 @@ def live_data(request,pk):
 
 @login_required
 def profile(request):
+    if request.user.is_superuser or request.user.groups.filter(name='Coach').exists():
+        return render(request,'staff_profile.html')
     p,_=Profile.objects.get_or_create(user=request.user,defaults={'sex':'M'})
     form=PhotoForm(request.POST or None,request.FILES or None,instance=p)
     if request.method=='POST' and form.is_valid():

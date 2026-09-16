@@ -20,7 +20,7 @@ Copy-Item .env.example .env
 
 En `createsuperuser`, usa tu **correo en minúsculas como nombre de usuario**, repítelo en correo y elige tu contraseña. No se incluye una contraseña fija. Abre [Optimus Race](http://127.0.0.1:8000/), entra con esa cuenta y crea el primer evento.
 
-`seed_catalog` solo agrega ejercicios técnicos y el grupo Coach. No sobrescribe ejercicios existentes. Press banca comienza sin benchmarks; debes definirlos antes de publicar. Revisa las demás referencias y categorías con el organizador: no son estándares oficiales.
+`seed_catalog` prepara únicamente el grupo Coach. No crea ejercicios, usuarios ni eventos. Crea tus pruebas desde Catálogo de pruebas.
 
 ## Siguientes arranques y actualizaciones
 
@@ -102,3 +102,6 @@ Disponible el desglose actualizado de cupo/confirmados/reservas/lugares libres, 
 ## Puntuación relativa y cierre
 
 En cada estación puedes elegir evaluación relativa al mejor/peor de la categoría. Se recalcula durante la competencia, excluye faltantes/descalificados y fija los resultados al cerrar. Operación → Resultados permite documentar la destreza sorpresa y ordenar empatados sin alterar puntos. El radar identifica desempeño relativo y la evolución separa protocolos físicos distintos. [Fórmulas y flujo completo](docs/PREGUNTAS_PUNTUACION.md).
+
+
+Las cuentas de administración y coach muestran Mi cuenta, sin datos deportivos ni inscripción como participante. La confirmación de contraseña informa coincidencias mientras escribes y conserva la validación del servidor. El catálogo organiza la creación en medición, ejecución, carga y opciones avanzadas; la puntuación se configura en el evento.

@@ -70,6 +70,14 @@ class CatalogForm(forms.ModelForm):
             self.initial.update(self.instance.parameters or {})
             self.initial.setdefault('metric','custom');self.initial.setdefault('load_mode','none');self.initial.setdefault('round_mode','none')
         self.order_fields(['name','capacity','metric','unit','higher',*self.parameter_fields[1:],'base','elite'])
+    def sections(self):
+        groups=[('1. ¿Qué va a registrar el coach?', 'La marca es el resultado medido. Por ejemplo: 24 repeticiones, 12.4 segundos o 180 centímetros.', ['name','capacity','metric','unit','higher'], False),
+                ('2. ¿Cómo se realiza el ejercicio?', 'Opcional. La duración y el recorrido son condiciones de ejecución, no puntos. Puedes combinar ambas cuando el ejercicio lo requiera.', ['duration_seconds','distance_meters','laps','instructions','equipment'], True),
+                ('3. ¿Debe utilizar una carga?', 'Opcional. Define el peso que debe usar el participante. El resultado a calificar sigue siendo la marca elegida en el paso 1.', ['load_mode','load_value','bar_weight','load_step','round_mode'], True),
+                ('4. Límites de captura', 'Opcional. Evitan errores del coach; no determinan los puntos. Repeticiones siempre admite enteros.', ['precision','min_value','max_value'], True),
+                ('5. Referencias para evaluación lineal', 'Solo si usarás una escala fija en el evento. Déjalas vacías para puntuación relativa al mejor y peor de cada categoría. Base equivale al 50% y élite al 100% del máximo.', ['base','elite'], True)]
+        return [{'title':title,'help':help_text,'fields':[self[name] for name in names],'collapsed':collapsed and not any(self[name].errors for name in names)} for title,help_text,names,collapsed in groups]
+
     def save(self,commit=True):
         instance=super().save(commit=False)
         instance.parameters={key:self.cleaned_data.get(key) for key in self.parameter_fields}

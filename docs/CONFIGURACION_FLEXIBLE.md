@@ -41,3 +41,10 @@ Capacidades disponibles: Fuerza, Resistencia, Velocidad, Potencia. Una métrica 
 ## Identidad visual
 
 Se conservan composición, tipografía y navegación. Paleta: negro/carbón, blanco y amarillo #F2ED00. Los colores de error mantienen su función de aviso.
+
+
+## Alta guiada y cuentas del equipo
+
+El catálogo inicia vacío. El formulario agrupa la información en: qué mide el coach, condiciones de ejecución, carga, límites de captura y referencias opcionales. La puntuación se configura en el evento; las referencias no son necesarias para evaluación relativa. Las secciones opcionales pueden desplegarse según el ejercicio.
+
+Administradores y coaches acceden a Mi cuenta, sin dorsal, peso, trayectoria ni inscripción deportiva. Las participaciones históricas de una cuenta que cambió de rol se conservan, pero no se muestran en su cuenta administrativa.
