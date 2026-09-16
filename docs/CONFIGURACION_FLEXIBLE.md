@@ -43,18 +43,17 @@ Capacidades disponibles: Fuerza, Resistencia, Velocidad, Potencia. Una métrica 
 Se conservan composición, tipografía y navegación. Paleta: negro/carbón, blanco y amarillo #F2ED00. Los colores de error mantienen su función de aviso.
 
 
-## Alta guiada y cuentas del equipo
+## Formularios abiertos y responsabilidades
 
-El catálogo inicia vacío. El formulario agrupa la información en: qué mide el coach, condiciones de ejecución, carga, límites de captura y referencias opcionales. La puntuación se configura en el evento; las referencias no son necesarias para evaluación relativa. Las secciones opcionales pueden desplegarse según el ejercicio.
+Todo el formulario permanece visible, sin pasos ni secciones plegables.
 
-Administradores y coaches acceden a Mi cuenta, sin dorsal, peso, trayectoria ni inscripción deportiva. Las participaciones históricas de una cuenta que cambió de rol se conservan, pero no se muestran en su cuenta administrativa.
+- **Catálogo:** nombre, capacidad y resultado (repeticiones, segundos, centímetros, metros, kg u otra medida). La unidad se propone automáticamente y la dirección puede ajustarse. Duración, recorrido, carga e indicaciones son condiciones opcionales.
+- **Evento:** datos generales, selección de pruebas del catálogo, puntos, categorías, inscripción, horarios y tarifas. Seleccionar una prueba copia sus condiciones: no se vuelve a capturar su definición. El reparto automático de 100 puntos puede ajustarse manualmente.
+- El alta de pruebas ya no solicita referencias de puntuación, límites técnicos, discos ni redondeo. Los parámetros guardados anteriormente se conservan. Las referencias fijas, si se necesitan, se definen en la estación del evento.
+- Administradores y coaches acceden a Mi cuenta sin datos deportivos ni inscripción como participantes.
 
+## Nombres de usuarios
 
-## Flujo simplificado
-
-Eventos: 1) datos básicos; 2) pruebas; 3) categorías y opciones. Se puede guardar un borrador antes de añadir estaciones. Las pruebas nuevas reparten 100 puntos por igual automáticamente; desmarca esa opción para definir pesos propios. Editar una edición existente conserva su reparto. Las condiciones y evaluación de cada estación están en Personalizar prueba.
-
-Catálogo: nombre, capacidad y tipo de resultado. Elegir el tipo propone unidad y dirección; las unidades de una prueba guardada se conservan al abrirla. El apartado Agregar condiciones u opciones avanzadas permite modificar esas propuestas y configurar carga, duración, recorridos y límites. No se crean ejercicios ni eventos predefinidos.
-
+Registro público, alta/edición de equipo y recepción separan Nombre(s), Apellido paterno y Apellido materno. Los apellidos admiten espacios y pueden dejarse vacíos cuando no apliquen. La plataforma reúne los componentes para mostrar el nombre y nuevas inscripciones; conserva cada apellido por separado. Los nombres existentes no se dividen automáticamente, evitando adivinar apellidos compuestos; se pueden distribuir al editar. Las inscripciones históricas conservan el nombre registrado en su momento.
 
 Los nuevos eventos y borradores sin inscripciones asignan 70 kg a 60–70 y 70.001 kg a 70–80. El primer mínimo se incluye. Las ediciones ya publicadas conservan sus reglas. Las decisiones sobre ejecución válida, discos e incidencias corresponden a los jueces y organizadores antes de capturar la marca. No se requieren penalizaciones automáticas. Los nuevos eventos incorporan posiciones por capacidad dentro de cada categoría de sexo/peso, además de la general. Para clasificar por capacidad se deben completar todas sus pruebas; las otras capacidades pueden quedar sin realizar. Los desempates son independientes. El pin sigue identificado en el campeón general.

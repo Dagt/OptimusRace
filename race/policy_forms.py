@@ -20,6 +20,11 @@ class PolicyForm(forms.Form):
         initial.setdefault('minimum_age',0)
         for key in ['registration_start','reception_start','reception_end','event_end']:
             if initial.get(key):initial[key]=timezone.localtime(instant(initial[key]))
+        if args and args[0] is not None:
+            data=args[0].copy()
+            for key in ['regulations','benefits']:
+                if key not in data:data[key]=rules.get(key,'')
+            args=(data,*args[1:])
         super().__init__(*args,initial=initial,**kwargs)
         for field in self.fields.values():
             if isinstance(field,forms.DateTimeField):field.widget=forms.DateTimeInput(attrs={'type':'datetime-local'},format='%Y-%m-%dT%H:%M')

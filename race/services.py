@@ -199,7 +199,7 @@ def reserve_locked(e,user, onsite=False,discount_code=""):
     quote=quote_price(e,discount_code,exclude_registration=r.pk if r else None)
     if not r:
         bib=(Registration.objects.filter(event=e).aggregate(m=Max('bib'))['m'] or 0)+1
-        r=Registration.objects.create(event=e,user=user,name=user.first_name or user.username,sex=user.profile.sex,bib=bib,amount=quote['amount'],pricing_code=quote['discount_code'],pricing_snapshot=quote,birth_date=user.profile.birth_date)
+        r=Registration.objects.create(event=e,user=user,name=user.get_full_name() or user.username,sex=user.profile.sex,bib=bib,amount=quote['amount'],pricing_code=quote['discount_code'],pricing_snapshot=quote,birth_date=user.profile.birth_date)
     else:
         r.state='reserved'; r.amount=quote['amount']; r.pricing_code=quote['discount_code']; r.pricing_snapshot=quote; r.birth_date=user.profile.birth_date; r.save()
     return r

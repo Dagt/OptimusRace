@@ -1,3 +1,4 @@
+from .account_names import name_parts,save_name
 from django.shortcuts import render,redirect,get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
@@ -15,7 +16,7 @@ def role_of(user):
 def team(request):
     query=request.GET.get('q','').strip()
     accounts=User.objects.select_related('profile').prefetch_related('groups').order_by('first_name','username')
-    if query:accounts=accounts.filter(Q(first_name__icontains=query)|Q(email__icontains=query)|Q(username__icontains=query))
+    if query:accounts=accounts.filter(Q(first_name__icontains=query)|Q(last_name__icontains=query)|Q(email__icontains=query)|Q(username__icontains=query))
     selected=request.GET.get('role','')
     if selected=='admin':accounts=accounts.filter(is_superuser=True)
     elif selected=='coach':accounts=accounts.filter(is_superuser=False,groups__name='Coach')
@@ -26,7 +27,7 @@ def team(request):
 @administrator
 def team_edit(request,pk=None):
     account=get_object_or_404(User,pk=pk) if pk else None
-    initial={'name':account.first_name,'email':account.email or account.username,'role':role_of(account),'active':account.is_active,'birth_date':account.profile.birth_date if hasattr(account,'profile') else None,'sex':account.profile.sex if hasattr(account,'profile') else ''} if account else {}
+    initial={**name_parts(account),'email':account.email or account.username,'role':role_of(account),'active':account.is_active,'birth_date':account.profile.birth_date if hasattr(account,'profile') else None,'sex':account.profile.sex if hasattr(account,'profile') else ''} if account else {}
     form=TeamForm(request.POST or None,account=account,initial=initial)
     if request.method=='POST' and form.is_valid():
         d=form.cleaned_data
@@ -39,6 +40,7 @@ def team_edit(request,pk=None):
                     saved.username=d['email'];saved.email=d['email'];saved.first_name=d['name'];saved.is_active=d.get('active',True);saved.is_superuser=d['role']=='admin';saved.is_staff=saved.is_superuser
                     if d['password']:saved.set_password(d['password'])
                     saved.save()
+                    save_name(saved,d)
                     group,_=Group.objects.get_or_create(name='Coach')
                     if d['role']=='coach':saved.groups.add(group)
                     else:saved.groups.remove(group)

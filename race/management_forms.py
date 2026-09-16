@@ -7,7 +7,9 @@ from .forms import BirthDateField
 import math
 
 class TeamForm(forms.Form):
-    name=forms.CharField(label='Nombre completo',max_length=150)
+    name=forms.CharField(label='Nombre(s)',max_length=150)
+    paternal=forms.CharField(label='Apellido paterno',max_length=74,required=False)
+    maternal=forms.CharField(label='Apellido materno',max_length=74,required=False)
     email=forms.EmailField(label='Correo electrónico')
     role=forms.ChoiceField(label='Rol',choices=[('athlete','Participante'),('coach','Coach'),('admin','Administrador')])
     sex=forms.ChoiceField(label='Categoría por sexo',required=False,choices=[('', 'Selecciona una categoría')]+Profile._meta.get_field('sex').choices,help_text='Solo para participantes. El peso y la categoría de peso se registran en cada evento.')
@@ -18,7 +20,7 @@ class TeamForm(forms.Form):
     def __init__(self,*args,account=None,**kwargs):
         self.account=account
         super().__init__(*args,**kwargs)
-        self.order_fields(['role','name','email','sex','birth_date','active','password','password_confirm'])
+        self.order_fields(['role','name','paternal','maternal','email','sex','birth_date','active','password','password_confirm'])
         self.fields['password'].widget.attrs['autocomplete']='new-password'
         self.participant=(self.data.get('role') if self.is_bound else self.initial.get('role','athlete'))=='athlete'
         if account is None:
@@ -49,6 +51,8 @@ class TeamForm(forms.Form):
         return value
 
 class CatalogForm(forms.ModelForm):
+    measurement=forms.ChoiceField(label='Resultado que registra el juez',required=False,choices=[('repetitions','Repeticiones'),('time','Tiempo en segundos'),('distance_cm','Distancia o altura en centímetros'),('distance_m','Distancia en metros'),('weight','Peso levantado en kg'),('custom','Otra medida')])
+    measurement_defaults={'repetitions':('repetitions','reps',True),'time':('time','seg',False),'distance_cm':('distance','cm',True),'distance_m':('distance','m',True),'weight':('weight','kg',True)}
     metric=forms.ChoiceField(label='Tipo de resultado',choices=[('time','Tiempo'),('repetitions','Repeticiones'),('distance','Distancia / altura'),('weight','Peso levantado'),('custom','Otro (unidad libre)')])
     duration_seconds=forms.FloatField(label='Duración del esfuerzo · segundos',required=False,min_value=.01,help_text='Opcional. Ejemplo: 60 para un minuto de burpees.')
     distance_meters=forms.FloatField(label='Distancia por recorrido · metros',required=False,min_value=.01)
@@ -62,28 +66,41 @@ class CatalogForm(forms.ModelForm):
     min_value=forms.FloatField(label='Marca mínima válida (opcional)',required=False,min_value=0)
     max_value=forms.FloatField(label='Marca máxima válida (opcional)',required=False,min_value=0)
     equipment=forms.CharField(label='Equipo permitido / necesario',required=False,widget=forms.Textarea(attrs={'rows':2}))
-    instructions=forms.CharField(label='Protocolo y criterio de repetición válida',required=False,widget=forms.Textarea(attrs={'rows':4}))
+    instructions=forms.CharField(label='Indicaciones para el juez (opcional)',required=False,widget=forms.Textarea(attrs={'rows':4}))
     parameter_fields=['metric','duration_seconds','distance_meters','laps','load_mode','load_value','bar_weight','load_step','round_mode','precision','min_value','max_value','equipment','instructions']
     def __init__(self,*args,**kwargs):
+        instance=kwargs.get('instance')
+        if args and args[0] is not None:
+            data=args[0].copy()
+            params=instance.parameters if instance else {}
+            # Fields retired from the editor retain saved values; new exercises need none.
+            for key in ['bar_weight','load_step','round_mode','precision','min_value','max_value','equipment']:
+                if key not in data:data[key]=params.get(key) if params.get(key) is not None else ('none' if key=='round_mode' else '')
+            for key in ['base','elite']:
+                if key not in data:data[key]=getattr(instance,key,None) if instance else ''
+            if data.get('measurement') in self.measurement_defaults:
+                metric,unit,higher=self.measurement_defaults[data['measurement']]
+                data['metric']=metric;data['unit']=unit
+                if 'higher' not in data:data['higher']=str(higher)
+            elif data.get('measurement')=='custom':data['metric']='custom'
+            if data.get('load_mode')=='none':
+                for key in ['load_value','bar_weight','load_step']:data[key]=''
+                data['round_mode']='none'
+            args=(data,*args[1:])
         super().__init__(*args,**kwargs)
         if not self.is_bound:
             self.initial.update(self.instance.parameters or {})
-            self.initial.setdefault('metric','repetitions' if not self.instance.pk else 'custom');self.initial.setdefault('load_mode','none');self.initial.setdefault('round_mode','none')
-        if not self.instance.pk and not self.is_bound:
-            self.initial.setdefault('unit','reps');self.initial.setdefault('higher',True)
-        self.order_fields(['name','capacity','metric','unit','higher',*self.parameter_fields[1:],'base','elite'])
+            self.initial.setdefault('load_mode','none');self.initial.setdefault('round_mode','none')
+            self.initial['measurement']=next((key for key,(_,unit,_) in self.measurement_defaults.items() if unit==self.instance.unit),'custom') if self.instance.pk else 'repetitions'
+            if not self.instance.pk:self.initial.update(unit='reps',higher=True)
     def sections(self):
-        groups=[('1. ¿Qué va a registrar el coach?', 'La marca es el resultado medido. Por ejemplo: 24 repeticiones, 12.4 segundos o 180 centímetros.', ['name','capacity','metric'], False),
-                ('Unidad y sentido de la marca', 'Se proponen al elegir el resultado. Personaliza si tu ejercicio usa otra unidad o dirección.', ['unit','higher'], True),
-                ('2. ¿Cómo se realiza el ejercicio?', 'Opcional. La duración y el recorrido son condiciones de ejecución, no puntos. Puedes combinar ambas cuando el ejercicio lo requiera.', ['duration_seconds','distance_meters','laps','instructions','equipment'], True),
-                ('3. ¿Debe utilizar una carga?', 'Opcional. Define el peso que debe usar el participante. El resultado a calificar sigue siendo la marca elegida en el paso 1.', ['load_mode','load_value','bar_weight','load_step','round_mode'], True),
-                ('4. Límites de captura', 'Opcional. Evitan errores del coach; no determinan los puntos. Repeticiones siempre admite enteros.', ['precision','min_value','max_value'], True),
-                ('5. Referencias para evaluación lineal', 'Solo si usarás una escala fija en el evento. Déjalas vacías para puntuación relativa al mejor y peor de cada categoría. Base equivale al 50% y élite al 100% del máximo.', ['base','elite'], True)]
-        return [{'title':title,'help':help_text,'fields':[self[name] for name in names],'collapsed':collapsed and not any(self[name].errors for name in names)} for title,help_text,names,collapsed in groups]
+        groups=[('La prueba', 'Elige qué medirá el juez. La unidad se obtiene del resultado seleccionado.', ['name','capacity','measurement','unit','higher']),
+                ('Condiciones del ejercicio · opcionales', 'Deja vacío lo que no aplique. Duración y recorrido describen el ejercicio; no son la marca que se calificará.', ['duration_seconds','distance_meters','laps','load_mode','load_value','instructions'])]
+        return [{'title':title,'help':help_text,'fields':[self[name] for name in names]} for title,help_text,names in groups]
 
     def save(self,commit=True):
         instance=super().save(commit=False)
-        instance.parameters={key:self.cleaned_data.get(key) for key in self.parameter_fields}
+        instance.parameters={**(instance.parameters or {}),**{key:self.cleaned_data.get(key) for key in self.parameter_fields}}
         if commit:instance.save()
         return instance
 

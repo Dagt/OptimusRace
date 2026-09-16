@@ -1,3 +1,4 @@
+from .account_names import name_parts,save_name
 import json, hashlib, secrets
 from datetime import timedelta
 from functools import wraps
@@ -110,6 +111,7 @@ def signup(request):
             with transaction.atomic():
                 d=form.cleaned_data
                 user=User.objects.create_user(username=d['email'],email=d['email'],first_name=d['name'],password=d['password'])
+                save_name(user,d)
                 Profile.objects.create(user=user,sex=d['sex'],birth_date=d.get('birth_date'))
             login(request,user); messages.success(request,'Tu cuenta está lista. Bienvenido a Optimus Race.');return redirect(next_url(request))
         except IntegrityError: form.add_error('email','La cuenta ya existe.')
@@ -194,6 +196,9 @@ def operations(request,pk):
                         name=request.POST.get('name','').strip(); sex=request.POST.get('sex')
                         if not name or sex not in ['M','F']: raise ValidationError('Nombre y sexo son obligatorios para un participante nuevo.')
                         user=User.objects.create_user(username=email,email=email,first_name=name,password=secrets.token_urlsafe(32))
+                        parts={'name':name,'paternal':request.POST.get('paternal','').strip(),'maternal':request.POST.get('maternal','').strip()}
+                        if len(name)>150 or any(len(parts[k])>74 for k in ['paternal','maternal']):raise ValidationError('El nombre o apellido supera el límite permitido.')
+                        save_name(user,parts)
                         Profile.objects.create(user=user,sex=sex,birth_date=BirthDateField(required=False).clean(request.POST.get('birth_date')))
                     elif user.is_superuser or user.groups.filter(name='Coach').exists():
                         raise ValidationError('Solo las cuentas de participante pueden inscribirse.')
@@ -308,7 +313,7 @@ def profile(request):
 @administrator
 def participant_lookup(request):
     u=User.objects.filter(username=request.GET.get('email','').strip().lower()).first()
-    return JsonResponse({'found':bool(u),'name':u.first_name if u else '', 'sex':u.profile.sex if u and hasattr(u,'profile') else '', 'birth_date':u.profile.birth_date.isoformat() if u and hasattr(u,'profile') and u.profile.birth_date else ''})
+    return JsonResponse({'found':bool(u),'name':u.get_full_name() if u else '', 'name_parts':name_parts(u) if u else {}, 'sex':u.profile.sex if u and hasattr(u,'profile') else '', 'birth_date':u.profile.birth_date.isoformat() if u and hasattr(u,'profile') and u.profile.birth_date else ''})
 
 @login_required
 def registration_status(request,pk):

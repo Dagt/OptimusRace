@@ -30,8 +30,8 @@ class Event(models.Model):
     version = models.PositiveIntegerField(default=1)
     active_test = models.PositiveIntegerField(default=0)
     active_batch = models.PositiveIntegerField(default=1)
-    final_board = models.JSONField(default=list)
-    closed_at = models.DateTimeField(null=True)
+    final_board = models.JSONField(default=list,blank=True)
+    closed_at = models.DateTimeField(null=True,blank=True)
     description = models.TextField(blank=True)
     allow_onsite = models.BooleanField(default=False)
     @property
@@ -43,7 +43,7 @@ class Event(models.Model):
 class Registration(models.Model):
     event = models.ForeignKey(Event, on_delete=models.PROTECT)
     user = models.ForeignKey(User, on_delete=models.PROTECT)
-    name = models.CharField(max_length=150)
+    name = models.CharField(max_length=300)
     sex = models.CharField(max_length=1)
     birth_date = models.DateField(null=True, blank=True)
     bib = models.PositiveIntegerField()
@@ -115,3 +115,9 @@ class TieBreak(models.Model):
     judge = models.CharField(max_length=150)
     actor = models.ForeignKey(User,on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class AccountName(models.Model):
+    user = models.OneToOneField(User,on_delete=models.CASCADE,related_name='account_name')
+    paternal = models.CharField(max_length=74,blank=True)
+    maternal = models.CharField(max_length=74,blank=True)

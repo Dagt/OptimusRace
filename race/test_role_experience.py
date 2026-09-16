@@ -25,9 +25,9 @@ class RoleExperienceTests(TestCase):
         user=User.objects.create_superuser('admin','admin@example.test','test-password')
         self.client.force_login(user)
         response=self.client.get('/catalog/new/')
-        self.assertContains(response,'¿Qué va a registrar el coach?')
-        self.assertContains(response,'Límites de captura')
-        self.assertContains(response,'DE LA MARCA A LOS PUNTOS')
+        self.assertContains(response,'Resultado que registra el juez')
+        self.assertNotContains(response,'name="precision"')
+        self.assertNotContains(response,'<details')
         self.assertEqual(Exercise.objects.count(),0)
 
     def test_upper_inclusive_weight_categories(self):
@@ -38,3 +38,43 @@ class RoleExperienceTests(TestCase):
         for weight,expected in [(60,'60–70'),(70,'60–70'),(70.001,'70–80'),(80,'70–80')]:
             self.assertEqual(category(rules,'M',weight),expected)
         with self.assertRaises(ValidationError):category(rules,'M',80.001)
+
+    def test_separate_names_round_trip_and_search(self):
+        from .account_names import name_parts
+        admin=User.objects.create_superuser('owner','owner@example.test','test-password')
+        self.client.force_login(admin)
+        data={'name':'María José','paternal':'De la Cruz','maternal':'López','role':'admin','email':'new@example.test','password':'safe-password-1957','password_confirm':'safe-password-1957'}
+        self.assertEqual(self.client.post('/team/new/',data).status_code,302)
+        account=User.objects.get(email=data['email'])
+        self.assertEqual(account.first_name,'María José')
+        self.assertEqual(account.get_full_name(),'María José De la Cruz López')
+        self.assertEqual(name_parts(account)['paternal'],'De la Cruz')
+        self.assertContains(self.client.get(f'/team/{account.pk}/'),'value="López"')
+        self.assertContains(self.client.get('/team/?q=López'),'María José De la Cruz López')
+    def test_legacy_name_is_not_guessed_or_split(self):
+        from .account_names import name_parts
+        account=User.objects.create_user('legacy',first_name='José Luis De la Cruz')
+        self.assertEqual(name_parts(account),{'name':'José Luis De la Cruz','paternal':'','maternal':''})
+    def test_simple_catalog_derives_measurement_and_preserves_old_settings(self):
+        from .management_forms import CatalogForm
+        data={'name':'Carrera nueva','capacity':'Velocidad','measurement':'time','higher':'False','load_mode':'none'}
+        form=CatalogForm(data);self.assertTrue(form.is_valid(),form.errors)
+        exercise=form.save();self.assertEqual(exercise.unit,'seg');self.assertFalse(exercise.higher)
+        exercise.parameters.update(precision=3,equipment='Equipo previo',extra_protocol='Conservar');exercise.base=30;exercise.elite=10;exercise.save()
+        form=CatalogForm(data,instance=exercise);self.assertTrue(form.is_valid(),form.errors)
+        exercise=form.save();self.assertEqual(exercise.parameters['precision'],3);self.assertEqual(exercise.parameters['extra_protocol'],'Conservar');self.assertEqual(exercise.base,30)
+    def test_event_editor_is_visible_and_not_a_wizard(self):
+        admin=User.objects.create_superuser('owner','owner@example.test','test-password')
+        self.client.force_login(admin)
+        response=self.client.get('/events/new/')
+        self.assertContains(response,'id="event-info"');self.assertContains(response,'id="event-tests"');self.assertContains(response,'id="event-pricing"')
+        self.assertNotContains(response,'data-event-page');self.assertNotContains(response,'<details')
+
+    def test_edit_draft_does_not_require_closed_results(self):
+        from .services import configure
+        from .event_policy import blank_rules
+        admin=User.objects.create_superuser('owner','owner@example.test','test-password')
+        event=Event.objects.create(name='Draft',location='Sede',date=timezone.now(),registration_end=timezone.now()-timezone.timedelta(hours=1),rules=blank_rules())
+        data={'name':'Editado','location':event.location,'date':event.date,'registration_end':event.registration_end,'price':0,'capacity':20,'demo':False,'rules':blank_rules()}
+        configure(event.pk,admin,data)
+        event.refresh_from_db();self.assertEqual(event.name,'Editado');self.assertIsNone(event.closed_at)

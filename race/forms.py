@@ -10,8 +10,11 @@ class BirthDateField(forms.DateField):
         if value and value>timezone.localdate():raise forms.ValidationError('La fecha de nacimiento no puede estar en el futuro.')
 
 class SignupForm(forms.Form):
+    field_order=['name','paternal','maternal','email','sex','birth_date','password','password_confirm']
     birth_date=BirthDateField(label='Fecha de nacimiento',required=False,widget=forms.DateInput(attrs={'type':'date'}),help_text='Necesaria para eventos con edad mínima.')
-    name=forms.CharField(label='Nombre completo',max_length=150)
+    name=forms.CharField(label='Nombre(s)',max_length=150)
+    paternal=forms.CharField(label='Apellido paterno',max_length=74,required=False)
+    maternal=forms.CharField(label='Apellido materno',max_length=74,required=False)
     email=forms.EmailField(label='Correo electrónico')
     sex=forms.ChoiceField(label='Categoría por sexo',choices=Profile._meta.get_field('sex').choices)
     password=forms.CharField(label='Contraseña',strip=False,widget=forms.PasswordInput(attrs={'autocomplete':'new-password'}),validators=[validate_password])

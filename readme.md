@@ -75,9 +75,9 @@ Catálogo de pruebas permite buscar, crear y editar ejercicios, unidad, capacida
 
 | Rol | Datos obligatorios al crear | Datos deportivos |
 | --- | --- | --- |
-| Administrador | Nombre completo, correo, contraseña y confirmación | Ninguno |
-| Coach | Nombre completo, correo, contraseña y confirmación | Ninguno |
-| Participante | Nombre completo, correo, contraseña y confirmación | Categoría por sexo |
+| Administrador | Nombre(s), apellido paterno, apellido materno, correo, contraseña y confirmación | Ninguno |
+| Coach | Nombre(s), apellido paterno, apellido materno, correo, contraseña y confirmación | Ninguno |
+| Participante | Nombre(s), apellido paterno, apellido materno, correo, contraseña y confirmación | Categoría por sexo |
 
 El administrador selecciona primero el rol; el formulario muestra la categoría solo para participantes. Las cuentas nuevas nacen activas. Al editar se puede desactivar el acceso y cambiar la contraseña escribiéndola dos veces; dejar ambos campos vacíos conserva la actual. Mostrar contraseñas permite revisar lo escrito antes de guardar. El registro público siempre crea participantes y también exige confirmación.
 
@@ -104,4 +104,4 @@ Disponible el desglose actualizado de cupo/confirmados/reservas/lugares libres, 
 En cada estación puedes elegir evaluación relativa al mejor/peor de la categoría. Se recalcula durante la competencia, excluye faltantes/descalificados y fija los resultados al cerrar. Operación → Resultados permite documentar la destreza sorpresa y ordenar empatados sin alterar puntos. El radar identifica desempeño relativo y la evolución separa protocolos físicos distintos. [Fórmulas y flujo completo](docs/PREGUNTAS_PUNTUACION.md).
 
 
-Las cuentas de administración y coach muestran Mi cuenta, sin datos deportivos ni inscripción como participante. La confirmación de contraseña informa coincidencias mientras escribes y conserva la validación del servidor. El catálogo organiza la creación en medición, ejecución, carga y opciones avanzadas; la puntuación se configura en el evento.
+Las cuentas de administración y coach muestran Mi cuenta, sin datos deportivos ni inscripción como participante. La confirmación de contraseña informa coincidencias mientras escribes y conserva la validación del servidor. Los formularios están abiertos y sin pasos. El catálogo define la medición y condiciones; el evento selecciona esa definición y configura los puntos. Nombre(s), apellido paterno y apellido materno se capturan por separado.

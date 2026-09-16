@@ -60,3 +60,11 @@ Se retiraron las nueve pruebas precargadas locales, comprobando que coincidían 
 ## Límites superiores y podios por capacidad
 
 Pruebas agregadas: 70 kg pertenece al rango que termina en 70 y 70.001 al siguiente; el primer mínimo se incluye y los eventos anteriores conservan su política. La clasificación por capacidad admite faltantes en otras capacidades, exige completar sus propias pruebas, mantiene desempates independientes y conserva sus resultados al cerrar.
+
+
+## Formularios abiertos y nombres separados
+
+Se retiraron los pasos y secciones plegables. El catálogo deja de pedir parámetros de discos, redondeo, límites técnicos y referencias; los valores guardados se conservan. El evento reutiliza la definición del catálogo. Nuevas pruebas verifican nombres compuestos, apellidos separados, búsqueda por apellido, conservación de nombres antiguos, interpretación de unidades y edición de borrador sin exigir resultados cerrados.
+
+En navegador con base aislada se creó una prueba con carga del 75%, se seleccionó en un evento y se guardó el borrador. Se verificó la copia visible de la carga sin duplicar campos, y la ausencia de errores JavaScript. Se corrigió la validación de campos internos de cierre que impedía editar un borrador.
+`nSuite completa: 100 pruebas aprobadas tras las migraciones de nombres y validación de borradores.
