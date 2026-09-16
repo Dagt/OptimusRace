@@ -97,3 +97,8 @@ Campos alineados en filas adaptadas al ancho disponible; fechas completas y cont
 Botones para agregar al pie de las listas. Rangos agrupados por rama, con nombres automáticos y generación múltiple mediante límites; conserva nombres existentes sin cambios de peso. Verificación en navegador de generación varonil/femenil y rechazo de solapamientos.
 
 Guardar y publicar usa las validaciones de publicación existentes. Si fallan, conserva el borrador y redirige a editar con el motivo. Guía de operación por etapa y explicación del primer acceso desde mostrador, incluyendo la limitación del correo de consola local. Se comprobó con correo de pruebas que una cuenta creada en mostrador recibe el enlace de primera contraseña. Suite completa: 107 pruebas aprobadas. No se enviaron correos reales ni se modificaron eventos del usuario.
+
+
+## Claridad de inscripción y recepción
+
+Textos y controles distinguen inscripción/pago de foto/pesaje/asistencia, muestran horarios de recepción y avisan cuando no están configurados. La inscripción en línea se muestra deshabilitada si falta configurar Stripe. Verificación: 15 pruebas de flujos y roles aprobadas. No se habilitaron cobros ni se cambiaron horarios de eventos del usuario.

@@ -72,3 +72,12 @@ Los nuevos eventos y borradores sin inscripciones asignan 70 kg a 60–70 y 70.0
 La inscripción crea una cuenta si no existe. No envía una contraseña. Una cuenta existente conserva la suya. Un participante nuevo abre **Ingresar → Crear o recuperar contraseña**, escribe el mismo correo de inscripción, solicita el enlace, establece su contraseña y después inicia sesión para consultar perfil, eventos y resultados.
 
 El envío real requiere configurar un proveedor de correo SMTP. Con el backend de consola local, el enlace se imprime en la terminal del servidor; no llega a una bandeja de correo. Para probar el acceso local también se puede establecer una contraseña desde **Participantes y mostrador → Editar participante**.
+
+
+## Autoinscripción, foto y pesaje
+
+Con una cuenta de participante: Explorar eventos → Ver evento → Inscribirme. Se requiere habilitar inscripción y pago en línea en el evento, configurar Stripe y tener inscripciones vigentes y cupo. La confirmación depende de la verificación del pago. Publicar no activa automáticamente la inscripción en línea. Administradores y coaches no pueden autoinscribirse.
+
+Mostrador confirma inscripción y pago, y puede operar antes del evento. El día del evento: Administrar evento → Recepción · foto y pesaje → buscar y abrir la ficha → tomar o revisar foto → volver → capturar peso medido, lote y asistencia → Guardar pesaje y asistencia. La foto es opcional, pertenece al perfil y puede cargarse antes; guardarla no confirma recepción. El peso oficial pertenece a la inscripción de esa edición y determina categoría y carga.
+
+Define Apertura y Cierre de recepción antes de publicar para restringir el pesaje al horario del día del evento. Sin estos límites, el sistema no impone una fecha de pesaje automáticamente. Los límites configurados también afectan correcciones de recepción.

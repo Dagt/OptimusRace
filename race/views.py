@@ -265,7 +265,7 @@ def operations(request,pk):
         try:validate_rules(e.rules);validate_policies(e.rules,e)
         except ValidationError as exc:publish_issues.extend(exc.messages)
         if not e.capacity:publish_issues.append('Define el cupo de participantes.')
-    return render(request,'operations.html',{'event':e,'seats':availability(e),'publish_issues':publish_issues,'email_console':settings.EMAIL_BACKEND.endswith('console.EmailBackend'),'can_cash':registration_open(e,onsite=True),'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
+    return render(request,'operations.html',{'event':e,'seats':availability(e),'publish_issues':publish_issues,'reception_start':instant(e.rules['reception_start']) if e.rules.get('reception_start') else None,'reception_end':instant(e.rules['reception_end']) if e.rules.get('reception_end') else None,'email_console':settings.EMAIL_BACKEND.endswith('console.EmailBackend'),'can_cash':registration_open(e,onsite=True),'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
 
 @staff
 def coach(request,pk):
