@@ -17,7 +17,7 @@ Ejemplos de modelado (no se cargan automáticamente): burpees → repeticiones d
 
 1. Nombre, sede, fecha y hora, cierre de inscripción, precio general MXN y cupo. El cupo puede quedar vacío en borrador; se exige para publicar.
 2. Agregar estaciones desde catálogo o definirlas para esa edición. Se admiten de 1 a 32, ordenables, con parámetros propios. Los máximos deben sumar 100 puntos. Repartir por igual es una acción explícita, no un formato automático de ocho pruebas.
-3. Categorías por sexo/peso; mínimo incluido y máximo excluido. Máximo vacío = sin límite. Se rechazan solapamientos; un peso fuera de rangos exige resolver las reglas antes de recepción.
+3. Categorías por sexo/peso; máximo incluido; un peso superior al límite pasa al siguiente rango. Máximo vacío = sin límite. Se rechazan solapamientos; un peso fuera de rangos exige resolver las reglas antes de recepción.
 4. Edad mínima/máxima al día del evento, apertura de inscripción, recepción, fin del evento, orden de estaciones, reglamento, beneficios y contacto. Horarios en America/Mexico_City; las vigencias se almacenan con zona horaria.
 5. Tarifas por periodo, sin solapamientos. Fuera de esos periodos rige el precio general. Cada vigencia incluye inicio y excluye fin.
 6. Códigos porcentuales o de importe fijo, fechas y límite de usos. Un código por inscripción, aplicado sobre tarifa vigente. El total no baja de cero. Reservas activas cuentan en el límite y conservan cotización, descuento e importe.
@@ -55,3 +55,6 @@ Administradores y coaches acceden a Mi cuenta, sin dorsal, peso, trayectoria ni 
 Eventos: 1) datos básicos; 2) pruebas; 3) categorías y opciones. Se puede guardar un borrador antes de añadir estaciones. Las pruebas nuevas reparten 100 puntos por igual automáticamente; desmarca esa opción para definir pesos propios. Editar una edición existente conserva su reparto. Las condiciones y evaluación de cada estación están en Personalizar prueba.
 
 Catálogo: nombre, capacidad y tipo de resultado. Elegir el tipo propone unidad y dirección; las unidades de una prueba guardada se conservan al abrirla. El apartado Agregar condiciones u opciones avanzadas permite modificar esas propuestas y configurar carga, duración, recorridos y límites. No se crean ejercicios ni eventos predefinidos.
+
+
+Los nuevos eventos y borradores sin inscripciones asignan 70 kg a 60–70 y 70.001 kg a 70–80. El primer mínimo se incluye. Las ediciones ya publicadas conservan sus reglas. Las decisiones sobre ejecución válida, discos e incidencias corresponden a los jueces y organizadores antes de capturar la marca. No se requieren penalizaciones automáticas. Los nuevos eventos incorporan posiciones por capacidad dentro de cada categoría de sexo/peso, además de la general. Para clasificar por capacidad se deben completar todas sus pruebas; las otras capacidades pueden quedar sin realizar. Los desempates son independientes. El pin sigue identificado en el campeón general.

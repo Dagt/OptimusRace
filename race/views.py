@@ -29,6 +29,7 @@ from .policy_forms import PolicyForm
 from .forms import BirthDateField,ParticipantPhotoForm
 from .photos import save_photo
 from .availability import availability,set_capacity
+from .capacity_results import capacity_boards,all_ties
 from .relative_scoring import is_relative,tie_groups,resolve_tie
 from .progress import comparison_key,comparison_label
 
@@ -123,7 +124,7 @@ def event_detail(request,pk):
     if e.status=='draft' and not request.user.is_superuser: return HttpResponseForbidden()
     entry=Registration.objects.filter(event=e,user=request.user).first() if request.user.is_authenticated else None
     seats=availability(e);occupied=seats['occupied']
-    return render(request,'event.html',{'event':e,'seats':seats,'server_now':timezone.now().isoformat(),'entry':entry,'board':board(e),'relative_scoring':is_relative(e),'occupied':occupied,'remaining':max(0,e.capacity-occupied),'can_enroll':registration_open(e),'online_enrollment':e.rules.get('online_payments',True),'stripe_ready':bool(settings.STRIPE_SECRET_KEY),'payment_mode':settings.STRIPE_MODE})
+    return render(request,'event.html',{'event':e,'seats':seats,'server_now':timezone.now().isoformat(),'entry':entry,'board':board(e),'capacity_boards':capacity_boards(board(e)),'relative_scoring':is_relative(e),'occupied':occupied,'remaining':max(0,e.capacity-occupied),'can_enroll':registration_open(e),'online_enrollment':e.rules.get('online_payments',True),'stripe_ready':bool(settings.STRIPE_SECRET_KEY),'payment_mode':settings.STRIPE_MODE})
 
 @login_required
 @require_POST
@@ -149,6 +150,7 @@ def event_edit(request,pk=None):
     e=get_object_or_404(Event,pk=pk) if pk else None
     form=EventForm(request.POST or None,instance=e)
     rules=e.rules if e else blank_rules()
+    if not e or (e.status=='draft' and not e.registration_set.exists()):rules={**rules,'category_bounds':'upper_inclusive','capacity_podiums':True}
     policy=PolicyForm(request.POST or None,rules=rules)
     if request.method=='POST':
         try:rules=json.loads(request.POST.get('rules','{}'))
@@ -157,6 +159,7 @@ def event_edit(request,pk=None):
         try:
             rules=json.loads(request.POST['rules'])
             policy.apply(rules)
+            if not e or (e.status=='draft' and not e.registration_set.exists()):rules['category_bounds']='upper_inclusive';rules['capacity_podiums']=True
             validate_policies(rules,form.instance)
             validate_rules(rules,False)
             if e: e=configure(e.id,request.user,{**form.cleaned_data,'rules':rules})
@@ -214,7 +217,7 @@ def operations(request,pk):
                 places=[int(value) for value in request.POST.getlist('place')]
                 if len(ids)!=len(places) or set(places)!=set(range(1,len(ids)+1)):raise ValidationError('Asigna una posición distinta a cada participante empatado.')
                 order=[member for place,member in sorted(zip(places,ids))]
-                resolve_tie(pk,request.user,request.POST['category'],float(request.POST['total']),order,request.POST['fingerprint'],request.POST.get('challenge',''),request.POST.get('details',''),request.POST.get('judge',''))
+                resolve_tie(pk,request.user,request.POST['category'],float(request.POST['total']),order,request.POST['fingerprint'],request.POST.get('challenge',''),request.POST.get('details',''),request.POST.get('judge',''),scope=request.POST.get('scope','general'))
             elif action=='capacity':
                 set_capacity(pk,request.user,int(request.POST['capacity']),request.POST.get('reason',''))
             elif action=='discipline':
@@ -240,7 +243,7 @@ def operations(request,pk):
     confirmed=[r for r in entries if r.state=='confirmed']
     summary={'registered':len(confirmed),'present':sum(r.attendance=='present' for r in confirmed),'pending':sum(r.attendance=='pending' for r in confirmed),'remaining':max(0,e.capacity-sum(r.state in ['confirmed','reserved'] for r in entries)),'cash':sum(r.amount for r in confirmed if r.method=='cash'),'stripe':sum(r.amount for r in confirmed if r.method=='stripe')}
     standings=board(e)
-    ties=tie_groups(standings) if e.status!='closed' else []
+    ties=all_ties(standings) if e.status!='closed' else []
     for group in ties:
         group['positions']=range(1,len(group['members'])+1)
         group['resolved']=not any(row.get('tie_pending') for row in group['members'])
@@ -249,7 +252,7 @@ def operations(request,pk):
         try:validate_rules(e.rules);validate_policies(e.rules,e)
         except ValidationError as exc:publish_issues.extend(exc.messages)
         if not e.capacity:publish_issues.append('Define el cupo de participantes.')
-    return render(request,'operations.html',{'event':e,'seats':availability(e),'publish_issues':publish_issues,'can_cash':registration_open(e,onsite=True),'entries':entries,'summary':summary,'board':standings,'ties':ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
+    return render(request,'operations.html',{'event':e,'seats':availability(e),'publish_issues':publish_issues,'can_cash':registration_open(e,onsite=True),'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
 
 @staff
 def coach(request,pk):

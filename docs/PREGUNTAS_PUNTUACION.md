@@ -32,3 +32,10 @@ La destreza sorpresa solo cambia posiciones entre empatados: no cambia las marca
 - Un aumento de puntos entre eventos puede deberse al grupo de competidores. No representa por sí solo mejora física ni un percentil.
 
 No se inventaron referencias físicas absolutas ni se cargaron eventos predefinidos. Los datos de la convocatoria son una referencia de lo que el organizador puede configurar. La medalla para todos y el pin para el campeón no requieren modificar el puntaje.
+
+
+## Capacidades y decisiones en pista
+
+Los nuevos eventos y borradores sin inscritos tienen clasificación por Fuerza, Resistencia, Velocidad y Potencia dentro de sexo/peso, además de la general. Cada podio por capacidad exige completar sus estaciones. No exige completar las otras capacidades. El total general conserva la suma de puntos realizados; el pin corresponde al campeón general de sexo/peso. No se crean premios adicionales automáticamente.
+
+Cada capacidad mantiene su desempate independiente y sus resultados se fijan al cierre. Jueces y organizadores resuelven validez, incidencias y montaje de discos antes de registrar una marca. No se necesitan reglas de sanción automática para operar este flujo.

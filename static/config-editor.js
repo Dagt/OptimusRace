@@ -37,7 +37,7 @@ if(q('#config-form')){
   removeButton(actions,()=>{tests.splice(tests.indexOf(item),1);row.remove();check()});check();
  }
  (original.tests||[]).forEach(addTest);q('#add-test').onclick=()=>addTest();q('#equal-points').onclick=()=>{distribute();check()};check();
- function addCat(c={}){const row=node('div',undefined,'policy-row');q('#category-editor').append(row);const name=field(row,'Nombre',c.name),sex=field(row,'Categoría',c.sex||'M','text',[['M','Varonil'],['F','Femenil']]),min=field(row,'Desde · kg',c.min??0,'number'),max=field(row,'Hasta · kg (excluido)',c.max,'number');const item={name,sex,min,max};cats.push(item);removeButton(row,()=>{cats=cats.filter(i=>i!==item);row.remove()})}
+ function addCat(c={}){const row=node('div',undefined,'policy-row');q('#category-editor').append(row);const name=field(row,'Nombre',c.name),sex=field(row,'Categoría',c.sex||'M','text',[['M','Varonil'],['F','Femenil']]),min=field(row,'Desde · kg',c.min??0,'number'),max=field(row,original.category_bounds==='upper_inclusive'?'Hasta · kg (incluido)':'Hasta · kg (excluido)',c.max,'number');const item={name,sex,min,max};cats.push(item);removeButton(row,()=>{cats=cats.filter(i=>i!==item);row.remove()})}
  (original.categories||[]).forEach(addCat);q('#add-category').onclick=()=>addCat();
  // datetime-local is expressed in the venue's configured Mexico City timezone, not the browser's zone.
  function local(iso){return iso?new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Mexico_City',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(iso)).replace(' ','T'):''}

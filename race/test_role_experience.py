@@ -29,3 +29,12 @@ class RoleExperienceTests(TestCase):
         self.assertContains(response,'Límites de captura')
         self.assertContains(response,'DE LA MARCA A LOS PUNTOS')
         self.assertEqual(Exercise.objects.count(),0)
+
+    def test_upper_inclusive_weight_categories(self):
+        from .services import category
+        from .event_policy import blank_rules
+        rules=blank_rules()
+        rules['categories']=[{'name':'70–80','sex':'M','min':70,'max':80},{'name':'60–70','sex':'M','min':60,'max':70}]
+        for weight,expected in [(60,'60–70'),(70,'60–70'),(70.001,'70–80'),(80,'70–80')]:
+            self.assertEqual(category(rules,'M',weight),expected)
+        with self.assertRaises(ValidationError):category(rules,'M',80.001)

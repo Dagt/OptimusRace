@@ -89,8 +89,12 @@ def score(value, test, judged_points=None):
 
 def category(rules, sex, weight):
     weight = number(weight,0.01)
-    for c in rules['categories']:
-        if c['sex']==sex and c['min'] <= weight and (c['max'] is None or weight < c['max']): return c['name']
+    categories=sorted((c for c in rules['categories'] if c['sex']==sex),key=lambda c:c['min'])
+    for index,c in enumerate(categories):
+        if rules.get('category_bounds')=='upper_inclusive':
+            above=weight>c['min'] or (index==0 and weight==c['min'])
+            if above and (c['max'] is None or weight<=c['max']):return c['name']
+        elif c['min']<=weight and (c['max'] is None or weight<c['max']):return c['name']
     raise ValidationError('El peso no corresponde a una categoría. Revisa los rangos del evento.')
 
 def suggested_load(event, weight):
@@ -137,6 +141,8 @@ def board(event):
         if row['category']!='Sin pesaje' and row['completed'] and row['attendance']!='disqualified':
             row['rank']=1+sum(other['attendance']!='disqualified' and other['category']==row['category'] and other['completed']>0 and other['total']>row['total'] for other in rows)
     apply_tiebreaks(event,rows)
+    from .capacity_results import attach_capacity_results
+    attach_capacity_results(event,rows)
     rows.sort(key=lambda r:(r['attendance']=='disqualified',-r['total'],r['rank'] if r['rank'] is not None else float('inf'),r['bib']))
     return rows
 
@@ -166,8 +172,13 @@ def change_phase(event_id, actor, phase, test=0,batch=1):
     if phase=='closed':
         if Registration.objects.filter(event=e,state='reserved').exists(): raise ValidationError('Resuelve las reservas de pago antes de cerrar.')
         frozen=board(e)
+        for row in frozen:
+            if any(result['tie_pending'] and result['rank'] is not None and result['rank']<=3 for result in row.get('capacity_results',{}).values()):raise ValidationError('Resuelve los empates del podio por capacidad antes de cerrar.')
         if is_relative(e) and any(r['tie_pending'] and r['rank']<=3 for r in frozen if r['rank'] is not None):raise ValidationError('Resuelve los empates del podio por categoría antes de cerrar el evento.')
         for row in frozen:
+            for result in row.get('capacity_results',{}).values():
+                result['provisional']=False;result['winner']=result['rank']==1 and not result['tie_pending']
+                for mark in result['marks']:mark['provisional']=False
             row['provisional']=False;row['champion']=row['rank']==1 and not row['tie_pending']
             for index,mark in enumerate(row['marks']):
                 mark['provisional']=False

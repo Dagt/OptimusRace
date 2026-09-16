@@ -104,6 +104,7 @@ class LoginAttempt(models.Model):
 
 
 class TieBreak(models.Model):
+    scope = models.CharField(max_length=20,default="general")
     event = models.ForeignKey(Event,on_delete=models.PROTECT)
     category = models.CharField(max_length=100)
     total = models.FloatField()

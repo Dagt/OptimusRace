@@ -55,3 +55,8 @@ Se retiraron las nueve pruebas precargadas locales, comprobando que coincidían 
 ## Formularios simplificados
 
 92 pruebas aprobadas. Revisión en navegador con base aislada: navegación de tres pasos, error de campo obligatorio que vuelve al paso inicial, guardado de borrador sin estaciones y creación de prueba con nombre/capacidad/tipo. Elegir tiempo propuso segundos y menor marca es mejor; el catálogo confirmó esos valores. Sin errores JavaScript en ese recorrido. Los datos de revisión no se añadieron a la base local.
+
+
+## Límites superiores y podios por capacidad
+
+Pruebas agregadas: 70 kg pertenece al rango que termina en 70 y 70.001 al siguiente; el primer mínimo se incluye y los eventos anteriores conservan su política. La clasificación por capacidad admite faltantes en otras capacidades, exige completar sus propias pruebas, mantiene desempates independientes y conserva sus resultados al cerrar.

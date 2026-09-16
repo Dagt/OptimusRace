@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 def blank_rules():
-    return {'schema_version':2,'tests':[],'categories':[],'bar':0,'rounding':0,'round_mode':'none',
+    return {'schema_version':2,'category_bounds':'upper_inclusive','capacity_podiums':True,'tests':[],'categories':[],'bar':0,'rounding':0,'round_mode':'none',
             'minimum_age':0,'ordered_stations':False,'online_payments':False,'price_tiers':[],'discounts':[]}
 
 def instant(value):
