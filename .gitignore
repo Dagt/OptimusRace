@@ -19,3 +19,5 @@ backups/
 *.zip
 *.pem
 *.key
+
+.models/

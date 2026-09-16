@@ -307,7 +307,7 @@ def profile(request):
         form=ParticipantPhotoForm(request.POST or None,request.FILES or None,instance=person)
         if request.method=='POST' and form.is_valid():
             if not person.pk:person.save()
-            if form.cleaned_data['photo'] is False or request.FILES.get('photo'):save_photo(person,form.cleaned_data['photo'])
+            if form.cleaned_data['photo'] is False or request.FILES.get('photo'):save_photo(person,form.cleaned_data['photo'],form.cleaned_data.get('original_photo'))
             messages.success(request,'Foto de perfil actualizada.')
             return redirect('profile')
         return render(request,'staff_profile.html',{'profile':person,'form':form})
@@ -315,7 +315,7 @@ def profile(request):
     form=PhotoForm(request.POST or None,request.FILES or None,instance=p)
     if request.method=='POST' and form.is_valid():
         p.sex=form.cleaned_data['sex'];p.birth_date=form.cleaned_data.get('birth_date');p.save(update_fields=['sex','birth_date'])
-        if form.cleaned_data['photo'] is False or request.FILES.get('photo'):save_photo(p,form.cleaned_data['photo'])
+        if form.cleaned_data['photo'] is False or request.FILES.get('photo'):save_photo(p,form.cleaned_data['photo'],form.cleaned_data.get('original_photo'))
         messages.success(request,'Perfil actualizado.');return redirect('profile')
     history=[]
     for r in Registration.objects.filter(user=request.user).select_related('event').order_by('-event__date'):
@@ -377,7 +377,23 @@ def participant_photo(request,pk):
     target=next_url(request)
     if request.method=='POST' and form.is_valid():
         if form.cleaned_data['photo'] is False or request.FILES.get('photo'):
-            save_photo(person,form.cleaned_data['photo'])
+            save_photo(person,form.cleaned_data['photo'],form.cleaned_data.get('original_photo'))
             messages.success(request,'Foto de participante actualizada.')
         return redirect(target)
     return render(request,'participant_photo.html',{'participant':participant,'profile':person,'form':form,'next':target})
+
+
+@login_required
+@require_POST
+def portrait_preview(request):
+    from .portrait import portrait_cutout,processing
+    if not request.FILES.get('photo'):return JsonResponse({'error':'Selecciona una foto.'},status=400)
+    if not processing.acquire(blocking=False):return JsonResponse({'error':'Se está procesando otra foto. Intenta de nuevo en unos segundos.'},status=429)
+    try:
+        response=HttpResponse(portrait_cutout(request.FILES['photo']),content_type='image/png')
+        response['Cache-Control']='no-store';return response
+    except ValidationError as exc:return JsonResponse({'error':' '.join(exc.messages)},status=400)
+    except Exception:
+        logging.getLogger(__name__).exception('Local portrait processing failed')
+        return JsonResponse({'error':'No se pudo generar el acabado deportivo. Puedes usar la foto original o volver a intentarlo.'},status=503)
+    finally:processing.release()

@@ -18,3 +18,5 @@ urlpatterns += [path('events/<int:pk>/quote/',v.price_quote,name='price_quote')]
 urlpatterns += [path('events/<int:pk>/availability/',v.event_availability,name='event_availability'),path('participants/<int:pk>/photo/',v.participant_photo,name='participant_photo')]
 
 urlpatterns += [path('participants/',management.team,{'participants':True},name='participants'),path('participants/new/',management.team_edit,{'participants':True},name='participant_new'),path('participants/<int:pk>/edit/',management.team_edit,{'participants':True},name='participant_edit')]
+
+urlpatterns += [path('profile/portrait-preview/',v.portrait_preview,name='portrait_preview')]

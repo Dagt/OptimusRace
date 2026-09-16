@@ -102,3 +102,10 @@ Guardar y publicar usa las validaciones de publicación existentes. Si fallan, c
 ## Claridad de inscripción y recepción
 
 Textos y controles distinguen inscripción/pago de foto/pesaje/asistencia, muestran horarios de recepción y avisan cuando no están configurados. La inscripción en línea se muestra deshabilitada si falta configurar Stripe. Verificación: 15 pruebas de flujos y roles aprobadas. No se habilitaron cobros ni se cambiaron horarios de eventos del usuario.
+
+
+## Retratos deportivos locales
+
+Modelo MODNet ONNX Apache-2.0 instalado con revisión y hash fijos. Captura guiada selfie/torso, temporizador cancelable, carga de archivo, comparación original/deportivo, ajuste de encuadre y aceptación explícita antes de guardar. Original normalizado sin metadatos conservado por separado, sin sobrescribir imágenes existentes al migrar.
+
+115 pruebas aprobadas (8 nuevas de originales, permisos, validación y vista previa sin escritura). Inferencia real CPU comprobada con imagen de campaña del proyecto. Navegador en base y medios aislados: carga de archivo, segmentación real, centrado, bloqueo de guardado sin aceptación, guardado y visualización en tarjeta. Cámara física y temporizador con cámara real pendientes de prueba en dispositivo; no se accedió a la cámara ni se fotografió al usuario. Copia verificada antes de migrar: before-portraits-20260916.zip.

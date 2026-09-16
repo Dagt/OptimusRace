@@ -105,3 +105,8 @@ En cada estación puedes elegir evaluación relativa al mejor/peor de la categor
 
 
 Las cuentas de administración y coach muestran Mi cuenta, sin datos deportivos ni inscripción como participante. La confirmación de contraseña informa coincidencias mientras escribes y conserva la validación del servidor. Los formularios están abiertos y sin pasos. El catálogo define la medición y condiciones; el evento selecciona esa definición y configura los puntos. Nombre(s), apellido paterno y apellido materno se capturan por separado.
+
+
+### Fotos deportivas sin API de pago
+
+Captura guiada, temporizador, encuadre y fondo deportivo con MODNet local. Consulta [instalación y uso](docs/RETRATOS.md); requiere descargar el modelo una vez con `python manage.py install_portrait_model`.

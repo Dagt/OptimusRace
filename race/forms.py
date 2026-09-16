@@ -48,7 +48,13 @@ class EventForm(forms.ModelForm):
         if data.get('date') and data.get('registration_end') and data['registration_end']>data['date']: self.add_error('registration_end','Debe ser anterior al evento.')
         return data
 
-class PhotoForm(forms.ModelForm):
+class OriginalPhotoMixin(forms.Form):
+    original_photo=forms.FileField(required=False,widget=forms.FileInput(attrs={'hidden':True,'accept':'image/jpeg,image/png,image/webp'}))
+    def clean_original_photo(self):
+        from .photos import validate_photo
+        return validate_photo(self.cleaned_data.get('original_photo'))
+
+class PhotoForm(OriginalPhotoMixin,forms.ModelForm):
     sex=forms.ChoiceField(label='Género',choices=[('M','Hombre'),('F','Mujer')])
     birth_date=BirthDateField(label='Fecha de nacimiento',required=False,widget=forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d'))
     class Meta:
@@ -60,7 +66,7 @@ class PhotoForm(forms.ModelForm):
         from .photos import validate_photo
         return validate_photo(self.cleaned_data['photo'])
 
-class ParticipantPhotoForm(forms.ModelForm):
+class ParticipantPhotoForm(OriginalPhotoMixin,forms.ModelForm):
     class Meta:
         model=Profile
         fields=['photo']

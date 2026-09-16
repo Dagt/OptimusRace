@@ -6,6 +6,7 @@ class Profile(models.Model):
     sex = models.CharField(max_length=1, choices=[('M','Hombres'),('F','Mujeres')])
     birth_date = models.DateField(null=True, blank=True)
     photo = models.ImageField(upload_to='athletes/', blank=True)
+    original_photo = models.ImageField(upload_to='athletes/originals/', blank=True)
 
 class Exercise(models.Model):
     name = models.CharField(max_length=100, unique=True)

@@ -4,3 +4,5 @@ Pillow==12.3.0
 waitress==3.0.2
 python-dotenv==1.1.1
 whitenoise==6.11.0
+onnxruntime==1.30.0
+numpy==2.5.3
