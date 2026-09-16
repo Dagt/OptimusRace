@@ -24,6 +24,9 @@ def cents(value):
     return int(value)
 
 def validate_policies(rules,event=None):
+    size=rules.get('group_size',10)
+    if isinstance(size,bool) or not isinstance(size,int) or not 1<=size<=1000:
+        raise ValidationError('El tamaño de grupo debe ser un entero entre 1 y 1000.')
     for key in ['minimum_age','maximum_age']:
         age=rules.get(key)
         if age is not None and (isinstance(age,bool) or not isinstance(age,int) or not 0<=age<=120):raise ValidationError('La edad debe ser un entero entre 0 y 120.')

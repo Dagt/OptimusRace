@@ -3,6 +3,7 @@ from django.utils import timezone
 from .event_policy import instant
 
 class PolicyForm(forms.Form):
+    group_size=forms.IntegerField(label='Participantes por grupo',min_value=1,max_value=1000,required=False,initial=10,help_text='Asignación automática por orden de inscripción. Vacío: 10 por grupo.')
     minimum_age=forms.IntegerField(label='Edad mínima al día del evento',min_value=0,max_value=120,initial=0)
     maximum_age=forms.IntegerField(label='Edad máxima (vacío = sin límite)',min_value=0,max_value=120,required=False)
     registration_start=forms.DateTimeField(label='Apertura de inscripciones',required=False)
@@ -26,6 +27,7 @@ class PolicyForm(forms.Form):
                 field.widget=forms.DateTimeInput(attrs={'placeholder':'dd/mm/aaaa HH:MM'},format='%d/%m/%Y %H:%M')
                 field.input_formats=['%d/%m/%Y %H:%M',*field.input_formats]
     def apply(self,rules):
+        self.cleaned_data['group_size']=self.cleaned_data.get('group_size') or 10
         rules.pop('reception_start',None);rules.pop('reception_end',None);rules['online_payments']=False
         for key,value in self.cleaned_data.items():rules[key]=value.isoformat() if hasattr(value,'isoformat') else value
         return rules

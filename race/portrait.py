@@ -67,10 +67,14 @@ def sports_photo(upload):
         draw=ImageDraw.Draw(background)
         for y in range(750):
             value=36-int(y*22/750);draw.line((0,y,600,y),fill=(value,value+1,value+1))
-        draw.line((490,0,270,750),fill='#f2ed00',width=9)
-        draw.line((530,0,310,750),fill='#515024',width=2)
-        cutout.thumbnail((552,700),Image.Resampling.LANCZOS)
-        background.paste(cutout,((600-cutout.width)//2,750-cutout.height),cutout)
+        draw.line((580,0,560,750),fill='#b6b225',width=4)
+        draw.line((596,0,576,750),fill='#515024',width=2)
+        # Upscale small silhouettes as well: thumbnail only shrank them, leaving faces at the bottom.
+        scale=max(552/cutout.width,690/cutout.height)
+        if max(cutout.width*scale,cutout.height*scale)>3000:
+            raise ValidationError('No se distingue un retrato completo. Centra rostro y hombros y toma otra foto.')
+        cutout=cutout.resize((round(cutout.width*scale),round(cutout.height*scale)),Image.Resampling.LANCZOS)
+        background.paste(cutout,((600-cutout.width)//2,40),cutout)
         output=BytesIO();background.save(output,'JPEG',quality=92)
         upload.seek(0)
         return output.getvalue()

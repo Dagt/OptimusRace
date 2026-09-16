@@ -17,9 +17,7 @@ class PersonForm(OriginalPhotoMixin,forms.ModelForm):
 
 class DeskForm(PersonForm):
     weight=forms.FloatField(label='Peso medido al inscribirse · kg',min_value=.01)
-    batch=forms.IntegerField(label='Lote / grupo',min_value=1,initial=1)
     discount_code=forms.CharField(label='Código de descuento (opcional)',max_length=40,required=False)
-    amount=forms.DecimalField(label='Importe cobrado en efectivo · MXN',min_value=0,max_digits=9,decimal_places=2)
     def clean(self):
         data=super().clean()
         if not data.get('photo'):self.add_error('photo','Toma o selecciona la foto del participante para completar la inscripción.')

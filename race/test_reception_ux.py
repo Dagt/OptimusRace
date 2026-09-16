@@ -18,12 +18,20 @@ from django.conf import settings
 from django.test import override_settings
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
-from .portrait import model_path
+from .portrait import model_path,sports_photo
 
 
 class ReceptionUXTests(TestCase):
     setUp=cash_fixtures.CashParticipantTests.setUp
     data=cash_fixtures.CashParticipantTests.data
+
+    def test_small_portrait_is_enlarged_and_aligned_near_top(self):
+        cutout=Image.new('RGBA',(100,125),(200,80,40,255));source=BytesIO();cutout.save(source,'PNG')
+        with patch('race.portrait.portrait_cutout',return_value=source.getvalue()),patch('race.portrait.sports_photo',sports_photo):
+            result=Image.open(BytesIO(sports_photo(picture())))
+        self.assertEqual(result.size,(600,750))
+        self.assertGreater(result.getpixel((300,60))[0],180)
+        self.assertLess(result.getpixel((300,10))[0],60)
 
     def test_event_fields_benefits_visible_and_dates_day_first(self):
         response=self.client.get('/events/new/')
@@ -33,6 +41,8 @@ class ReceptionUXTests(TestCase):
         self.assertContains(response,'dd/mm/aaaa HH:MM')
         self.assertNotContains(response,'type="datetime-local"')
         field=BirthDateField();self.assertEqual(field.clean('04/05/1990'),date(1990,5,4))
+        self.assertEqual(field.clean('02032000'),date(2000,3,2))
+        with self.assertRaises(ValidationError):field.clean('31022000')
         with self.assertRaises(ValidationError):field.clean('31/02/1990')
         self.assertIn('04/05/1990',field.widget.render('birth_date',date(1990,5,4)))
         form=EventForm({'name':'Nuevo','location':'Sede','date':'18/10/2026 09:00','registration_end':'17/10/2026 18:00','price':'450','capacity':'100'})
@@ -45,9 +55,10 @@ class ReceptionUXTests(TestCase):
         self.assertEqual(updated['benefits'],'Playera y medalla')
         self.assertEqual(updated['judging_standard'],'Criterio histórico')
 
-    def test_capture_has_no_timer_original_choice_or_extra_accept_step(self):
+    def test_capture_uses_separate_dialog_without_timer_or_original_choice(self):
         response=self.client.get(self.url)
         for text in ['data-camera-capture','Foto con acabado deportivo','Pesaje y pago']:self.assertContains(response,text)
+        for text in ['data-photo-dialog','data-photo-use','data-photo-open']:self.assertContains(response,text)
         for text in ['data-camera-timer','data-use-original','data-photo-accept','data-photo-zoom']:self.assertNotContains(response,text)
         self.assertNotContains(self.client.get('/profile/'),'Ir al panel')
 

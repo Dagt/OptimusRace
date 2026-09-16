@@ -7,9 +7,9 @@ Flujo vigente desde el 16 de septiembre de 2026. Sustituye las instrucciones ant
 1. Entra como administrador. Abre un evento publicado y selecciona **Administrar → Inscribir en mostrador**. También puedes elegir el evento en **Participantes y mostrador**.
 2. Busca por nombre o número permanente P. Si la persona ya existe, selecciona **Usar esta ficha**. Si no aparece, completa una nueva ficha. Dos personas pueden tener el mismo nombre: no se fusionan automáticamente.
 3. Captura nombre(s), apellido paterno, apellido materno y género. La fecha de nacimiento permite verificar restricciones de edad al día del evento. El correo es opcional, privado y no sirve como cuenta de acceso.
-4. Toma la foto con cámara o elige una imagen. El acabado deportivo y el encuadre se aplican automáticamente. Revisa el resultado o repite la captura. Para otra edición se puede conservar la foto existente.
+4. Pulsa **Tomar o cambiar foto** para abrir la ventana de captura. Toma la foto con cámara o elige una imagen y pulsa **Usar esta foto**. El acabado deportivo y el encuadre se aplican automáticamente. Revisa el resultado o repite la captura. Para otra edición se puede conservar la foto existente.
 5. Pesa a la persona y registra el valor medido en kg. Se guarda por inscripción y determina la categoría y las referencias de carga de ese evento. No habrá otro pesaje obligatorio el día de la competencia.
-6. Indica el lote/grupo. Si hay un código de descuento, ingrésalo y pulsa **Calcular importe con descuento**. Registra el importe exacto recibido en efectivo, después de entregar el cambio si corresponde.
+6. El grupo se asigna automáticamente por orden de inscripción. En la creación del evento se configura **Participantes por grupo** (10 si se deja vacío). Si hay un código de descuento, ingrésalo: el total se actualiza con la tarifa vigente. Cobra ese importe en efectivo; no hay campo para modificarlo. El servidor vuelve a validar vigencia y usos del descuento al confirmar.
 7. Confirma. Se valida en el servidor el cupo, horario, edad, categoría, descuento e importe; se guarda todo en una transacción. Ante un error no se crea una ficha nueva incompleta ni se registra el pago. Reenviar el mismo formulario no duplica la inscripción.
 8. Anota para el participante su número permanente **P123**, dorsal del evento y la dirección web. No hay contraseña que entregar.
 
@@ -31,3 +31,5 @@ Una inscripción nueva queda lista para competir. Inicia la competencia desde Re
 - Administradores y coaches conservan sus cuentas y recuperación por correo.
 - En esta implementación SQLite usa transacciones `IMMEDIATE`, y la inscripción bloquea evento/ficha para validar cupo y descuento. Hay unicidad por evento/participante, evento/dorsal y token de envío.
 - Los registros nuevos siempre se realizan desde el mostrador. En un evento en curso, el control de inscripción presencial determina si se permiten nuevas altas.
+
+Las fechas se escriben día/mes/año: al teclear o pegar `02032000`, el campo muestra `02/03/2000`. Las fechas y horas de evento usan `dd/mm/aaaa HH:MM`.

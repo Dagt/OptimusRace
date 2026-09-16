@@ -93,7 +93,7 @@ def desk_register(request,pk):
     person_id=request.POST.get('participant') if request.method=='POST' else request.GET.get('participant')
     if person_id and not person_id.isdigit():return HttpResponse('Número de participante no válido.',status=400)
     person=get_object_or_404(Participant,pk=person_id) if person_id else None
-    form=DeskForm(request.POST or None,request.FILES or None,instance=person,initial={'amount':event.current_price/100})
+    form=DeskForm(request.POST or None,request.FILES or None,instance=person)
     query=request.GET.get('q','').strip()[:150]
     if request.method=='POST' and form.is_valid():
         try:
@@ -103,9 +103,9 @@ def desk_register(request,pk):
                 photo=form.cleaned_data.get('photo')
                 if request.FILES.get('photo'):saved.photo=Participant.objects.get(pk=person.pk).photo if person else ''
                 saved.save()
-                entry=register_person_cash(event.pk,saved,request.user,int(form.cleaned_data['amount']*100),form.cleaned_data['weight'],form.cleaned_data['batch'],form.cleaned_data.get('discount_code',''),payload['key'])
+                entry=register_person_cash(event.pk,saved,request.user,form.cleaned_data['weight'],form.cleaned_data.get('discount_code',''),payload['key'])
                 if request.FILES.get('photo'):save_photo(saved,photo,form.cleaned_data.get('original_photo'))
-            messages.success(request,f'Inscripción confirmada: P{saved.pk} · dorsal #{entry.bib}. Foto, peso y efectivo registrados. Consulta su historial sin cuenta ni contraseña.')
+            messages.success(request,f'Inscripción confirmada: P{saved.pk} · dorsal #{entry.bib}. Grupo {entry.batch} asignado automáticamente. Foto, peso y efectivo registrados. Consulta su historial sin cuenta ni contraseña.')
             return redirect('operations',pk=event.pk)
         except ValidationError as exc:form.add_error(None,exc)
         except IntegrityError:

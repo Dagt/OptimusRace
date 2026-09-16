@@ -59,7 +59,10 @@ if(q('#tv')){
 // Account fields follow the selected role; the server enforces the same rules.
 qa('[data-toggle-passwords]').forEach(button=>button.addEventListener('click',()=>{const show=button.getAttribute('aria-pressed')!=='true';qa('input[autocomplete="new-password"]',button.form).forEach(input=>input.type=show?'text':'password');button.setAttribute('aria-pressed',String(show));button.textContent=show?'Ocultar contraseñas':'Mostrar contraseñas'}));
 
-qa('[data-quote-url]').forEach(form=>{const button=q('[data-quote]',form);if(!button)return;button.onclick=async()=>{const feedback=q('.quote-feedback',form);try{const params=new URLSearchParams({code:form.elements.discount_code?.value||'',participant:form.elements.participant?.value||''});const quote=await jsonFetch(form.dataset.quoteUrl+'?'+params);feedback.textContent=`Importe ${quote.locked?'de la reserva':'calculado'}: $${fmt(quote.amount/100)} MXN`;if(form.elements.amount)form.elements.amount.value=(quote.amount/100).toFixed(2)}catch(error){feedback.textContent=error.message}}});
+qa('[data-quote-url]').forEach(form=>{const button=q('[data-quote]',form),code=form.elements.discount_code;if(!button)return;let sequence=0,timer,valid=true;const feedback=q('.quote-feedback',form),total=q('[data-price-total]',form);
+ async function update(){const current=++sequence;valid=false;feedback.textContent='Calculando importe…';try{const quote=await jsonFetch(form.dataset.quoteUrl+'?'+new URLSearchParams({code:code?.value||''}));if(current!==sequence)return;if(total)total.textContent='$'+fmt(quote.amount/100)+' MXN';feedback.textContent='Total calculado con la tarifa vigente y el descuento aplicable.';valid=true}catch(error){if(current===sequence){if(total)total.textContent='—';feedback.textContent=error.message}}}
+ button.onclick=update;code?.addEventListener('input',()=>{valid=false;sequence++;clearTimeout(timer);timer=setTimeout(update,300)});form.addEventListener('submit',event=>{if(!valid){event.preventDefault();event.stopImmediatePropagation();feedback.textContent='Valida el descuento antes de confirmar.'}},true);if(code?.value)update();
+});
 
 // Compare on every edit, including edits to the original password.
 qa('form').forEach(form=>{

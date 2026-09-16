@@ -8,6 +8,9 @@ class BirthDateField(forms.DateField):
         kwargs['widget']=forms.DateInput(format='%d/%m/%Y',attrs={'placeholder':'dd/mm/aaaa','inputmode':'numeric','maxlength':10})
         kwargs['input_formats']=['%d/%m/%Y','%Y-%m-%d']
         super().__init__(*args,**kwargs)
+    def to_python(self,value):
+        if isinstance(value,str) and value.isdigit() and len(value)==8:value=f'{value[:2]}/{value[2:4]}/{value[4:]}'
+        return super().to_python(value)
     def validate(self,value):
         super().validate(value)
         from django.utils import timezone

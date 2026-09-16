@@ -354,7 +354,7 @@ def discipline(reg_id, actor, disqualified, reason, revision):
 
 
 @transaction.atomic
-def register_person_cash(event_id,person,actor,amount,weight,batch=1,discount_code='',request_key=None):
+def register_person_cash(event_id,person,actor,weight,discount_code='',request_key=None):
     """One atomic cash transaction, category and measured weight at registration."""
     from .models import Participant
     if not actor.is_superuser:raise ValidationError('Solo administración puede registrar pagos.')
@@ -366,10 +366,11 @@ def register_person_cash(event_id,person,actor,amount,weight,batch=1,discount_co
     if Registration.objects.filter(event=event,state__in=['reserved','confirmed']).count()>=event.capacity:raise ValidationError('Cupo agotado.')
     weight=number(weight,.01);category_name=category(event.rules,person.sex,weight)
     quote=quote_price(event,discount_code)
-    if amount!=quote['amount']:raise ValidationError(f"El importe exacto es ${quote['amount']/100:.2f} MXN. Revisa la tarifa y descuento.")
-    batch=int(batch)
-    if batch<1:raise ValidationError('El lote comienza en 1.')
+    amount=quote['amount']
     bib=(Registration.objects.filter(event=event).aggregate(m=Max('bib'))['m'] or 0)+1
+    group_size=int(event.rules.get('group_size') or 10)
+    if group_size<1:raise ValidationError('Revisa el tamaño de los grupos del evento.')
+    batch=(bib-1)//group_size+1
     entry=Registration.objects.create(request_key=request_key,event=event,participant=person,name=person.full_name,sex=person.sex,birth_date=person.birth_date,bib=bib,state='confirmed',weight=weight,category=category_name,batch=batch,attendance='present',amount=amount,method='cash',paid_by=actor,paid_at=timezone.now(),pricing_code=quote['discount_code'],pricing_snapshot=quote)
     audit(event,actor,'cash_registration',{'registration':entry.pk,'participant':person.pk,'amount':amount,'weight':weight,'category':category_name})
     return entry

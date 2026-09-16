@@ -40,7 +40,7 @@ class CashParticipantTests(TestCase):
         self.assertContains(self.client.get(f'/events/{self.event.pk}/operations/'),'Participantes inscritos')
     def test_invalid_registration_rolls_back_person_and_files(self):
         from pathlib import Path
-        for change in [{'amount':'449'},{'weight':'90'},{'birth_date':'2020-01-01'},{'photo':''}]:
+        for change in [{'weight':'90'},{'birth_date':'2020-01-01'},{'photo':''}]:
             data=self.data();data.update(change)
             response=self.client.post(self.url,data)
             self.assertEqual(response.status_code,200);self.assertTrue(response.context['form'].errors)
@@ -57,10 +57,23 @@ class CashParticipantTests(TestCase):
         self.event.registration_end=timezone.now()-timedelta(seconds=1);self.event.save()
         self.assertContains(self.client.post(self.url,self.data()),'inscripciones están cerradas')
         self.assertEqual(Participant.objects.count(),1)
+    def test_price_and_group_are_calculated_despite_tampered_inputs(self):
+        self.event.capacity=5
+        self.event.rules.update(group_size=2,price_tiers=[{'name':'Preventa','start':(timezone.now()-timedelta(days=1)).isoformat(),'end':(timezone.now()+timedelta(days=1)).isoformat(),'amount':40000}],discounts=[{'code':'SAVE','kind':'percent','value':20}])
+        self.event.save()
+        page=self.client.get(self.url)
+        self.assertNotContains(page,'name="amount"');self.assertNotContains(page,'name="batch"')
+        for index in range(3):
+            data=self.data();data.update(name=f'Persona {index}',amount='1',batch='999',discount_code='SAVE')
+            self.assertEqual(self.client.post(self.url,data).status_code,302)
+        entries=list(Registration.objects.order_by('bib'))
+        self.assertEqual([entry.amount for entry in entries],[32000]*3)
+        self.assertEqual([entry.batch for entry in entries],[1,1,2])
+        self.assertEqual(entries[0].pricing_snapshot['base_amount'],40000)
     def test_reuse_person_public_history_privacy_and_private_drafts(self):
         self.client.post(self.url,self.data());person=Participant.objects.get()
         second=Event.objects.create(name='Segunda edición',location='Local',date=self.event.date,registration_end=self.event.registration_end,rules=self.event.rules,status='open',price=45000)
-        register_person_cash(second.pk,person,self.admin,45000,70.001)
+        register_person_cash(second.pk,person,self.admin,70.001)
         # Duplicate person in one event cannot be charged again.
         data=self.data();data.pop('photo');data['participant']=person.pk
         self.assertContains(self.client.post(self.url,data),'ya tiene una inscripción')
