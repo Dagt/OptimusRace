@@ -31,3 +31,27 @@
 @media(max-width:600px){.lookup-form{grid-template-columns:1fr}.lookup-form>.button{justify-self:start}.participant-finder{padding:20px}.portrait-summary{gap:14px;align-items:flex-start}.portrait-thumbnail{width:76px;height:95px}.portrait-summary-copy h3{font-size:17px}.portrait-summary-copy .button{white-space:normal}.registration-payment .form-grid{grid-template-columns:1fr}.photo-capture-dialog{padding:18px}.photo-source-actions{gap:10px}.photo-source-actions .button{padding:10px;font-size:12px}.photo-dialog-footer>.button{flex:1;white-space:normal}.photo-dialog-heading h2{font-size:27px}.empty-performance .radar-wrap svg{min-height:220px}.refresh-photo-action .button{white-space:normal}}
 
 .photo-capture-dialog [hidden]{display:none!important}
+
+/* Keep the entire participant editor on the same centered column. */
+.person-editor{width:100%;margin-inline:auto}
+.person-editor .portrait-summary{margin-inline:auto}
+.person-editor .form-submit-area{justify-content:center}
+.person-editor .refresh-photo-action{justify-content:center}
+.person-editor .page-heading{gap:20px;align-items:center}
+.person-editor .page-heading h1{overflow-wrap:anywhere}
+/* Independent cards: category totals and capacity standings never nest. */
+.event-results-stack{display:grid;grid-template-columns:minmax(0,1fr);gap:28px;min-width:0;margin-bottom:28px}
+.event-results-stack>.panel{margin:0;min-width:0}
+.capacity-classification>.section-heading{margin:0 0 22px}
+.capacity-classification h2{margin:0 0 10px}
+.capacity-classification p{max-width:780px;margin:0;font-size:13px;line-height:1.65;color:var(--muted)}
+.capacity-classification-list{display:grid;gap:12px}
+.capacity-classification-item{min-width:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#15221b33}
+.capacity-classification-item>summary{display:flex;align-items:center;justify-content:space-between;gap:16px;list-style:none;cursor:pointer;padding:17px 20px;font-size:16px;font-weight:600}
+.capacity-classification-item>summary::-webkit-details-marker{display:none}
+.capacity-classification-item>summary::after{content:'+';font-size:22px;color:var(--gold);line-height:1}
+.capacity-classification-item[open]>summary{border-bottom:1px solid var(--border)}
+.capacity-classification-item[open]>summary::after{content:'−'}
+.capacity-classification-item>summary:focus-visible{outline:2px solid var(--gold);outline-offset:-3px}
+.capacity-classification-item .table-scroll{margin:0}
+@media(max-width:600px){.event-results-stack{gap:20px}.capacity-classification{padding:20px}.capacity-classification-item>summary{padding:15px}.person-editor .page-heading{align-items:flex-start}.person-editor .refresh-photo-action{flex-wrap:wrap}}
