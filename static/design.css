@@ -129,3 +129,22 @@
 .station-row .station-references .form-grid{grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:1100px){.station-actions{grid-column:2/-1;grid-row:3;justify-content:flex-end}.station-references{grid-row:4}.station-fields{grid-template-columns:minmax(130px,1fr) minmax(160px,1fr) 85px}}
 @media(max-width:650px){.station-row .config-test-body{grid-template-columns:22px minmax(0,1fr);gap:8px}.station-fields{grid-template-columns:minmax(0,1fr) 85px}.station-fields>label:first-child{grid-column:1/-1}.station-row input,.station-row select{font-size:12px}.station-row label{font-size:11px}.station-row .station-references .form-grid{grid-template-columns:1fr}}
+
+/* Compact policy rows respond to the editor width, including the sidebar. */
+#category-editor,#price-editor,#discount-editor{container-type:inline-size}
+.policy-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 12px;padding:12px 0;align-items:end}
+.policy-row label{margin:0;font-size:11px;min-width:0}
+.policy-row input,.policy-row select{margin-top:4px;min-height:38px;padding:8px 10px;font-size:12px;max-width:100%}
+.policy-row>.text-button{justify-self:end;grid-column:1/-1;padding:4px 0;min-height:30px}
+.price-policy-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+.discount-policy-row>label:nth-child(5),.discount-policy-row>label:nth-child(6){grid-column:span 2}
+@container(min-width:850px){
+ .category-policy-row{grid-template-columns:minmax(180px,1.5fr) minmax(120px,1fr) repeat(2,minmax(130px,1fr)) auto}
+ .category-policy-row>.text-button,.price-policy-row>.text-button{grid-column:auto;min-height:38px}
+ .price-policy-row{grid-template-columns:minmax(120px,1fr) minmax(100px,.6fr) repeat(2,minmax(210px,1.3fr)) auto}
+}
+@container(max-width:480px){
+ .category-policy-row,.discount-policy-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .price-policy-row>label:nth-child(3),.price-policy-row>label:nth-child(4){grid-column:1/-1}
+ .discount-policy-row>label:nth-child(5),.discount-policy-row>label:nth-child(6){grid-column:1/-1}
+}

@@ -85,3 +85,8 @@ Verificación: 103 pruebas aprobadas, incluyendo separación de cuentas, permiso
 Las estaciones se presentan como filas con selector de prueba, método y puntos; las marcas objetivo solo se muestran para referencias fijas, explicando la unidad y los puntos que otorgan. Se conservan selección, reglas guardadas y condiciones del catálogo.
 
 Verificado en navegador sobre base aislada: ocho estaciones con 12.5 puntos cada una, activación y retirada de referencias fijas, reordenamiento y eliminación con total de 100 puntos. Revisión visual de filas y 11 pruebas del módulo de experiencia aprobadas; JavaScript válido. Sin cambios en las pruebas creadas por el usuario.
+
+
+## Categorías, tarifas y descuentos compactos
+
+Campos alineados en filas adaptadas al ancho disponible; fechas completas y controles siempre visibles. Los descuentos identifican su unidad (% o MXN) y el límite vacío indica Sin límite. Verificación visual en navegador con dos filas de cada tipo en la base aislada; cambio de unidad comprobado. 11 pruebas de experiencia aprobadas y sintaxis JavaScript válida. Sin modificar datos del evento real.
