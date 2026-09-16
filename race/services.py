@@ -111,7 +111,9 @@ def audit(event,actor,action,details):
     Audit.objects.create(event=event,actor=actor,action=action,details=details)
 
 def board(event):
-    if event.status == 'closed': return event.final_board
+    if event.status == 'closed':
+        from copy import deepcopy
+        return attach_participant_links(event,deepcopy(event.final_board))
     rows=[];modern=event.rules.get('schema_version',1)==2
     entries=list(Registration.objects.filter(event=event,state='confirmed').order_by('bib').prefetch_related('result_set'))
     marks_by_entry={r.pk:{m.test:m for m in r.result_set.all()} for r in entries}
@@ -144,6 +146,17 @@ def board(event):
     from .capacity_results import attach_capacity_results
     attach_capacity_results(event,rows)
     rows.sort(key=lambda r:(r['attendance']=='disqualified',-r['total'],r['rank'] if r['rank'] is not None else float('inf'),r['bib']))
+    return attach_participant_links(event,rows)
+
+def attach_participant_links(event,rows):
+    """Hydrate current photos without changing a closed event's stored standings."""
+    from django.urls import reverse
+    people={r.pk:r.participant for r in Registration.objects.filter(event=event,state='confirmed').select_related('participant')}
+    for row in rows:
+        person=people.get(row['id'])
+        identity={'participant_id':person.pk if person else None,'photo_url':person.photo.url if person and person.photo else '', 'profile_url':reverse('public_participant',args=[person.pk]) if person else ''}
+        row.update(identity)
+        for result in row.get('capacity_results',{}).values():result.update(identity)
     return rows
 
 @transaction.atomic

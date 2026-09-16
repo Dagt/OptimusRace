@@ -14,6 +14,9 @@ from .services import register_person_cash,capture,change_phase
 @override_settings(PASSWORD_HASHERS=['django.contrib.auth.hashers.MD5PasswordHasher'])
 class CashParticipantTests(TestCase):
     def setUp(self):
+        from unittest.mock import patch
+        from .test_portraits import picture
+        processor=patch('race.portrait.sports_photo',side_effect=lambda upload:picture(size=(600,750)).read());processor.start();self.addCleanup(processor.stop)
         self.media=TemporaryDirectory();self.addCleanup(self.media.cleanup)
         self.settings_override=override_settings(MEDIA_ROOT=self.media.name);self.settings_override.enable();self.addCleanup(self.settings_override.disable)
         self.admin=User.objects.create_superuser('admin','admin@example.test','test-password')

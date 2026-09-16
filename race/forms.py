@@ -4,6 +4,10 @@ from django.contrib.auth.password_validation import validate_password
 from .models import Profile, Event
 
 class BirthDateField(forms.DateField):
+    def __init__(self,*args,**kwargs):
+        kwargs['widget']=forms.DateInput(format='%d/%m/%Y',attrs={'placeholder':'dd/mm/aaaa','inputmode':'numeric','maxlength':10})
+        kwargs['input_formats']=['%d/%m/%Y','%Y-%m-%d']
+        super().__init__(*args,**kwargs)
     def validate(self,value):
         super().validate(value)
         from django.utils import timezone
@@ -34,6 +38,9 @@ class EventForm(forms.ModelForm):
     price=forms.DecimalField(label='Precio de inscripción · MXN',min_value=0,max_digits=9,decimal_places=2)
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
+        for key in ['date','registration_end']:
+            self.fields[key].widget=forms.DateTimeInput(format='%d/%m/%Y %H:%M',attrs={'placeholder':'dd/mm/aaaa HH:MM'})
+            self.fields[key].input_formats=['%d/%m/%Y %H:%M',*self.fields[key].input_formats]
         if not self.is_bound and self.instance and not self.instance.capacity:self.initial['capacity']=''
         if not self.is_bound: self.initial['price']=self.instance.price/100 if self.instance and self.instance.pk else ''
     def clean_price(self): return int(self.cleaned_data['price']*100)
@@ -53,6 +60,22 @@ class OriginalPhotoMixin(forms.Form):
     def clean_original_photo(self):
         from .photos import validate_photo
         return validate_photo(self.cleaned_data.get('original_photo'))
+    def clean(self):
+        data=super().clean()
+        from django.core.files.uploadedfile import UploadedFile,SimpleUploadedFile
+        from .portrait import sports_photo
+        photo=data.get('photo')
+        if isinstance(photo,UploadedFile) and not self.errors:
+            original=data.get('original_photo') or photo
+            try:
+                data['photo']=SimpleUploadedFile('retrato-deportivo.jpg',sports_photo(original),content_type='image/jpeg')
+                data['original_photo']=original
+            except forms.ValidationError as exc:self.add_error('photo',exc)
+            except Exception:
+                import logging
+                logging.getLogger(__name__).exception('Portrait processing failed during save')
+                self.add_error('photo','No se pudo preparar la foto. Intenta de nuevo; no se guardó una foto sin acabado deportivo.')
+        return data
 
 class PhotoForm(OriginalPhotoMixin,forms.ModelForm):
     sex=forms.ChoiceField(label='Género',choices=[('M','Hombre'),('F','Mujer')])
@@ -64,7 +87,9 @@ class PhotoForm(OriginalPhotoMixin,forms.ModelForm):
         widgets={'photo':forms.ClearableFileInput(attrs={'accept':'image/jpeg,image/png,image/webp'})}
     def clean_photo(self):
         from .photos import validate_photo
-        return validate_photo(self.cleaned_data['photo'])
+        from django.core.files.uploadedfile import UploadedFile
+        photo=self.cleaned_data['photo']
+        return validate_photo(photo) if isinstance(photo,UploadedFile) else photo
 
 class ParticipantPhotoForm(OriginalPhotoMixin,forms.ModelForm):
     class Meta:
@@ -74,4 +99,6 @@ class ParticipantPhotoForm(OriginalPhotoMixin,forms.ModelForm):
         widgets={'photo':forms.ClearableFileInput(attrs={'accept':'image/jpeg,image/png,image/webp'})}
     def clean_photo(self):
         from .photos import validate_photo
-        return validate_photo(self.cleaned_data['photo'])
+        from django.core.files.uploadedfile import UploadedFile
+        photo=self.cleaned_data['photo']
+        return validate_photo(photo) if isinstance(photo,UploadedFile) else photo

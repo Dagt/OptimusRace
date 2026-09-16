@@ -8,10 +8,8 @@ class PolicyForm(forms.Form):
     registration_start=forms.DateTimeField(label='Apertura de inscripciones',required=False)
     event_end=forms.DateTimeField(label='Fin del evento',required=False)
     ordered_stations=forms.BooleanField(label='Exigir el orden de estaciones',required=False)
-    judging_standard=forms.CharField(label='Criterios de evaluación acordados con los jueces',required=False,widget=forms.Textarea(attrs={'rows':3}))
     regulations=forms.CharField(label='Reglamento',required=False,widget=forms.Textarea(attrs={'rows':4}))
     benefits=forms.CharField(label='La inscripción incluye',required=False,widget=forms.Textarea(attrs={'rows':3}))
-    registration_channels=forms.CharField(label='Ubicación del mostrador y contacto',required=False,widget=forms.Textarea(attrs={'rows':2}))
     def __init__(self,*args,rules=None,**kwargs):
         rules=rules or {};initial={key:rules.get(key) for key in self.base_fields if key in rules}
         initial.setdefault('minimum_age',0)
@@ -24,7 +22,9 @@ class PolicyForm(forms.Form):
             args=(data,*args[1:])
         super().__init__(*args,initial=initial,**kwargs)
         for field in self.fields.values():
-            if isinstance(field,forms.DateTimeField):field.widget=forms.DateTimeInput(attrs={'type':'datetime-local'},format='%Y-%m-%dT%H:%M')
+            if isinstance(field,forms.DateTimeField):
+                field.widget=forms.DateTimeInput(attrs={'placeholder':'dd/mm/aaaa HH:MM'},format='%d/%m/%Y %H:%M')
+                field.input_formats=['%d/%m/%Y %H:%M',*field.input_formats]
     def apply(self,rules):
         rules.pop('reception_start',None);rules.pop('reception_end',None);rules['online_payments']=False
         for key,value in self.cleaned_data.items():rules[key]=value.isoformat() if hasattr(value,'isoformat') else value

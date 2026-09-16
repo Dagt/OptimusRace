@@ -7,7 +7,7 @@ Flujo vigente desde el 16 de septiembre de 2026. Sustituye las instrucciones ant
 1. Entra como administrador. Abre un evento publicado y selecciona **Administrar → Inscribir en mostrador**. También puedes elegir el evento en **Participantes y mostrador**.
 2. Busca por nombre o número permanente P. Si la persona ya existe, selecciona **Usar esta ficha**. Si no aparece, completa una nueva ficha. Dos personas pueden tener el mismo nombre: no se fusionan automáticamente.
 3. Captura nombre(s), apellido paterno, apellido materno y género. La fecha de nacimiento permite verificar restricciones de edad al día del evento. El correo es opcional, privado y no sirve como cuenta de acceso.
-4. Toma la foto con cámara o elige una imagen. Revisa y acepta el encuadre. Puedes aplicar el acabado deportivo local o usar su fondo original. Para otra edición se puede conservar la foto existente.
+4. Toma la foto con cámara o elige una imagen. El acabado deportivo y el encuadre se aplican automáticamente. Revisa el resultado o repite la captura. Para otra edición se puede conservar la foto existente.
 5. Pesa a la persona y registra el valor medido en kg. Se guarda por inscripción y determina la categoría y las referencias de carga de ese evento. No habrá otro pesaje obligatorio el día de la competencia.
 6. Indica el lote/grupo. Si hay un código de descuento, ingrésalo y pulsa **Calcular importe con descuento**. Registra el importe exacto recibido en efectivo, después de entregar el cambio si corresponde.
 7. Confirma. Se valida en el servidor el cupo, horario, edad, categoría, descuento e importe; se guarda todo en una transacción. Ante un error no se crea una ficha nueva incompleta ni se registra el pago. Reenviar el mismo formulario no duplica la inscripción.

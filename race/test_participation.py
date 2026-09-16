@@ -15,6 +15,9 @@ from .services import cash_register,fulfill
 @override_settings(PASSWORD_HASHERS=['django.contrib.auth.hashers.MD5PasswordHasher'])
 class ParticipationTests(TestCase):
     def setUp(self):
+        from unittest.mock import patch
+        from .test_portraits import picture
+        processor=patch('race.portrait.sports_photo',side_effect=lambda upload:picture(size=(600,750)).read());processor.start();self.addCleanup(processor.stop)
         self.admin=User.objects.create_superuser('admin','admin@example.test','password-valid')
         self.user=User.objects.create_user('person','person@example.test','password-valid')
         Profile.objects.create(user=self.user,sex='F')
@@ -69,7 +72,7 @@ class ParticipationTests(TestCase):
             self.assertRedirects(response,'/participants/')
             self.person.refresh_from_db()
             with Image.open(self.person.photo.path) as image:
-                self.assertEqual(image.format,'JPEG');self.assertEqual(image.size,(1000,500));self.assertFalse(image.getexif())
+                self.assertEqual(image.format,'JPEG');self.assertEqual(image.size,(600,750));self.assertFalse(image.getexif())
             self.assertContains(self.client.get('/participants/'),self.person.photo.url)
             self.client.post(f'/participants/{self.person.pk}/photo/',{'name':'Persona','sex':'F','photo-clear':'on','next':'/team/'})
             self.person.refresh_from_db();self.assertFalse(self.person.photo)

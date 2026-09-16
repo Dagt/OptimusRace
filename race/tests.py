@@ -267,12 +267,13 @@ class RaceTests(TestCase):
         from tempfile import TemporaryDirectory
         from PIL import Image
         from .test_portraits import picture
+        processor=patch('race.portrait.sports_photo',side_effect=lambda upload:picture(size=(600,750)).read());processor.start();self.addCleanup(processor.stop)
         self.client.force_login(self.admin)
         with TemporaryDirectory() as tmp,override_settings(MEDIA_ROOT=tmp):
             self.assertRedirects(self.client.post('/profile/',{'photo':picture(size=(1200,600))}),'/profile/')
             profile=Profile.objects.get(user=self.admin)
             with Image.open(profile.photo.path) as photo:
-                self.assertEqual(photo.size,(1000,500));self.assertEqual(photo.format,'JPEG')
+                self.assertEqual(photo.size,(600,750));self.assertEqual(photo.format,'JPEG')
             self.assertFalse(self.user.profile.photo)
 
 from django.test import SimpleTestCase

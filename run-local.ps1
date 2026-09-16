@@ -5,6 +5,10 @@ if (-not (Test-Path '.venv/Scripts/python.exe')) {
     & ./.venv/Scripts/python.exe -m pip install -r requirements.txt
     if ($LASTEXITCODE -ne 0) { throw 'No se pudieron instalar las dependencias.' }
 }
+& ./.venv/Scripts/python.exe -m pip install -r requirements.txt
+if ($LASTEXITCODE -ne 0) { throw "No se pudieron actualizar las dependencias." }
+& ./.venv/Scripts/python.exe manage.py install_portrait_model
+if ($LASTEXITCODE -ne 0) { throw "No se pudo preparar el acabado deportivo." }
 & ./.venv/Scripts/python.exe manage.py migrate
 if ($LASTEXITCODE -ne 0) { throw 'No se pudo preparar la base de datos.' }
 & ./.venv/Scripts/python.exe manage.py seed_catalog

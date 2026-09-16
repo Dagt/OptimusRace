@@ -36,7 +36,8 @@ class PortraitTests(TestCase):
         self.assertFalse(form.is_valid());self.assertIn('original_photo',form.errors)
         self.profile.refresh_from_db();self.assertFalse(self.profile.photo)
 
-    def test_profile_form_saves_both_uploaded_files(self):
+    @patch('race.portrait.sports_photo',side_effect=lambda upload:picture(size=(600,750)).read())
+    def test_profile_form_saves_both_uploaded_files(self,processor):
         with TemporaryDirectory() as media,override_settings(MEDIA_ROOT=media):
             self.assertRedirects(self.client.post('/profile/',{'sex':'M','photo':picture('yellow'),'original_photo':picture('blue')}),'/profile/')
             self.profile.refresh_from_db()
@@ -47,7 +48,7 @@ class PortraitTests(TestCase):
         self.client.logout();self.assertEqual(self.client.post('/profile/portrait-preview/',{'photo':picture()}).status_code,302)
 
     def test_preview_does_not_save_profile(self):
-        with patch('race.portrait.portrait_cutout',return_value=b'preview'):
+        with patch('race.portrait.sports_photo',return_value=b'preview'):
             response=self.client.post('/profile/portrait-preview/',{'photo':picture()})
         self.assertEqual(response.status_code,200);self.assertEqual(response['Cache-Control'],'no-store')
         self.profile.refresh_from_db();self.assertFalse(self.profile.photo)
@@ -59,13 +60,13 @@ class PortraitTests(TestCase):
     def test_busy_processor_rejects_without_queueing(self):
         from .portrait import processing
         processing.acquire()
-        try:self.assertEqual(self.client.post('/profile/portrait-preview/',{'photo':picture()}).status_code,429)
+        try:self.assertEqual(self.client.post('/profile/portrait-preview/',{'photo':picture()}).status_code,400)
         finally:processing.release()
 
-    def test_missing_model_preserves_original_option(self):
+    def test_missing_model_failed_download_has_no_original_fallback(self):
         from .portrait import session
         session.cache_clear()
-        with TemporaryDirectory() as directory,override_settings(PORTRAIT_MODEL_PATH=directory+'/missing.onnx'):
+        with TemporaryDirectory() as directory,override_settings(PORTRAIT_MODEL_PATH=directory+'/missing.onnx'),patch('urllib.request.urlopen',side_effect=OSError('offline')):
             response=self.client.post('/profile/portrait-preview/',{'photo':picture()})
-        self.assertEqual(response.status_code,400);self.assertIn('original',response.json()['error'])
+        self.assertEqual(response.status_code,400);self.assertIn('conexión del servidor',response.json()['error'])
         session.cache_clear()

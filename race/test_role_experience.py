@@ -94,7 +94,7 @@ class RoleExperienceTests(TestCase):
             self.assertEqual(self.client.get(path).status_code,403)
 
     def test_participant_home_is_not_promotional_landing(self):
-        self.assertContains(self.client.get('/'),'campaign-photo')
+        self.assertContains(self.client.get('/'),'Encuentra a un competidor')
         athlete=User.objects.create_user('runner',first_name='Laura')
         self.client.force_login(athlete)
         response=self.client.get('/')
@@ -104,6 +104,9 @@ class RoleExperienceTests(TestCase):
 
     def test_staff_can_upload_and_remove_profile_photo_without_sports_fields(self):
         import tempfile
+        from unittest.mock import patch
+        from .test_portraits import picture
+        processor=patch('race.portrait.sports_photo',side_effect=lambda upload:picture(size=(600,750)).read());processor.start();self.addCleanup(processor.stop)
         from io import BytesIO
         from PIL import Image
         from django.test import override_settings

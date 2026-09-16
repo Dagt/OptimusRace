@@ -78,6 +78,13 @@ def error(request,exc):
 
 def home(request):
     events=list((Event.objects.all() if request.user.is_superuser else Event.objects.exclude(status='draft')).order_by('-date'))
+    if not request.user.is_authenticated:
+        competitive=[e for e in events if e.status in ['live','closed']]
+        selected=next((e for e in competitive if str(e.pk)==request.GET.get('event')),competitive[0] if competitive else None)
+        leaders=[row for row in board(selected) if row.get('rank')==1 and row.get('completed') and row.get('participant_id')] if selected else []
+        from .participant_views import search_people
+        for event in events:event.seats=availability(event)
+        return render(request,'public_home.html',{'events':events,'competitive_events':competitive,'selected_event':selected,'leaders':leaders[:12],'people':search_people('',True).order_by('-pk')[:8],'upcoming':next(iter(sorted([e for e in events if e.status=='open' and e.date>timezone.now()],key=lambda e:e.date)),None),'server_now':timezone.now().isoformat()})
     own={r.event_id:r for r in Registration.objects.filter(user=request.user)} if request.user.is_authenticated else {}
     for e in events:
         e.seats=availability(e);e.taken=e.seats['occupied'];e.remaining=e.seats['remaining']
@@ -347,14 +354,12 @@ def participant_photo(request,pk):
 @login_required
 @require_POST
 def portrait_preview(request):
-    from .portrait import portrait_cutout,processing
+    from .portrait import sports_photo
     if not request.FILES.get('photo'):return JsonResponse({'error':'Selecciona una foto.'},status=400)
-    if not processing.acquire(blocking=False):return JsonResponse({'error':'Se está procesando otra foto. Intenta de nuevo en unos segundos.'},status=429)
     try:
-        response=HttpResponse(portrait_cutout(request.FILES['photo']),content_type='image/png')
+        response=HttpResponse(sports_photo(request.FILES['photo']),content_type='image/jpeg')
         response['Cache-Control']='no-store';return response
     except ValidationError as exc:return JsonResponse({'error':' '.join(exc.messages)},status=400)
     except Exception:
         logging.getLogger(__name__).exception('Local portrait processing failed')
-        return JsonResponse({'error':'No se pudo generar el acabado deportivo. Puedes usar la foto original o volver a intentarlo.'},status=503)
-    finally:processing.release()
+        return JsonResponse({'error':'No se pudo generar el acabado deportivo. Vuelve a intentar o toma otra foto.'},status=503)

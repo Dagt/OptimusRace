@@ -37,7 +37,7 @@ def search_people(query,public=False,event=None):
 def public_search(request):
     query=request.GET.get('q','').strip()[:150];event=request.GET.get('event','')
     if not event.isdigit():event=None
-    people=search_people(query,True,event)[:50] if query else []
+    people=search_people(query,True,event)[:50]
     return render(request,'public_search.html',{'people':people,'query':query,'events':Event.objects.exclude(status='draft').order_by('-date'),'selected_event':int(event) if event else None})
 
 @require_GET
@@ -58,7 +58,10 @@ def public_profile(request,pk):
 @administrator
 def participants(request):
     query=request.GET.get('q','').strip()[:150]
-    return render(request,'participants.html',{'people':search_people(query)[:100],'query':query,'events':Event.objects.filter(status__in=['open','live']).order_by('date')})
+    people=list(search_people(query)[:100])
+    public_ids=set(Registration.objects.filter(participant__in=people,state='confirmed').exclude(event__status='draft').values_list('participant_id',flat=True))
+    for person in people:person.is_public=person.pk in public_ids
+    return render(request,'participants.html',{'people':people,'query':query,'events':Event.objects.filter(status__in=['open','live']).order_by('date')})
 
 @administrator
 def edit_person(request,pk):

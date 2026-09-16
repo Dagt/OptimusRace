@@ -12,6 +12,14 @@ MODEL_SHA256='07c308cf0fc7e6e8b2065a12ed7fc07e1de8febb7dc7839d7b7f15dd66584df9'
 MODEL_URL='https://huggingface.co/Xenova/modnet/resolve/fa2fa546052fba4c08921230a26cc69a333fca12/onnx/model.onnx'
 processing=BoundedSemaphore(1)
 
+def ensure_model():
+    """Install once, including when the app is started with plain runserver."""
+    from django.core.management import call_command
+    from django.core.management.base import CommandError
+    if not model_path().exists():
+        try:call_command('install_portrait_model')
+        except CommandError as exc:raise ValidationError('No se pudo preparar el acabado deportivo. Revisa la conexión del servidor y vuelve a intentar.') from exc
+
 def model_path():
     return Path(getattr(settings,'PORTRAIT_MODEL_PATH',settings.BASE_DIR/'.models'/'modnet.onnx'))
 
@@ -19,8 +27,8 @@ def model_path():
 def session():
     import hashlib
     path=model_path()
-    if not path.exists():raise ValidationError('El acabado deportivo aún no está instalado. Puedes usar la foto original.')
-    if hashlib.sha256(path.read_bytes()).hexdigest()!=MODEL_SHA256:raise ValidationError('El modelo de fotos necesita reinstalarse. Puedes usar la foto original.')
+    ensure_model()
+    if hashlib.sha256(path.read_bytes()).hexdigest()!=MODEL_SHA256:raise ValidationError('El modelo de fotos necesita reinstalarse con manage.py install_portrait_model.')
     import onnxruntime as ort
     options=ort.SessionOptions();options.intra_op_num_threads=2;options.inter_op_num_threads=1
     return ort.InferenceSession(str(path),sess_options=options,providers=['CPUExecutionProvider'])
@@ -35,9 +43,9 @@ def portrait_cutout(upload):
     size=(max(32,round(width*scale/32)*32),max(32,round(height*scale/32)*32))
     pixels=np.asarray(image.resize(size,Image.Resampling.BILINEAR),dtype=np.float32)/127.5-1
     model=session();mask=model.run(None,{model.get_inputs()[0].name:np.transpose(pixels,(2,0,1))[None]})[0].squeeze()
-    if not np.isfinite(mask).all():raise ValidationError('No se pudo separar el fondo. Prueba otra foto o usa la original.')
+    if not np.isfinite(mask).all():raise ValidationError('No se pudo separar el fondo. Toma otra foto.')
     alpha=Image.fromarray((np.clip(mask,0,1)*255).astype('uint8')).resize(image.size,Image.Resampling.LANCZOS)
-    if np.count_nonzero(np.asarray(alpha)>128)<width*height*.01:raise ValidationError('No se distingue una persona. Prueba con más luz o usa la foto original.')
+    if np.count_nonzero(np.asarray(alpha)>128)<width*height*.01:raise ValidationError('No se distingue una persona. Toma otra foto con más luz.')
     image=ImageEnhance.Contrast(image).enhance(1.03)
     image=ImageEnhance.Sharpness(image).enhance(1.08)
     image.putalpha(alpha)
@@ -48,3 +56,22 @@ def portrait_cutout(upload):
         image=image.crop((max(0,left-pad),max(0,top-pad),min(width,right+pad),min(height,bottom+pad)))
     output=BytesIO();image.save(output,format='PNG')
     return output.getvalue()
+
+def sports_photo(upload):
+    """Produce the same final portrait for preview and storage."""
+    from PIL import ImageDraw
+    if not processing.acquire(blocking=False):raise ValidationError('Se está procesando otra foto. Vuelve a intentar en unos segundos.')
+    try:
+        cutout=Image.open(BytesIO(portrait_cutout(upload))).convert('RGBA')
+        background=Image.new('RGB',(600,750),'#111313')
+        draw=ImageDraw.Draw(background)
+        for y in range(750):
+            value=36-int(y*22/750);draw.line((0,y,600,y),fill=(value,value+1,value+1))
+        draw.line((490,0,270,750),fill='#f2ed00',width=9)
+        draw.line((530,0,310,750),fill='#515024',width=2)
+        cutout.thumbnail((552,700),Image.Resampling.LANCZOS)
+        background.paste(cutout,((600-cutout.width)//2,750-cutout.height),cutout)
+        output=BytesIO();background.save(output,'JPEG',quality=92)
+        upload.seek(0)
+        return output.getvalue()
+    finally:processing.release()

@@ -85,11 +85,10 @@ Catálogo de pruebas permite buscar, crear y editar ejercicios, unidad, capacida
 | --- | --- | --- |
 | Administrador | Nombre(s), apellido paterno, apellido materno, correo, contraseña y confirmación | Ninguno |
 | Coach | Nombre(s), apellido paterno, apellido materno, correo, contraseña y confirmación | Ninguno |
-| Participante | Nombre(s), apellido paterno, apellido materno, correo, contraseña y confirmación | Categoría por sexo |
+| Participante (sin cuenta) | Nombre(s), apellidos, género; fecha de nacimiento cuando el evento limita edad; correo opcional | Foto y peso al inscribirse; categoría automática |
 
-El administrador selecciona primero el rol; el formulario muestra la categoría solo para participantes. Las cuentas nuevas nacen activas. Al editar se puede desactivar el acceso y cambiar la contraseña escribiéndola dos veces; dejar ambos campos vacíos conserva la actual. Mostrar contraseñas permite revisar lo escrito antes de guardar. El registro público siempre crea participantes y también exige confirmación.
+El equipo se crea desde **Equipo**: administradores y coaches usan correo, contraseña y confirmación. Los participantes tienen fichas independientes sin login. La foto y peso se registran en mostrador; cada inscripción conserva el peso y categoría de su edición.
 
-La foto es opcional en el perfil. Peso, categoría de peso, lote y asistencia corresponden a la inscripción o recepción de cada evento, no al alta del equipo. Cambiar un participante a coach o administrador conserva su perfil deportivo previo e historial. No se solicitan teléfono ni domicilio. La fecha de nacimiento es opcional para participantes al crear la cuenta y se exige al inscribirse si el evento tiene límites de edad.
 
 
 ## Configuración flexible (eventos nuevos)
@@ -117,4 +116,4 @@ Las cuentas de administración y coach muestran Mi cuenta, sin datos deportivos 
 
 ### Fotos deportivas sin API de pago
 
-Captura guiada, temporizador, encuadre y fondo deportivo con MODNet local. Consulta [instalación y uso](docs/RETRATOS.md); requiere descargar el modelo una vez con `python manage.py install_portrait_model`.
+Recepción toma la foto o elige un archivo. El acabado deportivo y encuadre se aplican automáticamente, sin temporizador ni selector de fondo. El servidor valida el procesamiento antes de guardar; no acepta una foto nueva sin acabado. `run-local.ps1` prepara dependencias y modelo; al iniciar directamente con Django, el modelo se descarga al primer procesamiento si falta. Consulta [instalación y uso](docs/RETRATOS.md).
