@@ -104,3 +104,16 @@ input:not([type=checkbox]):not([type=range]):not([type=file]):not([type=hidden])
 .refresh-photo-action{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:20px;border:1px solid var(--border);border-radius:12px;margin:20px 0}.refresh-photo-action p{margin:5px 0 0;color:var(--muted)}
 @media(max-width:900px){#operations-content .operations-grid,#operations-content .event-settings-grid{grid-template-columns:1fr}.participant-entry>summary{gap:10px;padding:14px}.participant-entry-body{padding:0 14px 14px}}
 @media(max-width:600px){.participant-correction>label{flex:1 1 130px}.participant-correction>.button{width:100%;margin:0}.participant-discipline>form{flex-direction:column;align-items:stretch}.participant-discipline .button{width:100%}.participant-entry>summary>.pill{display:none}#operations-content .capacity-adjustment{grid-template-columns:90px minmax(0,1fr)}#operations-content .capacity-adjustment>.button{width:auto}}
+
+/* The station editor shares the event surface and brand selection color. */
+#config-form ::selection{background:#f2ed00;color:#18211c}
+#test-editor .config-test.station-row{background:transparent}
+#test-editor .station-row .config-test-body{border-top:0;padding:14px 10px}
+#test-editor .station-row:focus-within{background:#f2ed0008}
+.event-schedule{margin:24px 0;padding-top:22px;border-top:1px solid var(--border);scroll-margin-top:95px}
+.event-schedule>h3{margin:0 0 6px;font-size:24px}.event-schedule>p{margin:0 0 18px;color:var(--muted);font-size:12px}
+.event-schedule-groups{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.event-schedule fieldset{min-width:0;margin:0;padding:16px;border:1px solid var(--border);border-radius:12px;background:#18231c25}
+.event-schedule legend{padding:0 7px;color:var(--gold);font-weight:600;font-size:13px}
+#config-form .event-schedule .form-grid{grid-template-columns:1fr;gap:16px}
+@media(max-width:650px){.event-schedule-groups{grid-template-columns:1fr}}
