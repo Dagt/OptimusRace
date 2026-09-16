@@ -50,6 +50,13 @@ class Event(models.Model):
     description = models.TextField(blank=True)
     allow_onsite = models.BooleanField(default=False)
     @property
+    def registration_label(self):
+        from .event_policy import registration_message
+        return registration_message(self)
+    @property
+    def phase_label(self):
+        return 'Publicado' if self.status=='open' else self.get_status_display()
+    @property
     def current_price(self):
         from .event_policy import current_price
         return current_price(self)

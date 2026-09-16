@@ -1,10 +1,17 @@
 from django.test import SimpleTestCase
 from PIL import Image
 import numpy as np
-from .portrait import balance_portrait_light
+from .portrait import balance_portrait_light,clean_matte_edges
 
 
 class PortraitLightingTests(SimpleTestCase):
+    def test_light_background_spill_removed_without_changing_opaque_face(self):
+        rgb=np.full((80,80,3),255,dtype=np.uint8);rgb[:,40:]=[150,100,70]
+        mask=np.full((80,80),128,dtype=np.uint8);mask[:,40:]=255
+        cleaned,alpha=clean_matte_edges(Image.fromarray(rgb),Image.fromarray(mask))
+        self.assertLess(max(cleaned.getpixel((39,40))),230)
+        self.assertLess(alpha.getpixel((39,40)),128)
+        self.assertEqual(cleaned.getpixel((60,40)),(150,100,70))
     def test_dark_subject_lifted_and_bright_subject_softened(self):
         mask=Image.new('L',(100,120),255)
         for value,direction in [(50,1),(235,-1)]:

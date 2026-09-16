@@ -35,3 +35,9 @@ Una inscripción nueva queda lista para competir. Inicia la competencia desde Re
 Las fechas se escriben día/mes/año: al teclear o pegar `02032000`, el campo muestra `02/03/2000`. Las fechas y horas de evento usan `dd/mm/aaaa HH:MM`.
 
 No se utilizan lotes ni grupos para operar la competencia. Cada estación incluye a todos los participantes confirmados; los campos históricos de lote permanecen en la base para conservar datos anteriores, pero no filtran ni bloquean la captura.
+
+## Estado de inscripciones
+
+El aviso de inscripciones y el registro de mostrador utilizan la misma regla. En un evento publicado, si se permite inscribir durante el evento y ya llegó la hora de inicio, se puede registrar aunque haya vencido el cierre ordinario, sin tener que iniciar la captura de marcas. Un evento cerrado, una apertura futura o una hora de finalización vencida impiden el registro. Iniciar competencia sigue siendo una acción independiente para habilitar a los jueces.
+
+**Ver perfil** está visible en la fila de cada participante de Administración → Participantes, en el directorio y al editar la ficha. Administración también puede revisar fichas sin historial publicado; estas no se muestran al público.

@@ -8,6 +8,23 @@ from django.core.exceptions import ValidationError
 from PIL import Image,ImageOps,ImageEnhance
 from .photos import validate_photo
 
+def clean_matte_edges(image,alpha):
+    """Remove light-background spill at semi-transparent silhouette edges."""
+    import numpy as np
+    from PIL import ImageFilter
+    rgb=np.asarray(image,dtype=np.float32)
+    matte=np.asarray(alpha,dtype=np.float32)/255
+    core=(matte>.95).astype(np.float32)
+    def blur(values):
+        return np.asarray(Image.fromarray(np.uint8(np.clip(values,0,255))).filter(ImageFilter.GaussianBlur(3)),dtype=np.float32)
+    weight=blur(core*255)/255
+    interior=np.stack([blur(rgb[...,c]*core)/np.maximum(weight,.001) for c in range(3)],axis=-1)
+    edge=((matte>.03)&(matte<.95)&(weight>.08))
+    blend=np.where(edge,np.clip((1-matte)*1.5,0,.85),0)[...,None]
+    cleaned=rgb*(1-blend)+interior*blend
+    new_alpha=np.clip((matte-.025)/.975,0,1)**1.1
+    return Image.fromarray(np.uint8(np.clip(cleaned,0,255))),Image.fromarray(np.uint8(new_alpha*255))
+
 def balance_portrait_light(image,alpha):
     """Bounded exposure and broad lighting correction using only the subject.
 
@@ -86,6 +103,7 @@ def portrait_cutout(upload):
     if not np.isfinite(mask).all():raise ValidationError('No se pudo separar el fondo. Toma otra foto.')
     alpha=Image.fromarray((np.clip(mask,0,1)*255).astype('uint8')).resize(image.size,Image.Resampling.LANCZOS)
     if np.count_nonzero(np.asarray(alpha)>128)<width*height*.01:raise ValidationError('No se distingue una persona. Toma otra foto con más luz.')
+    image,alpha=clean_matte_edges(image,alpha)
     image=balance_portrait_light(image,alpha)
     image=ImageEnhance.Sharpness(image).enhance(1.04)
     image.putalpha(alpha)
@@ -107,10 +125,8 @@ def sports_photo(upload):
         draw=ImageDraw.Draw(background)
         for y in range(750):
             value=36-int(y*22/750);draw.line((0,y,600,y),fill=(value,value+1,value+1))
-        draw.line((580,0,560,750),fill='#b6b225',width=4)
-        draw.line((596,0,576,750),fill='#515024',width=2)
         # Upscale small silhouettes as well: thumbnail only shrank them, leaving faces at the bottom.
-        scale=max(552/cutout.width,690/cutout.height)
+        scale=max(552/cutout.width,710/cutout.height)
         if max(cutout.width*scale,cutout.height*scale)>3000:
             raise ValidationError('No se distingue un retrato completo. Centra rostro y hombros y toma otra foto.')
         cutout=cutout.resize((round(cutout.width*scale),round(cutout.height*scale)),Image.Resampling.LANCZOS)

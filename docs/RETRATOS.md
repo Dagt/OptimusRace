@@ -38,3 +38,5 @@ El retrato nuevo amplía también las siluetas pequeñas y las alinea desde arri
 La iluminación se corrige automáticamente sobre la persona: exposición acotada, compensación suave de sombras amplias y reducción de altas luces. Se mantienen las proporciones de color; no se reconstruye detalle que la cámara haya quemado por sobreexposición. La corrección se aplica al generar un retrato nuevo desde su original, no sobre archivos ya procesados.
 
 **Mejorar foto actual** también está disponible para el perfil del equipo. Requiere una foto original guardada y no modifica nombres, peso ni inscripciones. Las zonas totalmente blancas por sobreexposición no contienen detalle recuperable; si siguen sin verse bien, hace falta una nueva toma con luz más uniforme.
+
+El procesamiento limpia la contaminación del fondo claro en el borde semitransparente del recorte, conserva el interior opaco y ajusta el encuadre para llegar hasta la base de la imagen. El fondo del retrato es neutro; la identidad amarilla la aporta la ficha. Las mejoras se aplican al volver a generar desde el original.

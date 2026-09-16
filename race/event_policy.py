@@ -92,7 +92,18 @@ def registration_open(event,at=None,onsite=False):
     start=event.rules.get('registration_start')
     if start and at<instant(start):return False
     if event.rules.get('event_end') and at>=instant(event.rules['event_end']):return False
-    return (event.status=='open' and at<=event.registration_end) or (onsite and event.status=='live' and event.allow_onsite)
+    return (event.status=='open' and at<=event.registration_end) or (
+        onsite and event.status in ['open','live'] and event.allow_onsite
+        and (event.status=='live' or at>=event.date))
+
+def registration_message(event,at=None):
+    at=at or timezone.now()
+    if event.status=='draft':return 'Evento sin publicar'
+    if event.status=='closed':return 'Evento cerrado'
+    if registration_open(event,at,onsite=True):return 'Inscripciones abiertas'
+    if event.rules.get('event_end') and at>=instant(event.rules['event_end']):return 'Finalizó el horario del evento'
+    if event.rules.get('registration_start') and at<instant(event.rules['registration_start']):return 'Inscripciones aún no abiertas'
+    return 'Inscripciones cerradas'
 
 def validate_eligibility(event,birth_date):
     minimum=event.rules.get('minimum_age',0);maximum=event.rules.get('maximum_age')

@@ -111,6 +111,30 @@ class CashParticipantTests(TestCase):
         self.assertEqual(person.original_photo.name,original)
         self.assertNotEqual(person.photo.name,previous_photo)
         self.assertEqual(person.name,'Ana')
+    def test_onsite_after_scheduled_start_matches_card_and_desk_without_manual_start(self):
+        self.event.date=timezone.now()-timedelta(hours=1)
+        self.event.registration_end=timezone.now()-timedelta(hours=2)
+        self.event.allow_onsite=True;self.event.save()
+        response=self.client.get(f'/events/{self.event.pk}/operations/')
+        self.assertTrue(response.context['can_cash'])
+        self.assertContains(response,'Inscribir en mostrador')
+        self.assertEqual(self.event.registration_label,'Inscripciones abiertas')
+        self.assertEqual(self.client.post(self.url,self.data()).status_code,302)
+        self.event.allow_onsite=False;self.event.save()
+        response=self.client.get(f'/events/{self.event.pk}/operations/')
+        self.assertFalse(response.context['can_cash'])
+        self.assertContains(response,'Inscripciones cerradas')
+        self.assertNotContains(response,'INSCRIPCIONES ABIERTAS')
+        self.event.allow_onsite=True
+        self.event.rules['event_end']=(timezone.now()-timedelta(minutes=1)).isoformat();self.event.save()
+        self.assertFalse(self.client.get(f'/events/{self.event.pk}/operations/').context['can_cash'])
+        self.assertEqual(self.event.registration_label,'Finalizó el horario del evento')
+    def test_admin_can_open_unpublished_person_profile_but_public_cannot(self):
+        person=Participant.objects.create(name='Persona',paternal='Nueva',sex='M')
+        path=f'/results/participants/{person.pk}/'
+        self.assertContains(self.client.get(path),person.full_name)
+        self.assertContains(self.client.get('/participants/'),path)
+        self.client.logout();self.assertEqual(self.client.get(path).status_code,404)
     def test_no_public_account_checkout_or_staff_write(self):
         self.client.logout()
         self.assertEqual(self.client.get(self.url).status_code,302)

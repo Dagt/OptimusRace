@@ -44,14 +44,14 @@ def public_search(request):
 def public_profile(request,pk):
     person=get_object_or_404(Participant,pk=pk)
     entries=Registration.objects.filter(participant=person,state='confirmed').exclude(event__status='draft').select_related('event').order_by('-event__date')
-    if not entries.exists():
+    if not entries.exists() and not request.user.is_superuser:
         from django.http import Http404
         raise Http404
     history=[]
     for entry in entries:
         row=next((item for item in board(entry.event) if item['id']==entry.pk),None)
         history.append({'entry':entry,'row':row})
-    selected=next((h for h in history if str(h['entry'].event_id)==request.GET.get('event')),history[0])
+    selected=next((h for h in history if str(h['entry'].event_id)==request.GET.get('event')),history[0] if history else None)
     chart_history=[{'id':h['entry'].event_id,'name':h['entry'].event.name,'date':h['entry'].event.date.isoformat(),'label':timezone.localtime(h['entry'].event.date).strftime('%d %b %Y'),'version':h['entry'].event.version,'demo':h['entry'].event.demo,'rules':[{**test,'comparison_key':comparison_key(test),'comparison_label':comparison_label(test)} for test in h['entry'].event.rules['tests']],'row':h['row'],'relative':is_relative(h['entry'].event),'closed':h['entry'].event.status=='closed'} for h in reversed(history)]
     return render(request,'public_profile.html',{'participant':person,'profile':person,'history':history,'selected':selected,'chart_history':chart_history})
 

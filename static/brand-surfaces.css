@@ -117,3 +117,15 @@ input:not([type=checkbox]):not([type=range]):not([type=file]):not([type=hidden])
 .event-schedule legend{padding:0 7px;color:var(--gold);font-weight:600;font-size:13px}
 #config-form .event-schedule .form-grid{grid-template-columns:1fr;gap:16px}
 @media(max-width:650px){.event-schedule-groups{grid-template-columns:1fr}}
+
+/* Compound search controls own their surface; inner inputs must stay transparent. */
+.search-box{display:flex;align-items:center;gap:10px;background:#192120;border:1px solid #ffffff25;border-radius:9px;padding:0 12px;min-height:46px}
+.search-box input:not([type=hidden]){background:transparent;border:0;border-radius:0;margin:0;padding:10px 0;box-shadow:none;min-height:44px;height:44px;flex:1;width:auto}
+.search-box:focus-within{border-color:var(--gold);outline:2px solid #f2ed0020}.search-box .icon{flex:none}
+#config-form .calendar-panel .event-schedule{padding:0;border:0;margin:0 0 18px}.calendar-panel .event-schedule>h2{margin-bottom:8px}
+#config-form #event-policy .form-grid>label:last-child{grid-column:1/-1}
+#config-form .simple-toggle{display:flex;align-items:center;gap:10px;margin-top:18px}
+#config-form .simple-toggle>input[type=checkbox]{margin:0;flex:none}
+#config-form #event-pricing>h3{margin-top:24px}
+.participant-entry>summary .participant-profile-link{flex:none;margin-left:auto}
+@media(max-width:600px){.participant-entry>summary{flex-wrap:wrap}.participant-entry>summary .participant-profile-link{margin-left:0}.participant-entry-name{flex:1 1 180px}}
