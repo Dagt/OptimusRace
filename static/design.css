@@ -148,3 +148,13 @@
  .price-policy-row>label:nth-child(3),.price-policy-row>label:nth-child(4){grid-column:1/-1}
  .discount-policy-row>label:nth-child(5),.discount-policy-row>label:nth-child(6){grid-column:1/-1}
 }
+
+.category-branches{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.category-branch{min-width:0}.category-branch h3{border-bottom:1px solid var(--border);padding-bottom:12px}
+.category-weight-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 12px;border-bottom:1px solid var(--border);padding:10px 0}
+.category-weight-row label,.category-bulk label{margin:0;font-size:11px}
+.category-weight-row input,.category-bulk input{min-height:38px;margin-top:4px;padding:8px;font-size:12px}
+.category-preview{align-self:center;overflow-wrap:anywhere}.category-weight-row>.text-button{justify-self:end;padding:4px 0}
+.category-tools{padding-top:12px}.category-bulk{margin-top:16px}.category-bulk button{margin-top:8px}.category-tools>.inline-error:empty{display:none}
+#add-test{margin-top:14px}.event-guide h2{font-size:30px}
+@media(max-width:850px){.category-branches{grid-template-columns:1fr}.sticky-save .action-group{flex-wrap:wrap}}

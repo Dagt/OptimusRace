@@ -90,3 +90,10 @@ Verificado en navegador sobre base aislada: ocho estaciones con 12.5 puntos cada
 ## Categorías, tarifas y descuentos compactos
 
 Campos alineados en filas adaptadas al ancho disponible; fechas completas y controles siempre visibles. Los descuentos identifican su unidad (% o MXN) y el límite vacío indica Sin límite. Verificación visual en navegador con dos filas de cada tipo en la base aislada; cambio de unidad comprobado. 11 pruebas de experiencia aprobadas y sintaxis JavaScript válida. Sin modificar datos del evento real.
+
+
+## Categorías por rama y publicación directa
+
+Botones para agregar al pie de las listas. Rangos agrupados por rama, con nombres automáticos y generación múltiple mediante límites; conserva nombres existentes sin cambios de peso. Verificación en navegador de generación varonil/femenil y rechazo de solapamientos.
+
+Guardar y publicar usa las validaciones de publicación existentes. Si fallan, conserva el borrador y redirige a editar con el motivo. Guía de operación por etapa y explicación del primer acceso desde mostrador, incluyendo la limitación del correo de consola local. Se comprobó con correo de pruebas que una cuenta creada en mostrador recibe el enlace de primera contraseña. Suite completa: 107 pruebas aprobadas. No se enviaron correos reales ni se modificaron eventos del usuario.

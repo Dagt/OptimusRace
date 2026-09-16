@@ -167,7 +167,15 @@ def event_edit(request,pk=None):
             if e: e=configure(e.id,request.user,{**form.cleaned_data,'rules':rules})
             else:
                 e=form.save(commit=False); e.rules=rules; e.save(); audit(e,request.user,'created',{'rules':rules})
-            messages.success(request,'Configuración guardada.'); return redirect('operations',pk=e.id)
+            if request.POST.get('intent')=='publish':
+                try:change_phase(e.id,request.user,'open')
+                except ValidationError as exc:
+                    messages.warning(request,'El borrador se guardó, pero falta completar lo siguiente para publicar:')
+                    error(request,exc)
+                    return redirect('configure',pk=e.id)
+                messages.success(request,'Evento publicado. Ya aparece en la lista de eventos para participantes.')
+            else:messages.success(request,'Borrador guardado. Puedes seguir editándolo o publicarlo cuando esté listo.')
+            return redirect('operations',pk=e.id)
         except (ValidationError,ValueError,KeyError) as exc: error(request,exc)
     return render(request,'configure.html',{'form':form,'policy_form':policy,'event':e,'rules':rules,'locked':bool(e and (e.status!='draft' or e.registration_set.exists())),'catalog':list(Exercise.objects.values('name','unit','capacity','higher','base','elite','parameters'))})
 
@@ -210,7 +218,7 @@ def operations(request,pk):
                     amount=Decimal(request.POST['amount'])*100
                     if amount!=amount.to_integral_value(): raise ValidationError('El monto admite máximo dos decimales.')
                     cash_register(pk,user,request.user,int(amount),request.POST.get('discount_code',''))
-                messages.success(request,'Inscripción y cobro efectivo registrados. La cuenta puede recuperar su contraseña con su correo.')
+                messages.success(request,'Inscripción y efectivo registrados. Si es su primera vez, el participante debe abrir Crear o recuperar contraseña y usar este mismo correo. Si ya tenía cuenta, conserva su contraseña.')
             elif action=='reception':
                 r=get_object_or_404(Registration,pk=request.POST['registration'],event=e)
                 check_in(r.id,request.user,request.POST['weight'],request.POST['batch'],request.POST['attendance'],request.POST.get('reason',''),int(request.POST['revision']))
@@ -257,7 +265,7 @@ def operations(request,pk):
         try:validate_rules(e.rules);validate_policies(e.rules,e)
         except ValidationError as exc:publish_issues.extend(exc.messages)
         if not e.capacity:publish_issues.append('Define el cupo de participantes.')
-    return render(request,'operations.html',{'event':e,'seats':availability(e),'publish_issues':publish_issues,'can_cash':registration_open(e,onsite=True),'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
+    return render(request,'operations.html',{'event':e,'seats':availability(e),'publish_issues':publish_issues,'email_console':settings.EMAIL_BACKEND.endswith('console.EmailBackend'),'can_cash':registration_open(e,onsite=True),'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
 
 @staff
 def coach(request,pk):

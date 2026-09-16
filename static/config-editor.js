@@ -30,8 +30,32 @@ if(q('#config-form')){
   removeButton(actions,()=>{tests.splice(tests.indexOf(item),1);row.remove();check()});summarize();scoreFields();check();
  }
  (original.tests||[]).forEach(addTest);q('#add-test').onclick=()=>addTest();q('#equal-points').onclick=()=>{distribute();check()};check();
- function addCat(c={}){const row=node('div',undefined,'policy-row category-policy-row');q('#category-editor').append(row);const name=field(row,'Nombre',c.name),sex=field(row,'Rama',c.sex||'M','text',[['M','Varonil'],['F','Femenil']]),min=field(row,'Desde · kg',c.min??0,'number'),max=field(row,original.category_bounds==='upper_inclusive'?'Hasta · kg (incluido)':'Hasta · kg (excluido)',c.max,'number');const item={name,sex,min,max};cats.push(item);removeButton(row,()=>{cats=cats.filter(i=>i!==item);row.remove()})}
- (original.categories||[]).forEach(addCat);q('#add-category').onclick=()=>addCat();
+ const branches={};
+ const categoryName=c=>`${c.sex.value==='M'?'Varonil':'Femenil'} · ${c.min.value||'0'}${c.max.value===''?' kg en adelante':`–${c.max.value} kg`}`;
+ for(const [sex,label] of [['M','Varonil'],['F','Femenil']]){
+  const group=node('section',undefined,'category-branch'),list=node('div'),tools=node('div',undefined,'category-tools');
+  group.append(node('h3',label),list,tools);q('#category-editor').append(group);branches[sex]=list;
+  const add=node('button',`Agregar categoría ${label.toLowerCase()}`,'button secondary small');add.type='button';tools.append(add);
+  add.onclick=()=>{const existing=cats.filter(c=>c.sex.value===sex),last=existing.at(-1);addCat({sex,min:last&&last.max.value!==''?numeric(last.max):0});q('#config-status').textContent='Tienes cambios sin guardar.'};
+  const bulk=node('div',undefined,'category-bulk'),bounds=field(bulk,'Crear varios rangos · límites en kg','');bounds.placeholder='Ejemplo: 60, 70, 80, 90';
+  const generate=node('button','Agregar rangos','button secondary small');generate.type='button';bulk.append(generate);tools.append(bulk);
+  const feedback=node('p','','inline-error');feedback.setAttribute('role','alert');tools.append(feedback);
+  generate.onclick=()=>{
+   const raw=bounds.value.split(',').map(x=>x.trim()),values=raw.map(Number);feedback.textContent='';
+   if(raw.some(x=>!x)||values.length<2||values.some((v,i)=>!Number.isFinite(v)||v<0||(i&&v<=values[i-1]))){feedback.textContent='Escribe al menos dos límites crecientes, separados por coma. Usa punto para decimales.';return}
+   const ranges=values.slice(0,-1).map((min,i)=>({sex,min,max:values[i+1]}));
+   if(cats.some(c=>c.sex.value===sex&&ranges.some(r=>r.min<(numeric(c.max)??Infinity)&&r.max>numeric(c.min)))){feedback.textContent='Los rangos se cruzan con categorías existentes. Revisa sus límites antes de agregarlos.';return}
+   ranges.forEach(addCat);bounds.value='';q('#config-status').textContent='Tienes cambios sin guardar.';
+  };
+ }
+ function addCat(c={}){
+  const sex={value:c.sex||'M'},row=node('div',undefined,'category-weight-row');branches[sex.value].append(row);
+  const min=field(row,'Desde · kg',c.min??0,'number'),max=field(row,original.category_bounds==='upper_inclusive'?'Hasta · kg (incluido)':'Hasta · kg (excluido)',c.max,'number');max.placeholder='Sin límite';
+  const preview=node('small','','category-preview');row.append(preview);const item={sex,min,max,originalName:c.name,changed:!c.name};cats.push(item);
+  const update=()=>{item.changed=true;preview.textContent=categoryName(item)};min.oninput=max.oninput=update;preview.textContent=c.name||categoryName(item);
+  removeButton(row,()=>{cats=cats.filter(i=>i!==item);row.remove();q('#config-status').textContent='Tienes cambios sin guardar.'});
+ }
+ (original.categories||[]).forEach(addCat);
  // datetime-local is expressed in the venue's configured Mexico City timezone, not the browser's zone.
  function local(iso){return iso?new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Mexico_City',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(iso)).replace(' ','T'):''}
  function iso(input){return input.value?input.value+':00-06:00':null}
@@ -41,7 +65,7 @@ if(q('#config-form')){
  const updateDiscountUnit=()=>{value.parentElement.firstChild.textContent=kind.value==='percent'?'Descuento · %':'Descuento · MXN';value.max=kind.value==='percent'?'100':''};kind.onchange=updateDiscountUnit;updateDiscountUnit();const item={code,kind,value,limit,start,end};discounts.push(item);removeButton(row,()=>{discounts=discounts.filter(i=>i!==item);row.remove()})}
  (original.discounts||[]).forEach(addDiscount);q('#add-discount').onclick=()=>addDiscount();
  form.addEventListener('input',()=>q('#config-status').textContent='Tienes cambios sin guardar.');
- form.addEventListener('submit',event=>{const data={...original,tests:tests.map(t=>({...t.source,base:numeric(t.base),elite:numeric(t.elite),...(modern?{parameters:t.source.parameters||{},max_points:numeric(t.max),scoring:t.scoring.value}:{})})),categories:cats.map(c=>({name:c.name.value.trim(),sex:c.sex.value,min:numeric(c.min),max:numeric(c.max)})),price_tiers:prices.map(p=>({name:p.name.value.trim(),amount:p.amount.value===''?null:Math.round(Number(p.amount.value)*100),start:iso(p.start),end:iso(p.end)})),discounts:discounts.map(d=>({code:d.code.value.trim().toUpperCase(),kind:d.kind.value,value:d.kind.value==='fixed'?(d.value.value===''?null:Math.round(Number(d.value.value)*100)):numeric(d.value),limit:numeric(d.limit),start:iso(d.start),end:iso(d.end)}))};q('#rules-input').value=JSON.stringify(data);q('#config-status').textContent='Guardando configuración…'});
+ form.addEventListener('submit',event=>{if(event.submitter?.value==='publish'&&!confirm('Publicar hará visible el evento y fijará sus reglas. ¿Guardar y publicar?')){event.preventDefault();return}const data={...original,tests:tests.map(t=>({...t.source,base:numeric(t.base),elite:numeric(t.elite),...(modern?{parameters:t.source.parameters||{},max_points:numeric(t.max),scoring:t.scoring.value}:{})})),categories:cats.map(c=>({name:c.changed?categoryName(c):c.originalName,sex:c.sex.value,min:numeric(c.min),max:numeric(c.max)})),price_tiers:prices.map(p=>({name:p.name.value.trim(),amount:p.amount.value===''?null:Math.round(Number(p.amount.value)*100),start:iso(p.start),end:iso(p.end)})),discounts:discounts.map(d=>({code:d.code.value.trim().toUpperCase(),kind:d.kind.value,value:d.kind.value==='fixed'?(d.value.value===''?null:Math.round(Number(d.value.value)*100)):numeric(d.value),limit:numeric(d.limit),start:iso(d.start),end:iso(d.end)}))};q('#rules-input').value=JSON.stringify(data);q('#config-status').textContent='Guardando configuración…'});
  if(!modern){q('#add-test').disabled=true;q('#equal-points').disabled=true;toast('Edición con escala anterior: conserva sus reglas e historial. Los nuevos eventos usan parámetros por estación.')}
  if(form.dataset.locked==='1')qa('input,select,button,textarea',form).filter(n=>!n.matches('[data-event-step],#previous-step,#next-step')).forEach(n=>n.disabled=true);
 }

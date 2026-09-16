@@ -57,3 +57,18 @@ Todo el formulario permanece visible, sin pasos ni secciones plegables.
 Registro público, alta/edición de equipo y recepción separan Nombre(s), Apellido paterno y Apellido materno. Los apellidos admiten espacios y pueden dejarse vacíos cuando no apliquen. La plataforma reúne los componentes para mostrar el nombre y nuevas inscripciones; conserva cada apellido por separado. Los nombres existentes no se dividen automáticamente, evitando adivinar apellidos compuestos; se pueden distribuir al editar. Las inscripciones históricas conservan el nombre registrado en su momento.
 
 Los nuevos eventos y borradores sin inscripciones asignan 70 kg a 60–70 y 70.001 kg a 70–80. El primer mínimo se incluye. Las ediciones ya publicadas conservan sus reglas. Las decisiones sobre ejecución válida, discos e incidencias corresponden a los jueces y organizadores antes de capturar la marca. No se requieren penalizaciones automáticas. Los nuevos eventos incorporan posiciones por capacidad dentro de cada categoría de sexo/peso, además de la general. Para clasificar por capacidad se deben completar todas sus pruebas; las otras capacidades pueden quedar sin realizar. Los desempates son independientes. El pin sigue identificado en el campeón general.
+
+
+## Crear, publicar y operar
+
+1. Agrega estaciones desde el botón al pie de su lista.
+2. Define las categorías en Varonil y Femenil. Cada rango genera su nombre automáticamente. Para generar varios, escribe límites crecientes separados por coma, por ejemplo `60, 70, 80, 90`. Se crean intervalos consecutivos; un último rango abierto se agrega dejando Hasta vacío. Usa punto para decimales. Los nombres de categorías existentes se conservan mientras no cambien sus límites.
+3. **Guardar borrador** conserva un evento privado. **Guardar y publicar** guarda y comprueba estaciones, puntos, categorías, cupo y políticas antes de hacerlo visible. Si falta algo, conserva el borrador y muestra el motivo. Publicar fija las reglas; no inicia la competencia.
+4. En **Administrar evento**, la guía indica la etapa. **Mostrador** registra inscripción y efectivo; **Recepción** registra peso, lote y asistencia. Inicia la competencia cuando estén listos; selecciona estación y lote para los coaches.
+5. Captura las marcas, revisa resultados y resuelve empates antes del cierre.
+
+## Primer acceso después de mostrador
+
+La inscripción crea una cuenta si no existe. No envía una contraseña. Una cuenta existente conserva la suya. Un participante nuevo abre **Ingresar → Crear o recuperar contraseña**, escribe el mismo correo de inscripción, solicita el enlace, establece su contraseña y después inicia sesión para consultar perfil, eventos y resultados.
+
+El envío real requiere configurar un proveedor de correo SMTP. Con el backend de consola local, el enlace se imprime en la terminal del servidor; no llega a una bandeja de correo. Para probar el acceso local también se puede establecer una contraseña desde **Participantes y mostrador → Editar participante**.
