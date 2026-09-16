@@ -25,3 +25,10 @@ Las capturas e informes históricos que contenían personas/datos ficticios qued
 69 pruebas automatizadas aprobadas. Cobertura agregada: alta vacía sin plantilla, parámetros de ejercicios y carga, eventos de distinto número de estaciones, suma 8 × 12.5, puntos de juez dentro de límites, edad exacta al día del evento, vigencia de tarifas/descuentos, solapamientos, usos máximos, importes incorrectos, cotización congelada de Checkout, horarios de recepción, descalificación e inmutabilidad de reglas publicadas.
 
 Verificación de navegador en servidor y base SQLite aislados (puerto 8001): acceso administrativo, editor vacío, agregar estación/tarifa/descuento, guardado y recepción de configuración, formulario de catálogo y nueva paleta. Sin errores JavaScript en ese recorrido. Los datos de esta verificación no se cargaron en la base de trabajo. No se hicieron cobros externos.
+
+
+## Cupo y fotos
+
+77 pruebas automatizadas aprobadas. Nuevas comprobaciones: desglose de lugares, exclusión de reservas expiradas, ajuste de cupo con ocupación mínima y permisos, elección del próximo evento, privacidad de borradores, subida/limpieza de foto, conversión JPEG, imagen inválida y retorno seguro. Prueba independiente de concurrencia: 8 solicitudes, 1 lugar, exactamente 1 confirmación.
+
+Recorrido de navegador en base y medios aislados: countdown activo, desglose 24/25, selección de archivo, vista previa, guardar foto y avatar visible en Usuarios y equipo. No se activó la cámara física del usuario en la revisión; requiere su permiso y dispositivo compatible.

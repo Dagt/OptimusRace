@@ -14,3 +14,5 @@ from race import management_views as management
 urlpatterns += [path("team/",management.team,name="team"),path("team/new/",management.team_edit,name="team_new"),path("team/<int:pk>/",management.team_edit,name="team_edit"),path("catalog/",management.catalog,name="catalog"),path("catalog/new/",management.catalog_edit,name="catalog_new"),path("catalog/<int:pk>/",management.catalog_edit,name="catalog_edit")]
 
 urlpatterns += [path('events/<int:pk>/quote/',v.price_quote,name='price_quote')]
+
+urlpatterns += [path('events/<int:pk>/availability/',v.event_availability,name='event_availability'),path('participants/<int:pk>/photo/',v.participant_photo,name='participant_photo')]

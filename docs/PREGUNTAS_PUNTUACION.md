@@ -1,30 +1,39 @@
-# Preguntas para acordar la puntuación con el cliente
+# Puntuación: confirmado y lo que falta precisar
 
-La convocatoria define ocho estaciones de hasta 12.5 puntos cada una, pero no especifica cómo convertir marcas en puntos. Necesitamos estas respuestas antes de implementar una escala oficial.
+## Ya confirmado; no volver a preguntar
 
-## Mensaje listo para enviar
+La convocatoria establece cuatro capacidades, ocho estaciones de hasta 12.5 puntos cada una (100 total), un intento por estación, orden de estaciones, carga de fuerza del 75% del peso corporal, participantes desde 16 años y categorías por peso/sexo. Todos reciben medalla y solo el primer lugar por categoría recibe pin. El cliente añadió que se evaluará conforme al mejor y peor resultado y que los empates se resolverán con una destreza sorpresa elegida en cada evento.
 
-Para que el sistema calcule exactamente como ustedes califican, ¿nos pueden confirmar lo siguiente?
+## Propuesta concreta para confirmar con el cliente
 
-1. **Conversión por ejercicio.** Para cada estación, ¿qué tiempo, distancia o número de repeticiones da 0, la mitad y 12.5 puntos? ¿Usan una fórmula continua, una tabla por rangos, comparación con el mejor atleta del evento o una calificación asignada por el juez? Compartan la tabla o fórmula completa; tres ejemplos no definen por sí solos la escala.
-2. **Variaciones por categoría.** ¿La escala cambia por sexo, rango de peso o edad? Si cambia, necesitamos una tabla por cada combinación. ¿El resultado de un participante depende de los resultados de otros o es definitivo al capturarlo?
-3. **Casos fuera de la escala.** ¿Una marca peor que el mínimo obtiene cero? ¿Una marca superior al máximo queda limitada a 12.5? ¿Qué pasa con una estación no realizada, abandono, ausencia o repetición inválida?
-4. **Intentos y ejecución.** ¿Es un único intento por estación? Si habrá más, ¿se usa el mejor, el último, la suma o el promedio? ¿Cómo se registra un intento anulado? Definan la técnica válida de sentadilla, press y burpee, el inicio/fin del cronometraje y la medición de los saltos.
-5. **Carga de fuerza.** ¿El 75% incluye barra y discos? ¿Qué incrementos se permiten y se redondea hacia arriba, abajo o al más cercano? ¿Hay tolerancia? ¿Qué sucede si el atleta usa una carga diferente?
-6. **Penalizaciones.** ¿Se restan repeticiones, se agregan segundos o se descuentan puntos? ¿Cuánto y por qué infracciones? ¿Una descalificación elimina al atleta de toda la competencia o solo de una estación?
-7. **Total y desempates.** ¿El total es la suma de las ocho estaciones sin bonos? ¿Con cuántos decimales se calcula y publica, y en qué momento se redondea? Si empatan, ¿comparten lugar o cuál es el orden exacto de desempate? ¿Cómo se asigna el pin cuando hay empate en primer lugar?
-8. **Ejemplo completo.** Envíen una ficha resuelta de un participante con categoría, peso, ocho marcas, cargas, penalizaciones, puntos por estación y total final. Incluyan un empate y una marca fuera de rango si es posible.
+“Proponemos comparar cada estación entre participantes de la misma categoría. El mejor resultado recibiría 12.5 puntos; el peor, 0; las marcas intermedias se repartirían proporcionalmente. Los puntos se recalcularían mientras faltan resultados y quedarían fijados al cerrar el evento. ¿Es esa la interpretación que desean? Si todos logran la misma marca o solo hay un participante en la categoría, ¿les asignamos el máximo por igual? ¿Una estación no realizada queda sin puntos y sin usarse para calcular el mejor y peor?”
 
-## Formato sugerido para sus referencias
+Esta confirmación define lo que ‘mejor y peor’ no resuelve. No necesita volver a pedir el número de intentos, premios ni las estaciones que ya aparecen en la convocatoria.
 
-| Ejercicio | Sexo / peso / edad aplicable | Unidad | Marca o rango | Puntos | Regla de límites y redondeo |
-| --- | --- | --- | --- | --- | --- |
-| Por completar por el organizador | | | | | |
+## Fórmula propuesta, aún no aplicada como regla oficial
 
-## Decisiones relacionadas con categorías
+Para repeticiones, distancia o altura (mayor es mejor):
 
-Confirmar a qué categoría pertenece un peso exacto en el límite (por ejemplo 70.00 kg), y si hay participación para varones por debajo de 60 kg o mujeres por debajo de 50 / desde 100 kg. El sistema permite configurar los rangos; actualmente incluye el mínimo y excluye el máximo para evitar solapamientos.
+`puntos = máximo × (marca − peor) / (mejor − peor)`
 
-## Alcance actual del motor
+Para tiempos (menor es mejor):
 
-Opciones disponibles por estación: conversión lineal con referencias expresamente configuradas (base = 50% del máximo, élite = 100%), o puntos ingresados por el juez con límites. Ninguna se presenta como la escala oficial del cliente. Guarda una marca final por estación, permite correcciones auditadas y conserva empates en la misma posición. Tablas por categoría, múltiples intentos, penalizaciones y desempates deportivos específicos se implementarán según las respuestas, sin asumir reglas.
+`puntos = máximo × (peor − marca) / (peor − mejor)`
+
+Ejemplo: peor = 20 repeticiones, mejor = 40, máximo = 12.5. Las marcas 20 / 30 / 40 reciben 0 / 6.25 / 12.5 puntos. Ser el peor de una categoría fuerte no significa no tener capacidad física: cero representa la posición relativa en ese grupo.
+
+Si mejor = peor, las fórmulas dividen entre cero. El caso debe tener una regla explícita. La propuesta es mismo máximo para los empatados o participante único, con indicador de que no hubo dispersión. No se ha asumido esa decisión por el cliente.
+
+## Gráficos recomendados
+
+- Radar del evento: normalizar cada estación relativa a 0–100 y promediar dentro de cada capacidad. Etiqueta: “Desempeño relativo en tu categoría”. Los valores son provisionales durante la captura.
+- Evolución personal: usar marcas originales, conservando unidad, duración, recorridos, carga y protocolo. Un mejor puntaje en otro evento puede deberse al grupo, no a una mejora física.
+- Si se requiere un radar comparable de condición física entre años, acordar referencias estables independientes de los competidores. No inventar benchmarks ni llamar a un percentil condición física absoluta.
+
+## Desempate sorpresa
+
+Debe registrarse como decisión separada: evento, categoría, atletas empatados, destreza, resultado, ganador, juez y fecha. Determina campeón/pin y orden de puestos, pero no modifica las ocho marcas ni añade una novena dimensión al radar. Su implementación se definirá con el flujo de puntuación relativa; por ahora el motor conserva empates.
+
+## Estado del sistema
+
+Se conservan las opciones existentes de puntuación lineal por referencias o puntos del juez. La fórmula relativa, su recálculo y el registro del desempate descritos aquí son una propuesta; no se han activado como política oficial.

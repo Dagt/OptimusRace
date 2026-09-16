@@ -14,7 +14,7 @@ def role_of(user):
 @administrator
 def team(request):
     query=request.GET.get('q','').strip()
-    accounts=User.objects.prefetch_related('groups').order_by('first_name','username')
+    accounts=User.objects.select_related('profile').prefetch_related('groups').order_by('first_name','username')
     if query:accounts=accounts.filter(Q(first_name__icontains=query)|Q(email__icontains=query)|Q(username__icontains=query))
     selected=request.GET.get('role','')
     if selected=='admin':accounts=accounts.filter(is_superuser=True)

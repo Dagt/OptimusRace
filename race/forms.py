@@ -51,7 +51,17 @@ class PhotoForm(forms.ModelForm):
         model=Profile
         fields=['photo','sex','birth_date']
         labels={'photo':'Foto de perfil','sex':'Sexo para nuevas inscripciones'}
+        widgets={'photo':forms.ClearableFileInput(attrs={'accept':'image/jpeg,image/png,image/webp'})}
     def clean_photo(self):
-        image=self.cleaned_data['photo']
-        if image and image.size>5*1024*1024: raise forms.ValidationError('La foto debe pesar menos de 5 MB.')
-        return image
+        from .photos import validate_photo
+        return validate_photo(self.cleaned_data['photo'])
+
+class ParticipantPhotoForm(forms.ModelForm):
+    class Meta:
+        model=Profile
+        fields=['photo']
+        labels={'photo':'Foto de perfil'}
+        widgets={'photo':forms.ClearableFileInput(attrs={'accept':'image/jpeg,image/png,image/webp'})}
+    def clean_photo(self):
+        from .photos import validate_photo
+        return validate_photo(self.cleaned_data['photo'])

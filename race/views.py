@@ -26,7 +26,9 @@ from .forms import SignupForm,EventForm,PhotoForm
 from .services import *
 from .event_policy import blank_rules,validate_policies,registration_open,quote_price
 from .policy_forms import PolicyForm
-from .forms import BirthDateField
+from .forms import BirthDateField,ParticipantPhotoForm
+from .photos import save_photo
+from .availability import availability,set_capacity
 
 def next_url(request):
     target=request.POST.get('next',request.GET.get('next','/'))
@@ -74,10 +76,10 @@ def home(request):
     events=list((Event.objects.all() if request.user.is_superuser else Event.objects.exclude(status='draft')).order_by('-date'))
     own={r.event_id:r for r in Registration.objects.filter(user=request.user)} if request.user.is_authenticated else {}
     for e in events:
-        e.taken=Registration.objects.filter(event=e,state__in=['reserved','confirmed']).count()
-        e.remaining=max(0,e.capacity-e.taken);e.fill=round(e.taken/e.capacity*100) if e.capacity else 0;e.entry=own.get(e.id)
+        e.seats=availability(e);e.taken=e.seats['occupied'];e.remaining=e.seats['remaining']
+        e.fill=round(e.taken/e.capacity*100) if e.capacity else 0;e.entry=own.get(e.id)
     summary={'events':len(events),'athletes':Registration.objects.filter(state='confirmed').count(),'present':Registration.objects.filter(attendance='present',event__status='live').count(),'income':Registration.objects.filter(state='confirmed').aggregate(total=Sum('amount'))['total'] or 0}
-    return render(request,'home.html',{'events':events,'summary':summary,'own_count':len(own)})
+    return render(request,'home.html',{'events':events,'summary':summary,'own_count':len(own),'upcoming':next(iter(sorted([e for e in events if e.status=='open' and e.date>timezone.now()],key=lambda e:e.date)),None),'server_now':timezone.now().isoformat()})
 
 def signin(request):
     if request.method=='POST':
@@ -118,8 +120,8 @@ def event_detail(request,pk):
     e=get_object_or_404(Event,pk=pk)
     if e.status=='draft' and not request.user.is_superuser: return HttpResponseForbidden()
     entry=Registration.objects.filter(event=e,user=request.user).first() if request.user.is_authenticated else None
-    occupied=Registration.objects.filter(event=e,state__in=['reserved','confirmed']).count()
-    return render(request,'event.html',{'event':e,'entry':entry,'board':board(e),'occupied':occupied,'remaining':max(0,e.capacity-occupied),'can_enroll':registration_open(e),'online_enrollment':e.rules.get('online_payments',True),'stripe_ready':bool(settings.STRIPE_SECRET_KEY),'payment_mode':settings.STRIPE_MODE})
+    seats=availability(e);occupied=seats['occupied']
+    return render(request,'event.html',{'event':e,'seats':seats,'server_now':timezone.now().isoformat(),'entry':entry,'board':board(e),'occupied':occupied,'remaining':max(0,e.capacity-occupied),'can_enroll':registration_open(e),'online_enrollment':e.rules.get('online_payments',True),'stripe_ready':bool(settings.STRIPE_SECRET_KEY),'payment_mode':settings.STRIPE_MODE})
 
 @login_required
 @require_POST
@@ -203,6 +205,8 @@ def operations(request,pk):
             elif action=='correct':
                 r=get_object_or_404(Registration,pk=request.POST['registration'],event=e)
                 capture(r.id,request.user,int(request.POST['test']),request.POST.get('value'),request.POST.get('load'),request.POST['status'],int(request.POST['revision']),request.POST.get('reason',''),administrative=True,judged_points=request.POST.get('judged_points'))
+            elif action=='capacity':
+                set_capacity(pk,request.user,int(request.POST['capacity']),request.POST.get('reason',''))
             elif action=='discipline':
                 r=get_object_or_404(Registration,pk=request.POST['registration'],event=e)
                 discipline(r.pk,request.user,request.POST.get('disqualified')=='1',request.POST.get('reason',''),int(request.POST['revision']))
@@ -219,7 +223,7 @@ def operations(request,pk):
             messages.success(request,'Cambios guardados.')
         except (ValidationError,ValueError,InvalidOperation,IntegrityError,KeyError) as exc: error(request,exc)
         return redirect(f'/events/{pk}/operations/?tab='+request.POST.get('tab','overview'))
-    entries=list(Registration.objects.filter(event=e).select_related('user').prefetch_related('result_set').order_by('bib'))
+    entries=list(Registration.objects.filter(event=e).select_related('user','user__profile').prefetch_related('result_set').order_by('bib'))
     for r in entries:
         r.done=sum(m.status=='done' for m in r.result_set.all());r.suggested=suggested_load(e,r.weight)
         r.marks=[{'mark':m,'test_name':e.rules['tests'][m.test]['name'],'unit':e.rules['tests'][m.test]['unit'],'strength':needs_load(e.rules['tests'][m.test]),'scoring':e.rules['tests'][m.test].get('scoring'),'max_points':e.rules['tests'][m.test].get('max_points',100)} for m in r.result_set.all()]
@@ -230,7 +234,7 @@ def operations(request,pk):
         try:validate_rules(e.rules);validate_policies(e.rules,e)
         except ValidationError as exc:publish_issues.extend(exc.messages)
         if not e.capacity:publish_issues.append('Define el cupo de participantes.')
-    return render(request,'operations.html',{'event':e,'publish_issues':publish_issues,'can_cash':registration_open(e,onsite=True),'entries':entries,'summary':summary,'board':board(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
+    return render(request,'operations.html',{'event':e,'seats':availability(e),'publish_issues':publish_issues,'can_cash':registration_open(e,onsite=True),'entries':entries,'summary':summary,'board':board(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
 
 @staff
 def coach(request,pk):
@@ -266,17 +270,8 @@ def profile(request):
     p,_=Profile.objects.get_or_create(user=request.user,defaults={'sex':'M'})
     form=PhotoForm(request.POST or None,request.FILES or None,instance=p)
     if request.method=='POST' and form.is_valid():
-        # Re-encode image to remove metadata and unexpected file payloads.
-        from PIL import Image,ImageOps
-        from io import BytesIO
-        from django.core.files.base import ContentFile
-        upload=form.cleaned_data['photo']
         p.sex=form.cleaned_data['sex'];p.birth_date=form.cleaned_data.get('birth_date');p.save(update_fields=['sex','birth_date'])
-        if upload is False:
-            p.photo='';p.save(update_fields=['photo'])
-        elif request.FILES.get('photo'):
-            im=ImageOps.exif_transpose(Image.open(upload)).convert('RGB'); im.thumbnail((1000,1000)); out=BytesIO(); im.save(out,format='JPEG',quality=88)
-            p.photo.save(f'{uuid.uuid4()}.jpg',ContentFile(out.getvalue()))
+        if form.cleaned_data['photo'] is False or request.FILES.get('photo'):save_photo(p,form.cleaned_data['photo'])
         messages.success(request,'Perfil actualizado.');return redirect('profile')
     history=[]
     for r in Registration.objects.filter(user=request.user).select_related('event').order_by('-event__date'):
@@ -321,3 +316,24 @@ def price_quote(request,pk):
         result=entry.pricing_snapshot or {'amount':entry.amount} if entry else quote_price(e,request.GET.get('code',''))
         return JsonResponse({**result,'locked':bool(entry)})
     except ValidationError as exc:return JsonResponse({'error':' '.join(exc.messages)},status=400)
+
+
+def event_availability(request,pk):
+    event=get_object_or_404(Event,pk=pk)
+    if event.status=='draft' and not request.user.is_superuser:return denied(request)
+    response=JsonResponse({**availability(event),'server_now':timezone.now().isoformat()})
+    response['Cache-Control']='no-store'
+    return response
+
+@administrator
+def participant_photo(request,pk):
+    participant=get_object_or_404(User,pk=pk)
+    person=get_object_or_404(Profile,user=participant)
+    form=ParticipantPhotoForm(request.POST or None,request.FILES or None,instance=person)
+    target=next_url(request)
+    if request.method=='POST' and form.is_valid():
+        if form.cleaned_data['photo'] is False or request.FILES.get('photo'):
+            save_photo(person,form.cleaned_data['photo'])
+            messages.success(request,'Foto de participante actualizada.')
+        return redirect(target)
+    return render(request,'participant_photo.html',{'participant':participant,'profile':person,'form':form,'next':target})

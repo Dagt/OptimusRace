@@ -92,3 +92,8 @@ El alta de evento inicia sin plantilla. El catálogo describe tipo de resultado,
 - [Preguntas para acordar la puntuación con el cliente](docs/PREGUNTAS_PUNTUACION.md)
 
 La paleta usa negro, amarillo y blanco, manteniendo el diseño existente. Tras actualizar ejecutar `python manage.py migrate` y `python manage.py collectstatic --noinput`.
+
+
+## Cupo, countdown y fotos
+
+Disponible el desglose actualizado de cupo/confirmados/reservas/lugares libres, ajustes auditados sin desplazar inscritos, cuenta regresiva al próximo evento publicado y fotos por archivo o cámara desde perfil, usuarios y recepción. [Guía de uso](docs/CUPO_Y_FOTOS.md).
