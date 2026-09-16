@@ -12,17 +12,23 @@ class TeamForm(forms.Form):
     maternal=forms.CharField(label='Apellido materno',max_length=74,required=False)
     email=forms.EmailField(label='Correo electrónico')
     role=forms.ChoiceField(label='Rol',choices=[('athlete','Participante'),('coach','Coach'),('admin','Administrador')])
-    sex=forms.ChoiceField(label='Categoría por sexo',required=False,choices=[('', 'Selecciona una categoría')]+Profile._meta.get_field('sex').choices,help_text='Solo para participantes. El peso y la categoría de peso se registran en cada evento.')
+    sex=forms.ChoiceField(label='Género',required=False,choices=[('', 'Selecciona el género')]+[('M','Hombre'),('F','Mujer')],help_text='Dato personal. La categoría de competencia se determina en el evento.')
     birth_date=BirthDateField(label='Fecha de nacimiento',required=False,widget=forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d'),help_text='Para participantes: necesaria al inscribirse a eventos con edad mínima.')
     active=forms.BooleanField(label='Acceso activo',required=False,initial=True)
     password=forms.CharField(label='Contraseña',required=False,strip=False,widget=forms.PasswordInput,help_text='Al editar, déjala vacía para conservar la contraseña actual.')
     password_confirm=forms.CharField(label='Confirmar contraseña',required=False,strip=False,widget=forms.PasswordInput(attrs={'autocomplete':'new-password'}))
-    def __init__(self,*args,account=None,**kwargs):
+    def __init__(self,*args,account=None,participant=False,**kwargs):
         self.account=account
         super().__init__(*args,**kwargs)
         self.order_fields(['role','name','paternal','maternal','email','sex','birth_date','active','password','password_confirm'])
         self.fields['password'].widget.attrs['autocomplete']='new-password'
-        self.participant=(self.data.get('role') if self.is_bound else self.initial.get('role','athlete'))=='athlete'
+        self.participant=participant
+        self.fields['role'].choices=[('athlete','Participante')] if participant else [('admin','Administrador'),('coach','Coach')]
+        if participant:
+            self.fields['role'].initial='athlete'
+            self.fields['role'].widget=forms.HiddenInput()
+        else:
+            self.fields.pop('sex');self.fields.pop('birth_date')
         if account is None:
             self.fields.pop('active')
             self.fields['password'].required=True
@@ -32,7 +38,7 @@ class TeamForm(forms.Form):
             self.fields['password'].label='Nueva contraseña'
             self.fields['password_confirm'].label='Confirmar nueva contraseña'
             self.fields['password'].help_text='Deja ambos campos vacíos para conservar la contraseña actual.'
-        self.fields['sex'].required=self.participant
+        if participant:self.fields['sex'].required=True
     def clean(self):
         d=super().clean()
         if d.get('role')!='athlete':d['sex']=''

@@ -69,3 +69,12 @@ Se retiraron los pasos y secciones plegables. El catálogo deja de pedir paráme
 En navegador con base aislada se creó una prueba con carga del 75%, se seleccionó en un evento y se guardó el borrador. Se verificó la copia visible de la carga sin duplicar campos, y la ausencia de errores JavaScript. Se corrigió la validación de campos internos de cierre que impedía editar un borrador.
 
 Suite completa: 100 pruebas aprobadas tras las migraciones de nombres y validación de borradores.
+
+
+## Equipo, participantes y mostrador
+
+La administración de equipo solo admite administradores y coaches. Los participantes se crean y editan en una sección independiente; las rutas impiden editar cuentas del otro tipo y el alta de participante no puede otorgar privilegios, aunque se manipule el formulario. Género es un dato personal y la categoría se asigna dentro de cada evento.
+
+Los perfiles de administradores y coaches conservan la tarjeta visual, carga de foto y cámara, sin estadísticas ni datos de competencia. El inicio del participante presenta sus inscripciones y los eventos disponibles. Participantes y mostrador enlaza al registro presencial del evento; se respetan sus restricciones de inscripción.
+
+Verificación: 103 pruebas aprobadas, incluyendo separación de cuentas, permisos, alta de participante, inicio diferenciado y carga/eliminación de foto para ambos roles del equipo. Sin cambios de esquema ni datos operativos de prueba. Cámara física no verificada.

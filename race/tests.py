@@ -377,7 +377,7 @@ class PlatformManagementTests(TestCase):
         self.assertTrue(account.groups.filter(name='Coach').exists());self.assertFalse(account.is_superuser)
         data.update(role='admin',password='',password_confirm='');self.client.post(f'/team/{account.pk}/',data)
         account.refresh_from_db();self.assertTrue(account.is_superuser);self.assertTrue(account.is_staff);self.assertFalse(account.groups.filter(name='Coach').exists())
-        data.update(email=self.admin.email,role='athlete')
+        data.update(email=self.admin.email,role='coach')
         self.assertContains(self.client.post(f'/team/{self.admin.pk}/',data),'No puedes desactivar')
         self.admin.refresh_from_db();self.assertTrue(self.admin.is_superuser)
     def test_duplicate_email_and_catalog_direction(self):
@@ -413,23 +413,24 @@ class AccountFieldTests(TestCase):
                 self.assertTrue(user.is_active)
                 self.assertFalse(Profile.objects.filter(user=user).exists())
                 response=self.client.get(f'/team/{user.pk}/')
-                self.assertContains(response,'data-participant-field hidden')
+                self.assertNotContains(response,'name="sex"')
+                self.assertNotContains(response,'name="birth_date"')
                 self.assertContains(response,'name="password_confirm"')
 
-    def test_participant_requires_category_and_staff_promotion_preserves_it(self):
+    def test_participant_registration_is_separate_and_cannot_grant_staff_roles(self):
         data={**self.data,'role':'athlete'}
         response=self.client.post('/team/new/',data)
+        self.assertIn('role',response.context['form'].errors)
+        response=self.client.post('/participants/new/',data)
         self.assertIn('sex',response.context['form'].errors)
         self.assertFalse(User.objects.filter(email=data['email']).exists())
-        data['sex']='F'
-        self.assertRedirects(self.client.post('/team/new/',data),'/team/')
+        data.update(sex='F',role='admin')
+        self.assertRedirects(self.client.post('/participants/new/',data),'/participants/')
         user=User.objects.get(email=data['email'])
         self.assertEqual(user.profile.sex,'F')
-        data.update(role='coach',active='on',password='',password_confirm='')
-        data.pop('sex')
-        self.assertRedirects(self.client.post(f'/team/{user.pk}/',data),'/team/')
-        user.refresh_from_db()
-        self.assertEqual(user.profile.sex,'F')
+        self.assertFalse(user.is_superuser)
+        self.assertEqual(self.client.get(f'/team/{user.pk}/').status_code,404)
+        self.assertEqual(self.client.get(f'/participants/{self.admin.pk}/edit/').status_code,404)
         self.assertTrue(user.check_password(self.data['password']))
 
     def test_confirmation_is_required_and_must_match_before_creation(self):

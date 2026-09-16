@@ -16,7 +16,7 @@ class SignupForm(forms.Form):
     paternal=forms.CharField(label='Apellido paterno',max_length=74,required=False)
     maternal=forms.CharField(label='Apellido materno',max_length=74,required=False)
     email=forms.EmailField(label='Correo electrónico')
-    sex=forms.ChoiceField(label='Categoría por sexo',choices=Profile._meta.get_field('sex').choices)
+    sex=forms.ChoiceField(label='Género',choices=[('M','Hombre'),('F','Mujer')])
     password=forms.CharField(label='Contraseña',strip=False,widget=forms.PasswordInput(attrs={'autocomplete':'new-password'}),validators=[validate_password])
     password_confirm=forms.CharField(label='Confirmar contraseña',strip=False,widget=forms.PasswordInput(attrs={'autocomplete':'new-password'}))
     def clean(self):
@@ -49,11 +49,12 @@ class EventForm(forms.ModelForm):
         return data
 
 class PhotoForm(forms.ModelForm):
+    sex=forms.ChoiceField(label='Género',choices=[('M','Hombre'),('F','Mujer')])
     birth_date=BirthDateField(label='Fecha de nacimiento',required=False,widget=forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d'))
     class Meta:
         model=Profile
         fields=['photo','sex','birth_date']
-        labels={'photo':'Foto de perfil','sex':'Sexo para nuevas inscripciones'}
+        labels={'photo':'Foto de perfil','sex':'Género'}
         widgets={'photo':forms.ClearableFileInput(attrs={'accept':'image/jpeg,image/png,image/webp'})}
     def clean_photo(self):
         from .photos import validate_photo

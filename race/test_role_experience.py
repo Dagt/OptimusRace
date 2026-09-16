@@ -78,3 +78,48 @@ class RoleExperienceTests(TestCase):
         data={'name':'Editado','location':event.location,'date':event.date,'registration_end':event.registration_end,'price':0,'capacity':20,'demo':False,'rules':blank_rules()}
         configure(event.pk,admin,data)
         event.refresh_from_db();self.assertEqual(event.name,'Editado');self.assertIsNone(event.closed_at)
+
+    def test_team_and_participant_lists_are_isolated(self):
+        admin=User.objects.create_superuser('owner','owner@example.test','test-password')
+        athlete=User.objects.create_user('runner',email='runner@example.test',first_name='Solo participante')
+        self.client.force_login(admin)
+        self.assertNotContains(self.client.get('/team/'),'Solo participante')
+        self.assertContains(self.client.get('/participants/'),'Solo participante')
+        self.assertNotContains(self.client.get('/participants/'),'owner@example.test')
+        form=self.client.get('/team/new/').context['form']
+        self.assertEqual(list(form.fields['role'].choices),[('admin','Administrador'),('coach','Coach')])
+        for path in ['/participants/','/participants/new/']:
+            self.client.force_login(athlete)
+            self.assertEqual(self.client.get(path).status_code,403)
+
+    def test_participant_home_is_not_promotional_landing(self):
+        self.assertContains(self.client.get('/'),'campaign-photo')
+        athlete=User.objects.create_user('runner',first_name='Laura')
+        self.client.force_login(athlete)
+        response=self.client.get('/')
+        self.assertContains(response,'Mis inscripciones')
+        self.assertNotContains(response,'campaign-photo')
+        self.assertContains(response,'Aún no tienes inscripciones')
+
+    def test_staff_can_upload_and_remove_profile_photo_without_sports_fields(self):
+        import tempfile
+        from io import BytesIO
+        from PIL import Image
+        from django.test import override_settings
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        for role in ['admin','coach']:
+            user=User.objects.create_user(role,is_superuser=role=='admin')
+            if role=='coach':user.groups.add(Group.objects.get_or_create(name='Coach')[0])
+            self.client.force_login(user)
+            with tempfile.TemporaryDirectory() as media,override_settings(MEDIA_ROOT=media):
+                data=BytesIO();Image.new('RGB',(30,30),'red').save(data,format='PNG')
+                response=self.client.post('/profile/',{'photo':SimpleUploadedFile('face.png',data.getvalue(),content_type='image/png')})
+                self.assertRedirects(response,'/profile/')
+                person=Profile.objects.get(user=user)
+                self.assertTrue(person.photo);self.assertEqual(person.sex,'')
+                response=self.client.get('/profile/')
+                self.assertContains(response,person.photo.url)
+                self.assertNotContains(response,'name="sex"')
+                self.assertNotContains(response,'DORSAL')
+                self.client.post('/profile/',{'photo-clear':'on'})
+                person.refresh_from_db();self.assertFalse(person.photo)

@@ -58,7 +58,6 @@ if(q('#tv')){
 }
 
 // Account fields follow the selected role; the server enforces the same rules.
-qa('[data-team-form]').forEach(form=>{const role=q('[name="role"]',form),sections=qa('[data-participant-field]',form),sex=q('[name="sex"]',form);const sync=()=>{const athlete=role.value==='athlete';sections.forEach(section=>{section.hidden=!athlete;qa('input,select',section).forEach(input=>input.disabled=!athlete)});sex.disabled=!athlete;sex.required=athlete};role.addEventListener('change',sync);sync()});
 qa('[data-toggle-passwords]').forEach(button=>button.addEventListener('click',()=>{const show=button.getAttribute('aria-pressed')!=='true';qa('input[autocomplete="new-password"]',button.form).forEach(input=>input.type=show?'text':'password');button.setAttribute('aria-pressed',String(show));button.textContent=show?'Ocultar contraseñas':'Mostrar contraseñas'}));
 
 qa('[data-quote-url]').forEach(form=>{const button=q('[data-quote]',form);if(!button)return;button.onclick=async()=>{const feedback=q('.quote-feedback',form);try{const params=new URLSearchParams({code:form.elements.discount_code?.value||'',email:form.elements.email?.value||''});const quote=await jsonFetch(form.dataset.quoteUrl+'?'+params);feedback.textContent=`Importe ${quote.locked?'de la reserva':'calculado'}: $${fmt(quote.amount/100)} MXN`;if(form.elements.amount)form.elements.amount.value=(quote.amount/100).toFixed(2)}catch(error){feedback.textContent=error.message}}});
@@ -93,3 +92,5 @@ if(q('[data-catalog-form]')){
  function syncLoad(){amount.disabled=load.value==='none';amount.required=!amount.disabled;amount.closest('label').firstChild.textContent=load.value==='body_percent'?'Porcentaje del peso corporal':load.value==='fixed'?'Carga total · kg':'Carga · no aplica'}
  measurement.onchange=()=>syncMeasurement(true);higher.onchange=unit.oninput=describe;load.onchange=syncLoad;syncMeasurement(false);syncLoad();
 }
+
+if(new URLSearchParams(location.search).get("register")==="1"){const dialog=document.getElementById("cash-dialog");if(dialog&&dialog.dataset.registrationOpen==="true"&&!dialog.open)dialog.showModal();}

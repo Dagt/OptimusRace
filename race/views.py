@@ -194,7 +194,7 @@ def operations(request,pk):
                     user=User.objects.filter(username=email).first()
                     if not user:
                         name=request.POST.get('name','').strip(); sex=request.POST.get('sex')
-                        if not name or sex not in ['M','F']: raise ValidationError('Nombre y sexo son obligatorios para un participante nuevo.')
+                        if not name or sex not in ['M','F']: raise ValidationError('Nombre y género son obligatorios para un participante nuevo.')
                         user=User.objects.create_user(username=email,email=email,first_name=name,password=secrets.token_urlsafe(32))
                         parts={'name':name,'paternal':request.POST.get('paternal','').strip(),'maternal':request.POST.get('maternal','').strip()}
                         if len(name)>150 or any(len(parts[k])>74 for k in ['paternal','maternal']):raise ValidationError('El nombre o apellido supera el límite permitido.')
@@ -203,7 +203,7 @@ def operations(request,pk):
                     elif user.is_superuser or user.groups.filter(name='Coach').exists():
                         raise ValidationError('Solo las cuentas de participante pueden inscribirse.')
                     elif not Profile.objects.filter(user=user).exists():
-                        if request.POST.get('sex') not in ['M','F']: raise ValidationError('Selecciona el sexo del participante.')
+                        if request.POST.get('sex') not in ['M','F']: raise ValidationError('Selecciona el género del participante.')
                         Profile.objects.create(user=user,sex=request.POST['sex'],birth_date=BirthDateField(required=False).clean(request.POST.get('birth_date')))
                     elif request.POST.get('birth_date'):
                         user.profile.birth_date=BirthDateField().clean(request.POST['birth_date']);user.profile.save(update_fields=['birth_date'])
@@ -295,7 +295,14 @@ def live_data(request,pk):
 @login_required
 def profile(request):
     if request.user.is_superuser or request.user.groups.filter(name='Coach').exists():
-        return render(request,'staff_profile.html')
+        person=Profile.objects.filter(user=request.user).first() or Profile(user=request.user,sex='')
+        form=ParticipantPhotoForm(request.POST or None,request.FILES or None,instance=person)
+        if request.method=='POST' and form.is_valid():
+            if not person.pk:person.save()
+            if form.cleaned_data['photo'] is False or request.FILES.get('photo'):save_photo(person,form.cleaned_data['photo'])
+            messages.success(request,'Foto de perfil actualizada.')
+            return redirect('profile')
+        return render(request,'staff_profile.html',{'profile':person,'form':form})
     p,_=Profile.objects.get_or_create(user=request.user,defaults={'sex':'M'})
     form=PhotoForm(request.POST or None,request.FILES or None,instance=p)
     if request.method=='POST' and form.is_valid():

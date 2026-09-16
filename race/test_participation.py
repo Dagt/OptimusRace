@@ -69,7 +69,7 @@ class ParticipationTests(TestCase):
             self.user.profile.refresh_from_db()
             with Image.open(self.user.profile.photo.path) as image:
                 self.assertEqual(image.format,'JPEG');self.assertEqual(image.size,(1000,500));self.assertFalse(image.getexif())
-            self.assertContains(self.client.get('/team/'),self.user.profile.photo.url)
+            self.assertContains(self.client.get('/participants/'),self.user.profile.photo.url)
             self.client.post(f'/participants/{self.user.pk}/photo/',{'photo-clear':'on','next':'/team/'})
             self.user.profile.refresh_from_db();self.assertFalse(self.user.profile.photo)
     def test_invalid_photo_and_safe_return(self):
