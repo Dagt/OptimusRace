@@ -8,6 +8,36 @@ from django.core.exceptions import ValidationError
 from PIL import Image,ImageOps,ImageEnhance
 from .photos import validate_photo
 
+def balance_portrait_light(image,alpha):
+    """Bounded exposure and broad lighting correction using only the subject.
+
+    Preserve channel ratios and facial detail; clipped camera data cannot be recovered.
+    Background pixels must not determine the portrait exposure.
+    """
+    import numpy as np
+    from PIL import ImageFilter
+    rgb=np.asarray(image,dtype=np.float32)/255
+    mask=np.asarray(alpha,dtype=np.float32)/255
+    luminance=rgb @ np.array([.2126,.7152,.0722],dtype=np.float32)
+    ys,xs=np.where(mask>.8)
+    if len(ys)<100:return image
+    upper=(np.indices(mask.shape)[0] <= ys.min()+(ys.max()-ys.min())*.6)
+    samples=luminance[(mask>.8)&upper&(luminance>.05)]
+    if len(samples)<100:return image
+    exposure=float(np.clip(.52/max(float(np.percentile(samples,65)),.08),.78,1.35))
+    radius=max(12,min(image.size)*.09)
+    def blur(values):
+        return np.asarray(Image.fromarray(np.uint8(np.clip(values,0,1)*255)).filter(ImageFilter.GaussianBlur(radius)),dtype=np.float32)/255
+    local=blur(luminance*mask)/np.maximum(blur(mask),.01)
+    center=float(np.median(samples))
+    correction=np.clip((max(center,.08)/np.maximum(local,.08))**.22,.88,1.12)
+    adjusted=luminance*exposure*correction
+    # Gentle highlight roll-off instead of further clipping bright skin.
+    adjusted=np.where(adjusted>.75,.75+(adjusted-.75)*.65,adjusted)
+    ratio=adjusted/np.maximum(luminance,.001)
+    corrected=np.clip(rgb*ratio[...,None],0,1)
+    return Image.fromarray(np.uint8(corrected*255))
+
 MODEL_SHA256='07c308cf0fc7e6e8b2065a12ed7fc07e1de8febb7dc7839d7b7f15dd66584df9'
 MODEL_URL='https://huggingface.co/Xenova/modnet/resolve/fa2fa546052fba4c08921230a26cc69a333fca12/onnx/model.onnx'
 processing=BoundedSemaphore(1)
@@ -46,8 +76,8 @@ def portrait_cutout(upload):
     if not np.isfinite(mask).all():raise ValidationError('No se pudo separar el fondo. Toma otra foto.')
     alpha=Image.fromarray((np.clip(mask,0,1)*255).astype('uint8')).resize(image.size,Image.Resampling.LANCZOS)
     if np.count_nonzero(np.asarray(alpha)>128)<width*height*.01:raise ValidationError('No se distingue una persona. Toma otra foto con más luz.')
-    image=ImageEnhance.Contrast(image).enhance(1.03)
-    image=ImageEnhance.Sharpness(image).enhance(1.08)
+    image=balance_portrait_light(image,alpha)
+    image=ImageEnhance.Sharpness(image).enhance(1.04)
     image.putalpha(alpha)
     # Center the detected silhouette with breathing room; never generate missing anatomy.
     bounds=alpha.point(lambda value:255 if value>32 else 0).getbbox()

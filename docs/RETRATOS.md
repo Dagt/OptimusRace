@@ -33,4 +33,6 @@ MODNet y su conversión ONNX se usan bajo Apache-2.0. Fuente y atribución en `l
 
 La segmentación puede fallar con fondos confusos, cabello fino, varias personas o poca luz. Si no se distingue una persona, toma otra foto con más luz. El modelo no reconstruye partes del cuerpo fuera de la foto. No se aplica generación de postura o retoque facial. La guía es orientativa; el usuario revisa el encuadre.
 
-El retrato nuevo amplía también las siluetas pequeñas y las alinea desde arriba. El nombre y la categoría están debajo de la imagen para no cubrir el rostro. Las fotos guardadas anteriormente no se regeneran automáticamente: reemplázalas desde Editar ficha y foto para aplicar el encuadre nuevo.
+El retrato nuevo amplía también las siluetas pequeñas y las alinea desde arriba. El nombre y la categoría vuelven a estar superpuestos al pie de la foto, con un degradado oscuro para facilitar la lectura y mantener despejado el rostro. Las fotos guardadas anteriormente no se regeneran automáticamente: reemplázalas desde Editar ficha y foto para aplicar el encuadre nuevo.
+
+La iluminación se corrige automáticamente sobre la persona: exposición acotada, compensación suave de sombras amplias y reducción de altas luces. Se mantienen las proporciones de color; no se reconstruye detalle que la cámara haya quemado por sobreexposición. La corrección se aplica al generar un retrato nuevo desde su original, no sobre archivos ya procesados.

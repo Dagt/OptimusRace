@@ -52,6 +52,27 @@ input:not([type=checkbox]):not([type=range]):not([type=file]):not([type=hidden])
 
 /* Dedicated photo capture and unobstructed portrait identity. */
 .photo-capture-dialog{width:min(620px,calc(100vw - 28px));max-height:90dvh;overflow:auto;padding:26px;border:1px solid var(--border);border-radius:20px;background:#252e2c;color:var(--ink)}.photo-capture-dialog::backdrop{background:#050a0bc9;backdrop-filter:blur(6px)}.photo-capture-dialog .action-group{flex-wrap:wrap}.photo-modal-preview img{display:block;max-width:100%;width:280px;max-height:48vh;object-fit:contain;margin:18px auto;border-radius:12px}.photo-capture-dialog .guided-camera{max-width:440px}.photo-capture-dialog video{max-height:45vh}.photo-capture-dialog .photo-file{position:relative;overflow:hidden;display:inline-flex;margin:0}.photo-capture-dialog .photo-file input{position:absolute;inset:0;width:100%;height:100%;opacity:0}.reception-photo>small{display:block;margin-top:12px;color:var(--muted)}
-.athlete-pass>.pass-identity{position:static;padding:20px 22px;background:linear-gradient(120deg,#303a34,#202926);color:var(--ink)}.athlete-pass>.pass-identity h2{font-size:clamp(24px,2.3vw,34px);line-height:1.1;margin:8px 0;overflow-wrap:anywhere}.athlete-pass .athlete-pass-photo{aspect-ratio:4/5;height:auto;min-height:0}.athlete-pass .athlete-pass-photo>img{width:100%;height:100%;object-fit:contain;object-position:top center}.athlete-pass .athlete-pass-photo:after{display:none}
+.athlete-pass .athlete-pass-photo{aspect-ratio:4/5;height:auto;min-height:0}.athlete-pass .athlete-pass-photo>img{width:100%;height:100%;object-fit:contain;object-position:top center}
 
-.cash-total{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-top:22px;padding:20px 22px;border:1px solid #c8cd7d55;border-radius:12px;background:linear-gradient(110deg,#414932,#29372e)}.cash-total>span{font-weight:600}.cash-total>strong{color:var(--gold);font-size:28px}.cash-total small{font-size:12px}.athlete-pass>.pass-identity h2{max-width:none}
+.cash-total{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-top:22px;padding:20px 22px;border:1px solid #c8cd7d55;border-radius:12px;background:linear-gradient(110deg,#414932,#29372e)}.cash-total>span{font-weight:600}.cash-total>strong{color:var(--gold);font-size:28px}.cash-total small{font-size:12px}
+
+/* Shared control rhythm and compact event administration. */
+.button{line-height:1.25;text-align:center;vertical-align:middle}.button .icon{flex-shrink:0}
+.action-group>form{display:flex;align-items:center;margin:0}.action-group>.button,.action-group>form>.button{min-height:46px}
+.form-grid>button,.form-grid>.button{justify-self:start;width:auto}
+#operations-content .operations-grid .action-group{margin-top:20px;gap:12px}
+#operations-content .operations-grid .action-group>form{margin:0}
+#operations-content .competition-controls{grid-template-columns:minmax(0,2fr) minmax(110px,1fr);align-items:start}
+#operations-content .capacity-adjustment{grid-template-columns:minmax(140px,.7fr) minmax(220px,2fr) auto;align-items:end;margin-top:20px}
+#operations-content .capacity-adjustment>.button{height:48px;white-space:normal}
+#operations-content .section-heading>form{margin:0;flex-shrink:0;display:flex;align-items:center}
+#operations-content .section-heading>div{min-width:0}
+#operations-content .section-heading p{max-width:72ch}
+#operations-content .operations-grid{align-items:start}
+.athlete-pass .athlete-pass-photo{position:relative;isolation:isolate}
+.athlete-pass .athlete-pass-photo:after{display:block;pointer-events:none;z-index:0;background:linear-gradient(0deg,#101915f5, #101915c9 18%,transparent 48%)}
+.athlete-pass-photo>.pass-identity{position:absolute;bottom:0;left:0;right:0;padding:22px;z-index:1;background:none;color:var(--ink)}
+.athlete-pass-photo>.pass-identity h2{max-width:none;font-size:clamp(25px,2.4vw,34px);line-height:1.04;margin:8px 0;overflow-wrap:anywhere;text-shadow:0 2px 12px #0008}
+.athlete-pass-photo>.pass-identity>span:last-child{color:#eef0e6}
+@media(max-width:900px){#operations-content .capacity-adjustment{grid-template-columns:1fr 1fr}#operations-content .capacity-adjustment>.button{grid-column:1/-1;justify-self:end}}
+@media(max-width:600px){#operations-content .capacity-adjustment,#operations-content .competition-controls{grid-template-columns:1fr}#operations-content .capacity-adjustment>.button{width:100%;justify-self:stretch}#operations-content .section-heading>form{width:100%}#operations-content .section-heading>form>.button{width:100%;white-space:normal}.action-group>.button,.action-group>form>.button{white-space:normal}.athlete-pass-photo>.pass-identity h2{font-size:28px}}
