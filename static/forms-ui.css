@@ -1,0 +1,33 @@
+/* Components shared by reception, profile editing and portrait capture. */
+.registration-workspace{max-width:1180px;margin:0 auto}
+.participant-finder{padding:22px 26px}.participant-finder h2{font-size:25px;margin:0}.participant-finder .section-heading{margin-bottom:16px}.participant-finder p{font-size:12px}
+.lookup-form{display:grid;grid-template-columns:minmax(180px,1fr) auto;align-items:end;gap:14px;max-width:720px}
+.lookup-form>label{margin:0;font-size:12px}.lookup-form input{margin:6px 0 0;height:46px}.lookup-form>.button{height:46px;margin:0}
+.lookup-results{padding:0;list-style:none;margin:18px 0 0;max-width:720px;display:grid;gap:8px}
+.lookup-results>li{display:flex;align-items:center;gap:16px;justify-content:space-between;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:#17231c38}
+.lookup-results strong,.lookup-results small{display:block}.lookup-results small{color:var(--muted);margin-top:3px}.lookup-results .button{flex:none}
+.registration-columns{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,1fr);gap:22px;align-items:start}
+.registration-columns>.panel{margin:0;padding:26px}.registration-columns h2{font-size:29px;margin-top:0}.registration-columns .eyebrow{font-size:10px}
+.registration-payment .form-grid{grid-template-columns:1fr;gap:18px}
+.payment-total{display:grid;gap:6px;margin:22px 0 8px;padding:20px;border:1px solid #d4d78740;border-radius:12px;background:linear-gradient(130deg,#404833,#29372e)}
+.payment-total>span{font-size:12px;color:#d8dfcc}.payment-total>strong{font-size:32px;color:var(--gold);line-height:1.2}.payment-total small{font-size:11px;color:#d8dfcc}.payment-total strong small{margin-left:5px}
+.form-submit-area{margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}.registration-payment .form-submit-area{display:block}.form-submit-area .field-help{font-size:11px;margin:10px 0 0}.registration-payment .button.full{white-space:normal}
+.person-editor{max-width:960px}.person-data-panel .section-heading{align-items:flex-start}.inline-photo-area{margin-top:24px;padding-top:20px;border-top:1px solid var(--border)}
+.portrait-summary{display:flex;align-items:center;gap:20px;max-width:580px;margin:0;padding:0}
+.portrait-thumbnail{width:90px;height:112px;flex:none;overflow:hidden;border-radius:10px;display:grid;place-items:center;border:1px solid #ffffff20;background:linear-gradient(135deg,#414932,#1c2926);color:var(--gold)}
+.portrait-thumbnail img{width:100%;height:100%;object-fit:cover}.portrait-thumbnail .icon{width:32px;height:32px}
+.portrait-summary-copy{min-width:0}.portrait-summary-copy h3{font-size:19px;margin:0 0 5px}.portrait-summary-copy p{font-size:12px;color:var(--muted);margin:0 0 12px}.portrait-summary-copy small{display:block;margin-top:8px;font-size:10px;color:var(--muted)}
+.person-editor .refresh-photo-action{justify-content:flex-start;background:transparent;border:0;border-top:1px solid var(--border);border-radius:0;padding:20px 0;margin:0;gap:20px}.refresh-photo-action strong{font-size:14px}.refresh-photo-action p{font-size:12px;max-width:420px}
+.photo-capture-dialog{width:min(600px,calc(100vw - 32px));padding:24px;max-height:90dvh;overflow:auto;box-shadow:0 30px 100px #0009}
+.photo-dialog-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}.photo-dialog-heading h2{font-size:30px;margin:0}.photo-dialog-heading .eyebrow{font-size:9px;margin:0 0 5px}
+.photo-source-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}.photo-source-actions>.button{width:100%;margin:0;height:44px;min-height:44px}
+.photo-capture-dialog .photo-file{position:relative;overflow:hidden;display:inline-flex}.photo-file input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}.photo-file:focus-within{outline:2px solid var(--gold);outline-offset:3px}
+.photo-capture-dialog .camera-stage{margin:0}.photo-capture-dialog .guided-camera{max-width:100%;border-radius:12px;overflow:hidden;background:#121a17}.photo-capture-dialog video{display:block;width:100%;max-height:45dvh;object-fit:contain;transform:none}
+.photo-modal-preview:empty{display:none}.photo-capture-dialog .photo-modal-preview img{display:block;width:auto;max-width:100%;height:42dvh;max-height:380px;object-fit:contain;margin:0 auto;border-radius:12px}
+.photo-status{font-size:12px;min-height:20px;margin:14px 0;color:#d1d9d0}.photo-dialog-footer{display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;gap:10px;padding-top:16px;border-top:1px solid var(--border)}
+.photo-dialog-footer>.button{min-height:44px;margin:0}.photo-dialog-footer>.button[hidden]{display:none!important}
+.empty-performance .radar-wrap svg{display:block;width:100%;height:100%;min-height:260px;color:#b4c0b4}.empty-performance .capacity-values>div{justify-content:space-between}.empty-performance .field-help{margin-top:16px}
+@media(max-width:900px){.registration-columns{grid-template-columns:1fr}.registration-payment .form-grid{grid-template-columns:1fr 1fr}.registration-payment .form-submit-area{max-width:420px}.registration-payment .payment-total{max-width:420px}.registration-columns>.panel{padding:22px}}
+@media(max-width:600px){.lookup-form{grid-template-columns:1fr}.lookup-form>.button{justify-self:start}.participant-finder{padding:20px}.portrait-summary{gap:14px;align-items:flex-start}.portrait-thumbnail{width:76px;height:95px}.portrait-summary-copy h3{font-size:17px}.portrait-summary-copy .button{white-space:normal}.registration-payment .form-grid{grid-template-columns:1fr}.photo-capture-dialog{padding:18px}.photo-source-actions{gap:10px}.photo-source-actions .button{padding:10px;font-size:12px}.photo-dialog-footer>.button{flex:1;white-space:normal}.photo-dialog-heading h2{font-size:27px}.empty-performance .radar-wrap svg{min-height:220px}.refresh-photo-action .button{white-space:normal}}
+
+.photo-capture-dialog [hidden]{display:none!important}

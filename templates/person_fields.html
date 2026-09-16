@@ -1,0 +1,1 @@
+{% for field in form %}{% if field.name == 'name' or field.name == 'paternal' or field.name == 'maternal' or field.name == 'sex' or field.name == 'birth_date' or field.name == 'email' %}<label>{{ field.label }}{{ field }}{{ field.errors }}</label>{% endif %}{% endfor %}

@@ -121,10 +121,15 @@ def sports_photo(upload):
     if not processing.acquire(blocking=False):raise ValidationError('Se está procesando otra foto. Vuelve a intentar en unos segundos.')
     try:
         cutout=Image.open(BytesIO(portrait_cutout(upload))).convert('RGBA')
-        background=Image.new('RGB',(600,750),'#111313')
+        background=Image.new('RGB',(600,750),'#202822')
         draw=ImageDraw.Draw(background)
         for y in range(750):
-            value=36-int(y*22/750);draw.line((0,y,600,y),fill=(value,value+1,value+1))
+            value=38-int(y*14/750);draw.line((0,y,600,y),fill=(value,value+6,value+1))
+        # Restrained gym colors and diagonal geometry stay behind the silhouette.
+        draw.polygon([(470,0),(600,0),(600,750),(570,750),(390,300)],fill='#3e452d')
+        draw.line((510,0,588,220,550,410,600,570),fill='#b2b337',width=5)
+        draw.line((550,0,600,150),fill='#e8e637',width=10)
+        for y in range(65,740,60):draw.line((25,y,70,y),fill='#59623c',width=1)
         # Upscale small silhouettes as well: thumbnail only shrank them, leaving faces at the bottom.
         scale=max(552/cutout.width,710/cutout.height)
         if max(cutout.width*scale,cutout.height*scale)>3000:

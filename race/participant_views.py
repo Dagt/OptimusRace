@@ -15,6 +15,7 @@ from .photos import save_photo
 from .services import register_person_cash,board
 from .progress import comparison_key,comparison_label
 from .relative_scoring import is_relative
+from .availability import availability
 
 
 def search_people(query,public=False,event=None):
@@ -61,7 +62,9 @@ def participants(request):
     people=list(search_people(query)[:100])
     public_ids=set(Registration.objects.filter(participant__in=people,state='confirmed').exclude(event__status='draft').values_list('participant_id',flat=True))
     for person in people:person.is_public=person.pk in public_ids
-    return render(request,'participants.html',{'people':people,'query':query,'events':Event.objects.filter(status__in=['open','live']).order_by('date')})
+    events=list(Event.objects.filter(status__in=['open','live']).order_by('date'))
+    for event in events:event.seats=availability(event)
+    return render(request,'participants.html',{'people':people,'query':query,'events':events})
 
 @administrator
 def edit_person(request,pk):
@@ -119,7 +122,13 @@ def desk_register(request,pk):
         except IntegrityError:
             if Registration.objects.filter(request_key=payload['key']).exists():return redirect('operations',pk=pk)
             raise
-    return render(request,'desk_register.html',{'request_token':token,'event':event,'form':form,'profile':person,'person':person,'query':query,'matches':search_people(query)[:25] if query else []})
+    matches=list(search_people(query)[:25]) if query else []
+    registered_ids=set(Registration.objects.filter(event=event,participant__in=matches,state='confirmed').values_list('participant_id',flat=True))
+    for match in matches:match.already_registered=match.pk in registered_ids
+    if request.method=='GET' and not person and len(matches)==1 and query.upper()==f'P{matches[0].pk}' and not matches[0].already_registered:
+        return redirect(f'{request.path}?participant={matches[0].pk}')
+    seats=availability(event)
+    return render(request,'desk_register.html',{'seats':seats,'can_register':seats['registration_open'] and not seats['full'],'request_token':token,'event':event,'form':form,'profile':person,'person':person,'query':query,'matches':matches})
 
 def retired(request,*args,**kwargs):
     return HttpResponse('Los participantes ya no necesitan cuenta. Inscripción presencial con efectivo. Consulta pública en /results/.',status=410,content_type='text/plain; charset=utf-8')

@@ -1,29 +1,37 @@
-/* Reception capture: one automatic sports portrait, no original-background option. */
+/* One explicit state per capture: choose, camera, processing, review or error. */
 qa('[data-photo-widget]').forEach(widget=>{
- const find=s=>q(s,widget),input=find('input[name="photo"]'),original=find('input[name="original_photo"]'),preview=find('[data-photo-preview]'),initial=preview.innerHTML,status=find('[data-photo-status]'),stage=find('[data-camera-stage]'),video=find('video'),open=find('[data-camera-open]'),retry=find('[data-photo-retry]'),discard=find('[data-photo-discard]');
- const dialog=find('[data-photo-dialog]'),modalPreview=find('[data-photo-modal-preview]'),use=find('[data-photo-use]');let savedPhoto=null,savedOriginal=null,savedPreview=initial;
- function restore(){cancel();stop();raw=null;ready=true;attach(input,savedPhoto);attach(original,savedOriginal);preview.innerHTML=savedPreview;modalPreview.replaceChildren();use.disabled=true;retry.hidden=discard.hidden=true}
- find('[data-photo-open]').onclick=()=>{dialog.showModal();status.textContent='Toma una foto o elige un archivo.'};
- find('[data-photo-cancel]').onclick=()=>{restore();dialog.close()};dialog.addEventListener('cancel',event=>{event.preventDefault();restore();dialog.close()});
- use.onclick=()=>{if(use.disabled)return;savedPhoto=input.files[0]||null;savedOriginal=original.files[0]||null;preview.innerHTML=modalPreview.innerHTML;savedPreview=preview.innerHTML;ready=true;stop();dialog.close()};
- let stream=null,version=0,cameraVersion=0,controller=null,raw=null,ready=true,url=null,urls=[];
- const attach=(field,file)=>{const transfer=new DataTransfer();if(file)transfer.items.add(file);field.files=transfer.files};
- function stop(){cameraVersion++;stream?.getTracks().forEach(track=>track.stop());stream=null;video.srcObject=null;stage.hidden=true;open.disabled=false}
- function cancel(){version++;controller?.abort();controller=null}
- async function process(file){cancel();const current=version;stop();raw=file;ready=false;use.disabled=true;retry.hidden=true;discard.hidden=false;
-  if(file.size>5*1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type)){status.textContent='Elige JPG, PNG o WebP de hasta 5 MB.';return}
-  status.textContent='Preparando acabado deportivo… La primera vez puede tardar mientras se prepara el modelo.';
+ const find=s=>q(s,widget),input=find('input[name="photo"]'),original=find('input[name="original_photo"]');
+ const preview=find('[data-photo-preview]'),dialog=find('[data-photo-dialog]'),modalPreview=find('[data-photo-modal-preview]'),status=find('[data-photo-status]');
+ const video=find('video'),stage=find('[data-camera-stage]'),sources=find('[data-photo-sources]');
+ const open=find('[data-camera-open]'),capture=find('[data-camera-capture]'),back=find('[data-camera-close]'),use=find('[data-photo-use]'),retry=find('[data-photo-retry]'),discard=find('[data-photo-discard]');
+ let state='choose',stream=null,generation=0,cameraGeneration=0,controller=null,raw=null,draftUrl=null;
+ let savedFile=null,savedOriginal=null,savedPreview=preview.innerHTML,savedUrl=null;
+ function attach(field,file){const transfer=new DataTransfer();if(file)transfer.items.add(file);field.files=transfer.files}
+ function show(next,message){state=next;widget.dataset.captureState=next;stage.hidden=next!=='camera';sources.hidden=!['choose','error'].includes(next);modalPreview.hidden=next!=='review';capture.hidden=back.hidden=next!=='camera';use.hidden=next!=='review';use.disabled=next!=='review';retry.hidden=next!=='error'||!raw;discard.hidden=!['review','error'].includes(next);status.textContent=message}
+ function stopCamera(){cameraGeneration++;stream?.getTracks().forEach(track=>track.stop());stream=null;video.srcObject=null}
+ function cancelRequest(){generation++;controller?.abort();controller=null}
+ function releaseDraft(){if(draftUrl&&draftUrl!==savedUrl)URL.revokeObjectURL(draftUrl);draftUrl=null}
+ function restore(){cancelRequest();stopCamera();releaseDraft();raw=null;attach(input,savedFile);attach(original,savedOriginal);preview.innerHTML=savedPreview;modalPreview.replaceChildren();show('choose','Abre la cámara o elige una foto.')}
+ find('[data-photo-open]').onclick=()=>{restore();dialog.showModal()};
+ find('[data-photo-cancel]').onclick=()=>{restore();dialog.close()};
+ dialog.addEventListener('cancel',event=>{event.preventDefault();restore();dialog.close()});
+ dialog.addEventListener('close',()=>{if(state!=='choose')restore();stopCamera()});
+ async function process(file){cancelRequest();stopCamera();releaseDraft();raw=file;const current=generation;show('processing','Preparando retrato deportivo…');
+  if(file.size>5*1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type)){show('error','Elige JPG, PNG o WebP de hasta 5 MB.');raw=null;retry.hidden=true;return}
   controller=new AbortController();const body=new FormData();body.append('photo',file);body.append('csrfmiddlewaretoken',q('[name="csrfmiddlewaretoken"]',input.form).value);
-  try{const response=await fetch(widget.dataset.portraitUrl,{method:'POST',body,credentials:'same-origin',signal:controller.signal});if(!response.ok){let message='No se pudo procesar la foto. Intenta de nuevo.';try{message=(await response.json()).error||message}catch{}throw new Error(message)}if(!response.headers.get('content-type')?.startsWith('image/'))throw new Error('La sesión terminó. Vuelve a iniciar sesión antes de tomar la foto.');const blob=await response.blob();if(current!==version)return;attach(input,file);attach(original,file);url=URL.createObjectURL(blob);urls.push(url);const img=new Image();img.src=url;img.alt='Retrato deportivo listo para guardar';modalPreview.replaceChildren(img);use.disabled=false;status.textContent='Revisa el retrato y pulsa Usar esta foto. Si no te gusta, toma otra.'}
-  catch(error){if(current===version&&error.name!=='AbortError'){status.textContent=error.message;retry.hidden=false}}
+  try{const response=await fetch(widget.dataset.portraitUrl,{method:'POST',body,credentials:'same-origin',signal:controller.signal});if(!response.ok){let message='No se pudo procesar la foto. Intenta otra vez.';try{message=(await response.json()).error||message}catch{}throw new Error(message)}if(!response.headers.get('content-type')?.startsWith('image/'))throw new Error('Tu sesión terminó. Vuelve a iniciar sesión.');const blob=await response.blob();if(current!==generation)return;draftUrl=URL.createObjectURL(blob);const img=new Image();img.src=draftUrl;img.alt='Vista previa del retrato deportivo';modalPreview.replaceChildren(img);show('review','Revisa el retrato. Usa esta foto o toma otra.')}
+  catch(error){if(current===generation&&error.name!=='AbortError')show('error',error.message)}
  }
- input.addEventListener('change',()=>{if(input.files[0])process(input.files[0])});retry.onclick=()=>{if(raw)process(raw)};
- discard.onclick=()=>{restore();status.textContent='Se conserva la foto anterior. Puedes tomar otra.'};
- open.onclick=async()=>{if(!navigator.mediaDevices?.getUserMedia){status.textContent='La cámara necesita HTTPS o localhost. Puedes elegir un archivo.';return}stop();const current=++cameraVersion;open.disabled=true;try{const acquired=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:1280}},audio:false});if(current!==cameraVersion){acquired.getTracks().forEach(track=>track.stop());return}stream=acquired;video.srcObject=stream;stage.hidden=false;await video.play();status.textContent='Centra rostro y hombros, y pulsa Capturar foto.'}catch{stop();status.textContent='No se pudo abrir la cámara. Revisa el permiso o elige un archivo.'}};
- find('[data-camera-capture]').onclick=()=>{if(!video.videoWidth)return;const current=cameraVersion,canvas=document.createElement('canvas'),scale=Math.min(1,1400/Math.max(video.videoWidth,video.videoHeight));canvas.width=Math.round(video.videoWidth*scale);canvas.height=Math.round(video.videoHeight*scale);canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);canvas.toBlob(blob=>{if(current===cameraVersion&&blob)process(new File([blob],'captura.jpg',{type:'image/jpeg'}))},'image/jpeg',.92)};
- find('[data-camera-close]').onclick=stop;
- input.form.addEventListener('submit',event=>{if(!ready){event.preventDefault();event.stopImmediatePropagation();status.textContent='Revisa y confirma la foto antes de guardar.';if(!dialog.open)dialog.showModal();return}stop()},true);
- dialog.addEventListener('close',()=>{if(!ready)restore();stop()});widget.closest('dialog')?.addEventListener('close',stop);document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});window.addEventListener('pagehide',()=>{stop();cancel();urls.forEach(value=>URL.revokeObjectURL(value))});
+ input.addEventListener('change',()=>{if(input.files[0])process(input.files[0])});retry.onclick=()=>{if(raw)process(raw)};discard.onclick=restore;
+ open.onclick=async()=>{if(!navigator.mediaDevices?.getUserMedia){show('error','La cámara requiere HTTPS o localhost. Puedes elegir un archivo.');return}cancelRequest();stopCamera();const current=++cameraGeneration;show('processing','Abriendo cámara…');
+  try{const acquired=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:1280}},audio:false});if(current!==cameraGeneration){acquired.getTracks().forEach(track=>track.stop());return}stream=acquired;video.srcObject=stream;await video.play();if(current!==cameraGeneration)return;show('camera','Centra rostro y hombros. Pulsa Capturar foto cuando esté listo.')}
+  catch{if(current!==cameraGeneration)return;stopCamera();show('error','No se pudo abrir la cámara. Revisa el permiso o elige un archivo.')}
+ };
+ capture.onclick=()=>{if(!video.videoWidth||state!=='camera')return;const current=cameraGeneration,canvas=document.createElement('canvas'),scale=Math.min(1,1400/Math.max(video.videoWidth,video.videoHeight));canvas.width=Math.round(video.videoWidth*scale);canvas.height=Math.round(video.videoHeight*scale);canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);capture.disabled=true;canvas.toBlob(blob=>{capture.disabled=false;if(current===cameraGeneration&&blob)process(new File([blob],'captura.jpg',{type:'image/jpeg'}))},'image/jpeg',.94)};
+ back.onclick=restore;
+ use.onclick=()=>{if(state!=='review'||!raw||!draftUrl)return;if(savedUrl&&savedUrl!==draftUrl)URL.revokeObjectURL(savedUrl);savedUrl=draftUrl;savedFile=raw;savedOriginal=raw;attach(input,raw);attach(original,raw);preview.innerHTML=modalPreview.innerHTML;savedPreview=preview.innerHTML;raw=null;show('choose','Foto lista para guardar.');stopCamera();dialog.close()};
+ input.form.addEventListener('submit',event=>{if(state!=='choose'){event.preventDefault();event.stopImmediatePropagation();if(!dialog.open)dialog.showModal();status.textContent='Confirma o descarta la captura antes de guardar.';return}stopCamera()},true);
+ document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='camera'){stopCamera();show('choose','La cámara se cerró al cambiar de ventana. Puedes abrirla de nuevo.')}});
+ window.addEventListener('pagehide',()=>{stopCamera();cancelRequest()});show('choose','Abre la cámara o elige una foto.');
 });
-
 qa('[data-photo-launch]').forEach(button=>button.onclick=()=>q('[data-photo-open]').click());

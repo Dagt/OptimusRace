@@ -91,6 +91,68 @@ class ReceptionUXTests(TestCase):
         self.assertEqual(board(self.event)[0]['photo_url'],person.photo.url)
         self.event.refresh_from_db();self.assertEqual(self.event.final_board,stored)
 
+    def test_empty_profile_keeps_radar_without_invented_scores(self):
+        person=Participant.objects.create(name='Sin marcas',paternal='Prueba',sex='M')
+        response=self.client.get(f'/results/participants/{person.pk}/')
+        self.assertContains(response,'empty-radar-title')
+        self.assertContains(response,'Sin marcas registradas')
+        for capacity in ['Fuerza','Resistencia','Velocidad','Potencia']:self.assertContains(response,capacity)
+        self.assertNotContains(response,'id="capacity-chart"')
+        self.client.logout()
+        self.assertEqual(self.client.get(f'/results/participants/{person.pk}/').status_code,404)
+
+    def test_exact_participant_number_selects_existing_record(self):
+        person=Participant.objects.create(name='Ana',paternal='Prueba',sex='M')
+        response=self.client.get(self.url,{'q':f'p{person.pk}'})
+        self.assertRedirects(response,f'{self.url}?participant={person.pk}')
+        selected=self.client.get(response.url)
+        self.assertEqual(selected.context['form'].instance.pk,person.pk)
+        self.assertContains(selected,'value="Ana"')
+        self.assertEqual(Participant.objects.count(),1)
+
+    def test_search_marks_existing_registration_instead_of_offering_payment(self):
+        self.client.post(self.url,self.data());person=Participant.objects.get()
+        response=self.client.get(self.url,{'q':f'P{person.pk}'})
+        self.assertContains(response,'Ya inscrito · Ver perfil')
+        self.assertNotContains(response,f'href="?participant={person.pk}"')
+
+    def test_closed_or_full_event_cannot_offer_a_new_cash_registration(self):
+        self.event.capacity=1;self.event.save()
+        self.client.post(self.url,self.data())
+        for path in [self.url,f'/events/{self.event.pk}/operations/','/participants/']:
+            self.assertContains(self.client.get(path),'Cupo agotado')
+        response=self.client.get(self.url)
+        self.assertContains(response,'class="button full" disabled')
+        self.event.capacity=2;self.event.status='closed';self.event.save()
+        response=self.client.get(self.url)
+        self.assertContains(response,'Evento cerrado')
+        self.assertContains(response,'class="button full" disabled')
+        self.assertNotContains(self.client.get('/participants/'),f'href="{self.url}"')
+
+    def test_key_pages_have_unique_ids_and_no_nested_forms(self):
+        from html.parser import HTMLParser
+        class FormsParser(HTMLParser):
+            def __init__(self):
+                super().__init__();self.ids=[];self.form_depth=0;self.errors=[]
+            def handle_starttag(self,tag,attrs):
+                attrs=dict(attrs)
+                if attrs.get('id'):self.ids.append(attrs['id'])
+                if tag=='form':
+                    if self.form_depth:self.errors.append('Nested form')
+                    self.form_depth+=1
+            def handle_endtag(self,tag):
+                if tag=='form':self.form_depth-=1
+        self.client.post(self.url,self.data());person=Participant.objects.get()
+        paths=['/','/profile/','/team/','/catalog/','/participants/','/results/','/events/new/',self.url,
+               f'/participants/{person.pk}/edit/',f'/results/participants/{person.pk}/',
+               f'/events/{self.event.pk}/',f'/events/{self.event.pk}/operations/',f'/events/{self.event.pk}/tv/']
+        for path in paths:
+            with self.subTest(path=path):
+                response=self.client.get(path);self.assertEqual(response.status_code,200)
+                parser=FormsParser();parser.feed(response.content.decode())
+                self.assertEqual(parser.errors,[]);self.assertEqual(parser.form_depth,0)
+                self.assertEqual(len(parser.ids),len(set(parser.ids)),[x for x in parser.ids if parser.ids.count(x)>1])
+
 
 @skipUnless(model_path().exists(),'Integration requires the downloaded local portrait model.')
 class PortraitIntegrationTests(TestCase):
