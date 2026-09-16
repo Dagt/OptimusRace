@@ -48,3 +48,10 @@ Se conservan composición, tipografía y navegación. Paleta: negro/carbón, bla
 El catálogo inicia vacío. El formulario agrupa la información en: qué mide el coach, condiciones de ejecución, carga, límites de captura y referencias opcionales. La puntuación se configura en el evento; las referencias no son necesarias para evaluación relativa. Las secciones opcionales pueden desplegarse según el ejercicio.
 
 Administradores y coaches acceden a Mi cuenta, sin dorsal, peso, trayectoria ni inscripción deportiva. Las participaciones históricas de una cuenta que cambió de rol se conservan, pero no se muestran en su cuenta administrativa.
+
+
+## Flujo simplificado
+
+Eventos: 1) datos básicos; 2) pruebas; 3) categorías y opciones. Se puede guardar un borrador antes de añadir estaciones. Las pruebas nuevas reparten 100 puntos por igual automáticamente; desmarca esa opción para definir pesos propios. Editar una edición existente conserva su reparto. Las condiciones y evaluación de cada estación están en Personalizar prueba.
+
+Catálogo: nombre, capacidad y tipo de resultado. Elegir el tipo propone unidad y dirección; las unidades de una prueba guardada se conservan al abrirla. El apartado Agregar condiciones u opciones avanzadas permite modificar esas propuestas y configurar carga, duración, recorridos y límites. No se crean ejercicios ni eventos predefinidos.

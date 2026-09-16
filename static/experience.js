@@ -86,4 +86,13 @@ qa('form').forEach(form=>{
  compare();
 });
 // Native validation must be able to focus fields inside optional sections.
-qa('[data-catalog-form] input,[data-catalog-form] select,[data-catalog-form] textarea').forEach(input=>input.addEventListener('invalid',()=>{const section=input.closest('details');if(section)section.open=true}));
+qa('[data-catalog-form] input,[data-catalog-form] select,[data-catalog-form] textarea').forEach(input=>input.addEventListener('invalid',()=>{const section=input.closest('details');if(section){section.open=true;const outer=section.parentElement.closest('details');if(outer)outer.open=true}}));
+
+// The result type proposes units; saved custom units are preserved on opening.
+if(q('[data-catalog-form]')){
+ const metric=q('#id_metric'),unit=q('#id_unit'),higher=q('#id_higher'),summary=q('#measurement-summary');
+ function describeMeasurement(){summary.textContent=`El coach registrará la marca en ${unit.value||'la unidad indicada'}. ${higher.value==='True'?'Mayor':'Menor'} marca es mejor. Los puntos se definen en el evento.`}
+ metric.addEventListener('change',()=>{const defaults={time:['seg','False'],repetitions:['reps','True'],distance:['cm','True'],weight:['kg','True']}[metric.value];if(defaults){unit.value=defaults[0];higher.value=defaults[1]}else {unit.closest('details').open=true;q('.catalog-options').open=true}describeMeasurement()});
+ unit.addEventListener('input',describeMeasurement);higher.addEventListener('change',describeMeasurement);describeMeasurement();
+ qa('.errorlist',q('[data-catalog-form]')).forEach(error=>{const details=error.closest('details');if(details){details.open=true;const outer=details.parentElement.closest('details');if(outer)outer.open=true}});
+}

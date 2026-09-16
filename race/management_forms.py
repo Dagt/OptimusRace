@@ -68,10 +68,13 @@ class CatalogForm(forms.ModelForm):
         super().__init__(*args,**kwargs)
         if not self.is_bound:
             self.initial.update(self.instance.parameters or {})
-            self.initial.setdefault('metric','custom');self.initial.setdefault('load_mode','none');self.initial.setdefault('round_mode','none')
+            self.initial.setdefault('metric','repetitions' if not self.instance.pk else 'custom');self.initial.setdefault('load_mode','none');self.initial.setdefault('round_mode','none')
+        if not self.instance.pk and not self.is_bound:
+            self.initial.setdefault('unit','reps');self.initial.setdefault('higher',True)
         self.order_fields(['name','capacity','metric','unit','higher',*self.parameter_fields[1:],'base','elite'])
     def sections(self):
-        groups=[('1. ¿Qué va a registrar el coach?', 'La marca es el resultado medido. Por ejemplo: 24 repeticiones, 12.4 segundos o 180 centímetros.', ['name','capacity','metric','unit','higher'], False),
+        groups=[('1. ¿Qué va a registrar el coach?', 'La marca es el resultado medido. Por ejemplo: 24 repeticiones, 12.4 segundos o 180 centímetros.', ['name','capacity','metric'], False),
+                ('Unidad y sentido de la marca', 'Se proponen al elegir el resultado. Personaliza si tu ejercicio usa otra unidad o dirección.', ['unit','higher'], True),
                 ('2. ¿Cómo se realiza el ejercicio?', 'Opcional. La duración y el recorrido son condiciones de ejecución, no puntos. Puedes combinar ambas cuando el ejercicio lo requiera.', ['duration_seconds','distance_meters','laps','instructions','equipment'], True),
                 ('3. ¿Debe utilizar una carga?', 'Opcional. Define el peso que debe usar el participante. El resultado a calificar sigue siendo la marca elegida en el paso 1.', ['load_mode','load_value','bar_weight','load_step','round_mode'], True),
                 ('4. Límites de captura', 'Opcional. Evitan errores del coach; no determinan los puntos. Repeticiones siempre admite enteros.', ['precision','min_value','max_value'], True),

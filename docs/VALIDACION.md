@@ -50,3 +50,8 @@ Arranque limpio aprobado sin usuarios/eventos/inscripciones operativos. Migraci�
 Verificación real en navegador: confirmación de contraseña distinta muestra aviso al escribir, coincidencia cambia a confirmación positiva y editar de nuevo la contraseña original restaura el aviso. No se envió el formulario ni se crearon cuentas.
 
 Se retiraron las nueve pruebas precargadas locales, comprobando que coincidían íntegramente con los originales y tras backup verificado. Las cuentas existentes se conservaron. Los ejercicios sintéticos utilizados por pruebas automatizadas están exclusivamente en un módulo de fixtures de test.
+
+
+## Formularios simplificados
+
+92 pruebas aprobadas. Revisión en navegador con base aislada: navegación de tres pasos, error de campo obligatorio que vuelve al paso inicial, guardado de borrador sin estaciones y creación de prueba con nombre/capacidad/tipo. Elegir tiempo propuso segundos y menor marca es mejor; el catálogo confirmó esos valores. Sin errores JavaScript en ese recorrido. Los datos de revisión no se añadieron a la base local.
