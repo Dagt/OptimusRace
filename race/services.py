@@ -187,8 +187,8 @@ def change_phase(event_id, actor, phase, test=0,batch=1,expected_test=None):
     if phase=='closed':
         frozen=board(e)
         for row in frozen:
-            if any(result['tie_pending'] and result['rank'] is not None and result['rank']<=3 for result in row.get('capacity_results',{}).values()):raise ValidationError('Resuelve los empates del podio por capacidad antes de cerrar.')
-        if is_relative(e) and any(r['tie_pending'] and r['rank']<=3 for r in frozen if r['rank'] is not None):raise ValidationError('Resuelve los empates del podio por categoría antes de cerrar el evento.')
+            if any(result['tie_pending'] and result['rank'] is not None and result['rank']==1 for result in row.get('capacity_results',{}).values()):raise ValidationError('Resuelve los empates por el primer lugar de cada capacidad antes de cerrar.')
+        if is_relative(e) and any(r['tie_pending'] and r['rank']==1 for r in frozen if r['rank'] is not None):raise ValidationError('Resuelve los empates por el primer lugar de cada categoría antes de cerrar el evento.')
         for row in frozen:
             for result in row.get('capacity_results',{}).values():
                 result['provisional']=False;result['winner']=result['rank']==1 and not result['tie_pending']

@@ -108,7 +108,7 @@ class RelativeScoringTests(TestCase):
         capture(self.b.pk,self.scoring_coach,0,40,None,'done',1,'Corregir')
         self.client.force_login(self.admin)
         response=self.client.get(f'/events/{self.event.pk}/operations/')
-        self.assertContains(response,'Guardar desempate');self.assertContains(response,'Podio · por resolver')
+        self.assertContains(response,'Guardar desempate');self.assertContains(response,'Primer lugar · por resolver')
         from .models import Participant
         person=Participant.objects.create(name=self.b.name,sex='M');self.b.participant=person;self.b.save()
         self.client.logout()
@@ -184,3 +184,22 @@ class RelativeScoringTests(TestCase):
         self.assertEqual(self.client.get(f'/events/{self.event.pk}/live/').json()['pending_ties'],1)
         self.decision()
         self.assertEqual(self.client.get(f'/events/{self.event.pk}/live/').json()['pending_ties'],0)
+
+    def test_lower_place_ties_do_not_require_decision_or_block_close(self):
+        capture(self.a.pk,self.scoring_coach,0,30,None,'done',1,'Empate en segundo')
+        rows=board(self.event)
+        self.assertEqual(tie_groups(rows),[])
+        self.assertFalse(any(row['tie_pending'] for row in rows))
+        with self.assertRaises(ValidationError):
+            resolve_tie(self.event.pk,self.admin,'M',0,[self.a.pk,self.b.pk],'invalid','Prueba','Resultado','Juez')
+        self.client.force_login(self.admin)
+        self.assertEqual(self.client.get(f'/events/{self.event.pk}/live/').json()['pending_ties'],0)
+        change_phase(self.event.pk,self.admin,'closed')
+        self.event.refresh_from_db();self.assertEqual(self.event.status,'closed')
+
+    def test_capacity_lower_place_ties_are_not_offered(self):
+        from .capacity_results import all_ties
+        self.event.rules['capacity_podiums']=True;self.event.save()
+        capture(self.a.pk,self.scoring_coach,0,30,None,'done',1,'Empate en segundo')
+        self.assertEqual(all_ties(board(self.event)),[])
+        change_phase(self.event.pk,self.admin,'closed')

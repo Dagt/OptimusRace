@@ -257,7 +257,7 @@ def operations(request,pk):
         try:validate_rules(e.rules);validate_policies(e.rules,e)
         except ValidationError as exc:publish_issues.extend(exc.messages)
         if not e.capacity:publish_issues.append('Define el cupo de participantes.')
-    ties.sort(key=lambda group:(group['resolved'],group['rank']>3,group['category'],group['scope']))
+    ties.sort(key=lambda group:(group['resolved'],group['category'],group['scope']))
     pending_ties=sum(not group['resolved'] for group in ties)
     station_options=[{'index':i,'name':t['name'],'allowed':not e.rules.get('ordered_stations') or i in ([0] if e.status=='open' else [e.active_test,e.active_test+1])} for i,t in enumerate(e.rules['tests'])]
     active_station=next((t for i,t in enumerate(e.rules['tests']) if i==e.active_test),None)

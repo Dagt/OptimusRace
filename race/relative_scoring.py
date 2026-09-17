@@ -26,7 +26,7 @@ def tie_groups(rows,scope="general"):
         if r['rank'] is not None:clusters[(r['category'],r['total'])].append(r)
     groups=[]
     for (category,total),members in clusters.items():
-        if len(members)<2:continue
+        if len(members)<2 or min(r['rank'] for r in members)!=1:continue
         groups.append({'scope':scope,'category':category,'total':total,'members':members,'rank':min(r['rank'] for r in members),
                        'fingerprint':category_fingerprint(categories[category])})
     return groups
