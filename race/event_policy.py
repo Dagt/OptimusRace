@@ -80,7 +80,7 @@ def quote_price(event,code='',at=None,exclude_registration=None):
     if not code:return snapshot
     discount=next((d for d in event.rules.get('discounts',[]) if d['code']==code),None)
     if not discount or not in_period(discount,at):raise ValidationError('El código de descuento no existe o está fuera de vigencia.')
-    uses=Registration.objects.filter(event=event,pricing_code=code,state__in=['reserved','confirmed'])
+    uses=Registration.objects.filter(event=event,pricing_code=code,state='confirmed')
     if exclude_registration:uses=uses.exclude(pk=exclude_registration)
     if discount.get('limit') and uses.count()>=discount['limit']:raise ValidationError('El descuento agotó sus usos disponibles.')
     reduction=Decimal(base)*Decimal(str(discount['value']))/100 if discount['kind']=='percent' else Decimal(discount['value'])

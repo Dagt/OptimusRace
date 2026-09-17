@@ -15,4 +15,4 @@ def money(value):
 def money_input(value):return f'{value/100:.2f}'
 @register.filter
 def state_label(value):
-    return {'disqualified':'Descalificado','confirmed':'Confirmada','reserved':'Reservada · pago pendiente','expired':'Expirada','pending':'Pendiente','present':'Presente','absent':'Ausente','withdrawn':'Retirado','done':'Realizada','creating':'Creando Checkout','paid':'Pagado'}.get(value,value)
+    return {'disqualified':'Descalificado','confirmed':'Confirmada','reserved':'Reservada · pago pendiente','expired':'Histórico sin inscripción','pending':'Pendiente','present':'Presente','absent':'Ausente','withdrawn':'Retirado','done':'Realizada','creating':'Creando Checkout','paid':'Pagado'}.get(value,value)

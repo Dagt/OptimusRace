@@ -17,7 +17,7 @@ Solo las cuentas de coach activas pueden acceder a captura, registrar marcas y c
 
 - **Coaches:** consulta cada 5 segundos y al recuperar conexión/volver a la pestaña. Actualiza las tarjetas sin cambios pendientes; conserva las ediciones locales y señala conflictos. No reordena participantes mientras se captura.
 - **Resultados públicos y administración:** actualizan únicamente las tablas cada 5 segundos cuando están visibles. Conservan capacidades desplegadas, foco de teclado y formularios de corrección externos. No interrumpen una selección de texto.
-- **TV:** consulta cada 5 segundos y rota página cada 10 segundos. Calcula las filas según la altura disponible. Conserva los últimos resultados si pierde conexión y muestra el aviso correspondiente. Distingue espera de inicio, resultados provisionales y resultados finales.
+- **TV:** consulta cada 5 segundos y rota página cada 10 segundos. Calcula las filas según la altura disponible, sin límite fijo de doce. Usa dos columnas cuando el tablero tiene al menos 1400 px de ancho y filas compactas; en una TV Full HD puede mostrar alrededor de veinte competidores, según el espacio disponible. Conserva los últimos resultados si pierde conexión y muestra el aviso correspondiente. Distingue espera de inicio, resultados provisionales y resultados finales.
 - Un fallo o demora al guardar **no equivale a guardado confirmado**. Los valores permanecen en esa pantalla. Si el servidor sí alcanzó a registrar la marca, la siguiente consulta detecta la nueva revisión y ofrece cargarla.
 - No hay cola de guardado sin conexión ni almacenamiento permanente de borradores en el teléfono. No cierres la pestaña con capturas pendientes; se avisa antes de salir cuando el navegador lo permite.
 
@@ -39,3 +39,9 @@ En evaluación relativa, otra marca de la misma categoría puede cambiar los pun
 - `manage.py check`, revisión de sintaxis JavaScript y renderizado de las plantillas mediante el cliente de pruebas.
 
 **Pendiente de validación física:** no hay navegador conectado a las herramientas de esta sesión. Las pruebas de JavaScript usan dobles de DOM/red; no sustituyen una revisión visual ni una prueba táctil en iPhone/Android/tableta y TV real. No se cambiaron las marcas ni los datos de eventos reales para probar.
+
+## Inscripción con pago confirmado
+
+La inscripción en mostrador y el registro del cobro se guardan en una sola transacción. No se crean reservas ni inscripciones pendientes. El cupo y los usos de descuentos cuentan únicamente inscripciones confirmadas. Ausencia, retiro y demás estados deportivos siguen siendo independientes del pago.
+
+La migración 0014 conserva las antiguas reservas como registros históricos sin inscripción (`expired`), sin ocupar cupo. No inventa pagos ni elimina el historial. Los pagos Stripe históricos pueden conciliarse, verificando importe, identidad, cupo y que el evento no haya cerrado; no se crean nuevos Checkout. La base de datos rechaza los estados de inscripción `reserved` y `pending`.

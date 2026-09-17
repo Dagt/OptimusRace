@@ -241,12 +241,12 @@ def operations(request,pk):
             if action!='phase':messages.success(request,'Cambios guardados.')
         except (ValidationError,ValueError,InvalidOperation,IntegrityError,KeyError) as exc: error(request,exc)
         return redirect(f'/events/{pk}/operations/?tab='+request.POST.get('tab','overview'))
-    entries=list(Registration.objects.filter(event=e).select_related('user','user__profile','participant').prefetch_related('result_set').order_by('bib'))
+    entries=list(Registration.objects.filter(event=e,state='confirmed').select_related('user','user__profile','participant').prefetch_related('result_set').order_by('bib'))
     for r in entries:
         r.done=sum(m.status=='done' for m in r.result_set.all());r.suggested=suggested_load(e,r.weight)
         r.marks=[{'mark':m,'test_name':e.rules['tests'][m.test]['name'],'unit':e.rules['tests'][m.test]['unit'],'strength':needs_load(e.rules['tests'][m.test]),'scoring':e.rules['tests'][m.test].get('scoring'),'max_points':e.rules['tests'][m.test].get('max_points',100)} for m in r.result_set.all()]
     confirmed=[r for r in entries if r.state=='confirmed']
-    summary={'registered':len(confirmed),'present':sum(r.attendance=='present' for r in confirmed),'pending':sum(r.attendance=='pending' for r in confirmed),'remaining':max(0,e.capacity-sum(r.state in ['confirmed','reserved'] for r in entries)),'cash':sum(r.amount for r in confirmed if r.method=='cash'),'stripe':sum(r.amount for r in confirmed if r.method=='stripe')}
+    summary={'registered':len(confirmed),'present':sum(r.attendance=='present' for r in confirmed),'pending':sum(r.attendance=='pending' for r in confirmed),'remaining':max(0,e.capacity-sum(r.state=='confirmed' for r in entries)),'cash':sum(r.amount for r in confirmed if r.method=='cash'),'stripe':sum(r.amount for r in confirmed if r.method=='stripe')}
     standings=board(e)
     ties=all_ties(standings) if e.status!='closed' else []
     for group in ties:

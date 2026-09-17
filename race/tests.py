@@ -31,7 +31,7 @@ class RaceTests(TestCase):
         obj={'id':'cs_test_1','metadata':{'payment_id':str(p.id)},'client_reference_id':str(p.registration_id),'payment_status':'paid','currency':'mxn','amount_total':p.amount,'livemode':False};obj.update(kwargs)
         return {'id':'evt_1','type':kind,'data':{'object':obj}}
     def payment(self):
-        with transaction.atomic(): r=reserve_locked(self.event,self.user)
+        r=Registration.objects.create(event=self.event,user=self.user,name='Histórico',sex='M',bib=1,amount=50000,state='expired')
         return Payment.objects.create(registration=r,key='unique',amount=50000,expires_at=timezone.now()+timedelta(minutes=40),session_id='cs_test_1',state='pending')
     def test_linear_clamping_and_time_direction(self):
         t=self.rules['tests'][0]
@@ -78,9 +78,9 @@ class RaceTests(TestCase):
         self.entry()
         with self.assertRaises(ValidationError):self.entry()
         self.assertEqual(Registration.objects.count(),1);self.assertEqual(Audit.objects.filter(action='cash').count(),1)
-    def test_capacity_includes_reservations(self):
+    def test_historical_unpaid_does_not_hold_capacity(self):
         self.event.capacity=1;self.event.save();self.payment()
-        with self.assertRaises(ValidationError):cash_register(self.event.id,self.person('two@test.com'),self.admin,50000)
+        self.assertEqual(cash_register(self.event.id,self.person('two@test.com'),self.admin,50000).state,'confirmed')
     def test_pending_stripe_cannot_be_paid_cash(self):
         self.payment()
         with self.assertRaises(ValidationError):self.entry()
@@ -100,29 +100,27 @@ class RaceTests(TestCase):
         p.refresh_from_db();self.assertEqual(p.state,'pending');self.assertEqual(Webhook.objects.count(),0)
     def test_unpaid_checkout_does_not_confirm(self):
         p=self.payment();fulfill(self.payload(p,payment_status='unpaid'))
-        p.refresh_from_db();self.assertEqual(p.registration.state,'reserved')
+        p.refresh_from_db();self.assertEqual(p.registration.state,'expired')
     def test_verified_expiration_releases_capacity(self):
         p=self.payment();fulfill(self.payload(p,'checkout.session.expired',payment_status='unpaid'))
         p.refresh_from_db();self.assertEqual(p.registration.state,'expired')
     def test_old_expiration_does_not_cancel_new_reservation(self):
         p=self.payment();fulfill(self.payload(p,'checkout.session.expired',payment_status='unpaid'))
-        with transaction.atomic(): r=reserve_locked(self.event,self.user)
+        r=Registration.objects.get(pk=p.registration_id)
         fresh=Payment.objects.create(registration=r,key='fresh',amount=50000,expires_at=timezone.now()+timedelta(minutes=40),state='pending')
         late=self.payload(p,'checkout.session.expired',payment_status='unpaid');late['id']='evt_late';fulfill(late)
-        r.refresh_from_db();self.assertEqual(r.state,'reserved');fresh.refresh_from_db();self.assertEqual(fresh.state,'pending')
+        r.refresh_from_db();self.assertEqual(r.state,'expired');fresh.refresh_from_db();self.assertEqual(fresh.state,'pending')
     @override_settings(STRIPE_SECRET_KEY='')
     def test_no_credentials_never_fake_payment(self):
         with self.assertRaises(ValidationError):checkout(self.event.id,self.user)
         self.assertEqual(Registration.objects.count(),0)
     @override_settings(STRIPE_SECRET_KEY='sk_test_fake')
     @patch('race.services.stripe.checkout.Session.create')
-    def test_checkout_retry_reuses_idempotency_and_capacity(self,create):
-        create.side_effect=[stripe.APIConnectionError('timeout'),SimpleNamespace(id='cs_test_1',url='https://checkout.stripe.com/test')]
-        with self.assertRaises(stripe.APIConnectionError):checkout(self.event.id,self.user)
-        url=checkout(self.event.id,self.user)
-        self.assertEqual(url,'https://checkout.stripe.com/test');self.assertEqual(Payment.objects.count(),1);self.assertEqual(Registration.objects.count(),1)
-        self.assertEqual(create.call_args_list[0].kwargs,create.call_args_list[1].kwargs)
-        self.assertEqual(checkout(self.event.id,self.user),url);self.assertEqual(create.call_count,2)
+    def test_checkout_is_retired_even_with_valid_configuration(self,create):
+        with self.assertRaises(ValidationError):checkout(self.event.id,self.user)
+        create.assert_not_called()
+        self.assertFalse(Payment.objects.exists());self.assertFalse(Registration.objects.exists())
+
     @override_settings(STRIPE_WEBHOOK_SECRET='whsec_testing')
     def test_real_signature_verification(self):
         p=self.payment();raw=json.dumps(self.payload(p)).encode();stamp=str(int(time.time()));sig=hmac.new(b'whsec_testing',stamp.encode()+b'.'+raw,hashlib.sha256).hexdigest()

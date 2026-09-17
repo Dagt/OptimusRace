@@ -126,16 +126,12 @@ class ConfigurationTests(TestCase):
         self.assertEqual(self.client.get(f'/events/{event.pk}/operations/').status_code,200)
         with self.assertRaises(ValidationError):change_phase(event.pk,self.admin,'open')
     @override_settings(STRIPE_SECRET_KEY='sk_test_example',STRIPE_MODE='test')
-    def test_checkout_uses_discount_quote_and_retry_keeps_price(self):
-        from types import SimpleNamespace
-        self.event.rules['online_payments']=True;self.event.rules['discounts']=[{'code':'SAVE','kind':'percent','value':20}];self.event.save()
-        with patch('race.services.stripe.checkout.Session.create',return_value=SimpleNamespace(id='session_test',url='https://example.test/checkout')) as create:
-            checkout(self.event.pk,self.user,'SAVE')
-            self.assertEqual(create.call_args.kwargs['line_items'][0]['price_data']['unit_amount'],36000)
-            self.event.price=60000;self.event.save()
-            checkout(self.event.pk,self.user)
-            self.assertEqual(create.call_count,1)
-            self.assertEqual(Payment.objects.get().amount,36000)
+    def test_checkout_cannot_create_reservations_with_discount(self):
+        self.event.rules['online_payments']=True;self.event.save()
+        with patch('race.services.stripe.checkout.Session.create') as create:
+            with self.assertRaises(ValidationError):checkout(self.event.pk,self.user,'SAVE')
+            create.assert_not_called()
+        self.assertFalse(Payment.objects.exists())
     def test_published_event_does_not_follow_catalog_edits(self):
         exercise=Exercise.objects.create(name='Estación libre',unit='reps',capacity='Resistencia',parameters={'duration_seconds':60})
         exercise.parameters={'duration_seconds':120};exercise.save()

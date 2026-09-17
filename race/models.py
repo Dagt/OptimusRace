@@ -71,7 +71,7 @@ class Registration(models.Model):
     sex = models.CharField(max_length=1)
     birth_date = models.DateField(null=True, blank=True)
     bib = models.PositiveIntegerField()
-    state = models.CharField(max_length=15, default='reserved')
+    state = models.CharField(max_length=15, default='confirmed', choices=[('confirmed','Confirmada'),('expired','Registro histórico sin inscripción'),('cancelled','Cancelada')])
     attendance = models.CharField(max_length=15, default='pending')
     weight = models.FloatField(null=True)
     category = models.CharField(max_length=100, blank=True)
@@ -85,7 +85,7 @@ class Registration(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     revision = models.PositiveIntegerField(default=0)
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['event','participant'],name='one_participant_entry'), models.UniqueConstraint(fields=['event','user'],name='one_entry'), models.UniqueConstraint(fields=['event','bib'],name='one_bib')]
+        constraints = [models.CheckConstraint(condition=models.Q(state__in=['confirmed','expired','cancelled']),name='registration_no_pending'), models.UniqueConstraint(fields=['event','participant'],name='one_participant_entry'), models.UniqueConstraint(fields=['event','user'],name='one_entry'), models.UniqueConstraint(fields=['event','bib'],name='one_bib')]
 
 class Payment(models.Model):
     registration = models.ForeignKey(Registration,on_delete=models.PROTECT)

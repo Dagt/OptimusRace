@@ -26,6 +26,14 @@ class CashParticipantTests(TestCase):
         rules=blank_rules();rules.update(minimum_age=16,categories=[{'name':'60–70','sex':'M','min':60,'max':70},{'name':'70–80','sex':'M','min':70,'max':80}],tests=[{'name':'Salto','unit':'cm','capacity':'Potencia','higher':True,'scoring':'relative','max_points':100,'base':None,'elite':None,'parameters':{'metric':'distance','load_mode':'none'}}])
         self.event=Event.objects.create(name='Evento caja',location='Local',date=timezone.now()+timedelta(days=10),registration_end=timezone.now()+timedelta(days=9),rules=rules,status='open',price=45000,capacity=2)
         self.url=f'/events/{self.event.pk}/register/'
+    def test_historical_unpaid_person_can_register_after_payment(self):
+        person=Participant.objects.create(name='Histórico',sex='M',birth_date=date(1990,1,1))
+        old=Registration.objects.create(event=self.event,participant=person,name=person.name,sex='M',bib=1,state='expired')
+        entry=register_person_cash(self.event.pk,person,self.admin,65)
+        self.assertEqual(entry.pk,old.pk);self.assertEqual(entry.state,'confirmed')
+        self.assertEqual(entry.attendance,'present');self.assertEqual(entry.amount,45000)
+        self.assertIsNotNone(entry.paid_at);self.assertEqual(Registration.objects.count(),1)
+
     def data(self,**changes):
         token=self.client.get(self.url).context['request_token']
         return dict(name='Ana',paternal='López',maternal='Pérez',sex='M',birth_date='1990-01-01',email='private@example.test',photo=picture(),weight='70',amount='450',batch=1,request_token=token,**changes)

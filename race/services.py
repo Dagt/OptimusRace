@@ -183,7 +183,6 @@ def change_phase(event_id, actor, phase, test=0,batch=1):
         if not 0<=test<len(e.rules['tests']) or batch<1: raise ValidationError('Prueba o lote inválido.')
         e.active_test=test; e.active_batch=batch
     if phase=='closed':
-        if Registration.objects.filter(event=e,state='reserved').exists(): raise ValidationError('Resuelve las reservas de pago antes de cerrar.')
         frozen=board(e)
         for row in frozen:
             if any(result['tie_pending'] and result['rank'] is not None and result['rank']<=3 for result in row.get('capacity_results',{}).values()):raise ValidationError('Resuelve los empates del podio por capacidad antes de cerrar.')
@@ -200,33 +199,31 @@ def change_phase(event_id, actor, phase, test=0,batch=1):
     e.status=phase; e.save(); audit(e,actor,'phase',{'phase':phase,'test':test,'batch':batch})
 
 def reserve_locked(e,user, onsite=False,discount_code=""):
-    if user.is_superuser or user.groups.filter(name="Coach").exists():raise ValidationError("Solo las cuentas de participante pueden inscribirse a eventos.")
-    if not hasattr(user,'profile'): raise ValidationError('Completa tu perfil antes de inscribirte.')
-    validate_eligibility(e,user.profile.birth_date)
-    if not registration_open(e,onsite=onsite): raise ValidationError('Las inscripciones están cerradas.')
-    r=Registration.objects.filter(event=e,user=user).first()
-    if r and r.state in ['confirmed','reserved']:
-        if discount_code.strip().upper() not in ['',r.pricing_code]:raise ValidationError('La reserva conserva su precio y descuento. Cancélala antes de cambiar el código.')
-        return r
-    if Registration.objects.filter(event=e,state__in=['reserved','confirmed']).count()>=e.capacity: raise ValidationError('Cupo agotado.')
-    quote=quote_price(e,discount_code,exclude_registration=r.pk if r else None)
-    if not r:
-        bib=(Registration.objects.filter(event=e).aggregate(m=Max('bib'))['m'] or 0)+1
-        r=Registration.objects.create(event=e,user=user,name=user.get_full_name() or user.username,sex=user.profile.sex,bib=bib,amount=quote['amount'],pricing_code=quote['discount_code'],pricing_snapshot=quote,birth_date=user.profile.birth_date)
-    else:
-        r.state='reserved'; r.amount=quote['amount']; r.pricing_code=quote['discount_code']; r.pricing_snapshot=quote; r.birth_date=user.profile.birth_date; r.save()
-    return r
+    raise ValidationError('No se permiten reservas. La inscripción se confirma al registrar el pago en mostrador.')
 
 @transaction.atomic
 def cash_register(event_id,user,actor,amount,discount_code=""):
+    """Compatibility for existing participant accounts: payment and entry are atomic."""
+    if not actor.is_superuser:raise ValidationError('Solo administración puede registrar pagos.')
     e=Event.objects.select_for_update().get(pk=event_id)
-    r=reserve_locked(e,user,onsite=True,discount_code=discount_code)
-    if r.state=='confirmed': raise ValidationError('La inscripción ya está confirmada. No se registró otro cobro.')
-    if Payment.objects.filter(registration=r,state__in=['creating','pending']).exists(): raise ValidationError('Hay un Checkout activo. Expíralo y concilia antes de cobrar efectivo.')
-    if int(amount)!=r.amount: raise ValidationError(f'El importe a registrar es ${r.amount/100:.2f} MXN. Recalcula el precio y descuento antes de confirmar.')
-    r.state='confirmed'; r.method='cash'; r.paid_by=actor; r.paid_at=timezone.now(); r.save()
+    if user.is_superuser or user.groups.filter(name='Coach').exists():raise ValidationError('Solo participantes pueden inscribirse.')
+    if not hasattr(user,'profile'):raise ValidationError('Completa el perfil del participante.')
+    validate_eligibility(e,user.profile.birth_date)
+    if not registration_open(e,onsite=True):raise ValidationError('Las inscripciones están cerradas.')
+    r=Registration.objects.filter(event=e,user=user).first()
+    if r and r.state=='confirmed':raise ValidationError('La inscripción ya está confirmada. No se registró otro cobro.')
+    if r and Payment.objects.filter(registration=r,state__in=['creating','pending']).exists():raise ValidationError('Concilia el pago histórico antes de cobrar efectivo.')
+    if Registration.objects.filter(event=e,state='confirmed').count()>=e.capacity:raise ValidationError('Cupo agotado.')
+    quote=quote_price(e,discount_code,exclude_registration=r.pk if r else None)
+    if int(amount)!=quote['amount']:raise ValidationError('El importe debe coincidir con la tarifa y descuento calculados.')
+    if not r:
+        bib=(Registration.objects.filter(event=e).aggregate(m=Max('bib'))['m'] or 0)+1
+        r=Registration(event=e,user=user,name=user.get_full_name() or user.username,sex=user.profile.sex,bib=bib,birth_date=user.profile.birth_date)
+    r.amount=quote['amount'];r.pricing_code=quote['discount_code'];r.pricing_snapshot=quote
+    r.state='confirmed';r.method='cash';r.paid_by=actor;r.paid_at=timezone.now();r.save()
     audit(e,actor,'cash',{'registration':r.id,'amount':r.amount})
     return r
+
 
 def payment_mode():
     key=settings.STRIPE_SECRET_KEY
@@ -239,25 +236,7 @@ def payment_mode():
     return live
 
 def checkout(event_id,user,discount_code=""):
-    live=payment_mode()
-    with transaction.atomic():
-        e=Event.objects.select_for_update().get(pk=event_id)
-        if not e.rules.get('online_payments',True):raise ValidationError('Este evento recibe inscripciones en recepción o por DM. Consulta los canales de inscripción.')
-        if live and e.demo: raise ValidationError('Los eventos de demostración no aceptan cobros reales.')
-        r=reserve_locked(e,user,discount_code=discount_code)
-        if r.state=='confirmed': raise ValidationError('Ya estás inscrito.')
-        p=Payment.objects.filter(registration=r,state__in=['creating','pending']).first()
-        if p and p.livemode!=live: raise ValidationError('Hay una reserva en otro modo de pago. Resuélvela antes de continuar.')
-        if p and p.url: return p.url
-        if not p: p=Payment.objects.create(registration=r,key=str(uuid.uuid4()),amount=r.amount,expires_at=timezone.now()+timedelta(minutes=40),livemode=live)
-    # Stable request and key survive a lost response; a timeout never releases inventory.
-    s=stripe.checkout.Session.create(api_key=settings.STRIPE_SECRET_KEY,idempotency_key=p.key,mode='payment',payment_method_types=['card'],client_reference_id=str(r.id),metadata={'payment_id':str(p.id)},line_items=[{'price_data':{'currency':'mxn','unit_amount':p.amount,'product_data':{'name':e.name}},'quantity':1}],expires_at=int(p.expires_at.timestamp()),success_url=settings.PUBLIC_URL+'/profile/?payment=returned',cancel_url=settings.PUBLIC_URL+f'/events/{e.id}/?payment=cancelled')
-    with transaction.atomic():
-        p=Payment.objects.select_for_update().get(pk=p.id)
-        p.session_id=s.id; p.url=s.url
-        if p.state=='creating': p.state='pending'
-        p.save()
-    return s.url
+    raise ValidationError('El registro requiere pago confirmado en mostrador. No se crean reservas ni nuevos pagos en línea.')
 
 @transaction.atomic
 def fulfill(payload):
@@ -266,7 +245,7 @@ def fulfill(payload):
     if kind not in ['checkout.session.completed','checkout.session.expired','checkout.session.async_payment_succeeded']: return
     p=Payment.objects.select_for_update().get(pk=s['metadata']['payment_id'])
     r=Registration.objects.select_for_update().get(pk=p.registration_id)
-    Event.objects.select_for_update().get(pk=r.event_id)
+    event=Event.objects.select_for_update().get(pk=r.event_id)
     if bool(s.get('livemode',False))!=p.livemode or (p.session_id and p.session_id!=s['id']) or s.get('client_reference_id')!=str(r.id): raise ValidationError('Identidad de pago inválida.')
     if kind=='checkout.session.expired':
         if p.state!='paid':
@@ -276,6 +255,7 @@ def fulfill(payload):
     elif s.get('payment_status')=='paid':
         if s.get('amount_total')!=p.amount or s.get('currency')!='mxn': raise ValidationError('Monto o moneda no coincide.')
         if p.state=='expired': raise ValidationError('Pago de reserva expirada: requiere conciliación.')
+        if r.state!='confirmed' and (event.status=='closed' or Registration.objects.filter(event=event,state='confirmed').count()>=event.capacity):raise ValidationError('Pago histórico: requiere conciliación; evento cerrado o sin cupo.')
         p.state='paid'; r.state='confirmed'; r.method='stripe'; r.paid_at=r.paid_at or timezone.now()
     p.session_id=s['id']; p.save(); r.save()
     Webhook.objects.create(stripe_id=payload['id'])
@@ -330,7 +310,7 @@ def capture(reg_id,actor,test,value,load,status,revision,reason,administrative=F
 def cancel_checkout(reg_id,actor):
     r=Registration.objects.get(pk=reg_id)
     if r.user_id!=actor.id and not actor.is_superuser: raise ValidationError('No puedes modificar esta inscripción.')
-    if r.state!='reserved': raise ValidationError('Esta inscripción no tiene un pago pendiente.')
+    if r.state not in ['reserved','expired']: raise ValidationError('Esta inscripción no tiene un pago histórico por conciliar.')
     live=payment_mode()
     p=Payment.objects.filter(registration=r,state__in=['creating','pending']).first()
     if not p or not p.session_id: raise ValidationError('La creación aún no está confirmada. Reintenta el pago o solicita conciliación en recepción.')
@@ -363,13 +343,18 @@ def register_person_cash(event_id,person,actor,weight,discount_code='',request_k
     person=Participant.objects.select_for_update().get(pk=person.pk)
     if not registration_open(event,onsite=True):raise ValidationError('Las inscripciones están cerradas.')
     validate_eligibility(event,person.birth_date)
-    if Registration.objects.filter(event=event,participant=person).exists():raise ValidationError('Este participante ya tiene una inscripción en el evento. Revisa su registro; no se cobró de nuevo.')
-    if Registration.objects.filter(event=event,state__in=['reserved','confirmed']).count()>=event.capacity:raise ValidationError('Cupo agotado.')
+    existing=Registration.objects.filter(event=event,participant=person).first()
+    if existing and existing.state=='confirmed':raise ValidationError('Este participante ya tiene una inscripción en el evento. Revisa su registro; no se cobró de nuevo.')
+    if existing and Payment.objects.filter(registration=existing,state__in=['creating','pending']).exists():raise ValidationError('Concilia el pago histórico antes de cobrar de nuevo.')
+    if Registration.objects.filter(event=event,state='confirmed').count()>=event.capacity:raise ValidationError('Cupo agotado.')
     weight=number(weight,.01);category_name=category(event.rules,person.sex,weight)
     quote=quote_price(event,discount_code)
     amount=quote['amount']
     bib=(Registration.objects.filter(event=event).aggregate(m=Max('bib'))['m'] or 0)+1
     batch=1  # Historical field only; capture includes every confirmed participant.
-    entry=Registration.objects.create(request_key=request_key,event=event,participant=person,name=person.full_name,sex=person.sex,birth_date=person.birth_date,bib=bib,state='confirmed',weight=weight,category=category_name,batch=batch,attendance='present',amount=amount,method='cash',paid_by=actor,paid_at=timezone.now(),pricing_code=quote['discount_code'],pricing_snapshot=quote)
+    entry=existing or Registration(event=event,participant=person,bib=bib)
+    values=dict(request_key=request_key,name=person.full_name,sex=person.sex,birth_date=person.birth_date,state='confirmed',weight=weight,category=category_name,batch=batch,attendance='present',amount=amount,method='cash',paid_by=actor,paid_at=timezone.now(),pricing_code=quote['discount_code'],pricing_snapshot=quote)
+    for key,value in values.items():setattr(entry,key,value)
+    entry.save()
     audit(event,actor,'cash_registration',{'registration':entry.pk,'participant':person.pk,'amount':amount,'weight':weight,'category':category_name})
     return entry

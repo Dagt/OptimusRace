@@ -25,9 +25,26 @@ class ParticipationTests(TestCase):
         self.event=Event.objects.create(name='Próxima edición',date=timezone.now()+timedelta(days=5),registration_end=timezone.now()+timedelta(days=4),capacity=2,price=10000,status='open',rules={'tests':[]})
     def picture(self):
         b=BytesIO();Image.new('RGB',(1200,600),'yellow').save(b,'PNG');return SimpleUploadedFile('foto.png',b.getvalue(),content_type='image/png')
-    def test_availability_counts_confirmed_reserved_not_expired(self):
-        r=Registration.objects.create(event=self.event,user=self.user,name='Participante',sex='F',bib=1,state='reserved')
-        data=availability(self.event);self.assertEqual(data['remaining'],1);self.assertEqual(data['reserved'],1)
+    def test_pending_registration_states_are_rejected_by_database(self):
+        from django.db import IntegrityError, transaction
+        for state in ['reserved','pending']:
+            with self.subTest(state=state), self.assertRaises(IntegrityError), transaction.atomic():
+                Registration.objects.create(event=self.event,user=self.user,name='Sin pago',sex='F',bib=1,state=state)
+        self.assertFalse(Registration.objects.exists())
+
+    def test_paid_registration_keeps_attendance_independent(self):
+        r=cash_register(self.event.pk,self.user,self.admin,10000)
+        self.assertEqual(r.state,'confirmed');self.assertIsNotNone(r.paid_at)
+        r.attendance='absent';r.save()
+        self.assertEqual(availability(self.event)['confirmed'],1)
+        r.refresh_from_db();self.assertEqual(r.attendance,'absent')
+        self.client.force_login(self.admin)
+        response=self.client.get(f'/events/{self.event.pk}/operations/')
+        self.assertNotContains(response,'reservas de pago')
+
+    def test_availability_counts_only_confirmed(self):
+        r=Registration.objects.create(event=self.event,user=self.user,name='Participante',sex='F',bib=1,state='expired')
+        data=availability(self.event);self.assertEqual(data['remaining'],2);self.assertNotIn('reserved',data)
         r.state='confirmed';r.save();self.assertEqual(availability(self.event)['confirmed'],1)
         r.state='expired';r.save();self.assertEqual(availability(self.event)['remaining'],2)
         response=self.client.get(f'/events/{self.event.pk}/availability/')
@@ -36,7 +53,7 @@ class ParticipationTests(TestCase):
     def test_capacity_changes_cannot_displace_existing_places(self):
         cash_register(self.event.pk,self.user,self.admin,10000)
         second=User.objects.create_user('second');Profile.objects.create(user=second,sex='M')
-        Registration.objects.create(event=self.event,user=second,name='Reserva',sex='M',bib=2,state='reserved')
+        Registration.objects.create(event=self.event,user=second,name='Confirmado',sex='M',bib=2,state='confirmed')
         with self.assertRaises(ValidationError):set_capacity(self.event.pk,self.admin,1,'Reducir')
         event=set_capacity(self.event.pk,self.admin,3,'Ampliar logística')
         self.assertEqual(availability(event)['remaining'],1)
