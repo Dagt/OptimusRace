@@ -33,3 +33,19 @@ qa('[data-standings-url]').forEach(panel=>{
  document.addEventListener('visibilitychange',refresh);window.addEventListener('online',refresh);
  setInterval(refresh,5000);refresh();
 });
+
+// Keep the current station count fresh without replacing the administrator's form.
+qa('[data-station-progress]').forEach(label=>{
+ let busy=false;
+ async function refresh(){
+  if(busy||document.hidden||!label.getClientRects().length)return;busy=true;
+  try{
+   const data=await jsonFetch(label.dataset.source,{cache:'no-store'});
+   if(data.phase!=='live'||String(data.test_index)!==label.dataset.test){label.textContent='El estado o la estación cambiaron en otra pantalla. Actualiza este resumen.';return}
+   const done=data.board.filter(row=>row.marks[Number(label.dataset.test)]?.status==='done').length;
+   label.textContent=`${done} de ${data.board.length} participantes con esta prueba realizada`;
+  }catch{label.textContent='No se pudo actualizar el avance. Revisa la conexión antes de cambiar de estación.'}
+  finally{busy=false}
+ }
+ setInterval(refresh,5000);refresh();
+});

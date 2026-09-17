@@ -80,3 +80,21 @@ class CaptureFlowTests(TestCase):
         self.assertEqual(response.status_code,200)
         mark=self.client.get(self.feed).json()['board'][0]['marks'][0]
         self.assertEqual((mark['status'],mark['value'],mark['points']),('absent',None,None))
+
+    def test_operations_guides_start_capture_progress_and_close(self):
+        self.client.force_login(self.admin)
+        self.event.status='open';self.event.save(update_fields=['status'])
+        path=f'/events/{self.event.pk}/operations/'
+        response=self.client.get(path)
+        self.assertContains(response,'Estación para comenzar')
+        self.assertNotContains(response,'Recibe a los participantes')
+        self.assertNotContains(response,'href="?tab=reception"')
+        self.assertNotContains(response,'Abrir captura de marcas')
+        response=self.client.post(path,{'action':'phase','phase':'live','test':0},follow=True)
+        self.assertContains(response,'Competencia iniciada.')
+        self.assertContains(response,'Abrir captura de marcas')
+        capture(self.entry.pk,self.coach,0,42,None,'done',0,'')
+        self.assertContains(self.client.get(path),'1 de 1 participantes con esta prueba realizada')
+        response=self.client.post(path,{'action':'phase','phase':'closed'},follow=True)
+        self.assertContains(response,'Evento finalizado')
+        self.assertNotContains(response,'Activar estación seleccionada')

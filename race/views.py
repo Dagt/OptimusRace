@@ -202,7 +202,14 @@ def operations(request,pk):
     if request.method=='POST':
         try:
             action=request.POST['action']
-            if action=='phase': change_phase(pk,request.user,request.POST['phase'],int(request.POST.get('test',0)),1)
+            if action=='phase':
+                selected_test=int(request.POST.get('test',0))
+                change_phase(pk,request.user,request.POST['phase'],selected_test,1)
+                if request.POST['phase']=='live':
+                    prefix='Competencia iniciada.' if e.status=='open' else 'Estación activada.'
+                    messages.success(request,f'{prefix} Los coaches pueden capturar: {e.rules["tests"][selected_test]["name"]}. Si tenían la captura abierta, deben actualizarla.')
+                elif request.POST['phase']=='closed':messages.success(request,'Evento finalizado. Los resultados quedaron fijados y la captura está cerrada.')
+                else:messages.success(request,'Evento publicado. Cuando estén listos los coaches, inicia la competencia desde Resumen.')
             elif action=='cash':
                 raise ValidationError('Usa Inscribir en mostrador para registrar participante, foto, peso y efectivo juntos.')
             elif action=='reception':
@@ -232,7 +239,7 @@ def operations(request,pk):
                 clone=Event.objects.create(name=e.name+' · nueva edición',date=e.date,registration_end=e.registration_end,location=e.location,price=e.price,capacity=e.capacity,demo=e.demo,rules=deepcopy(e.rules),description=e.description,allow_onsite=e.allow_onsite)
                 return redirect('configure',pk=clone.id)
             else: raise ValidationError('Acción desconocida.')
-            messages.success(request,'Cambios guardados.')
+            if action!='phase':messages.success(request,'Cambios guardados.')
         except (ValidationError,ValueError,InvalidOperation,IntegrityError,KeyError) as exc: error(request,exc)
         return redirect(f'/events/{pk}/operations/?tab='+request.POST.get('tab','overview'))
     entries=list(Registration.objects.filter(event=e).select_related('user','user__profile','participant').prefetch_related('result_set').order_by('bib'))
@@ -251,8 +258,11 @@ def operations(request,pk):
         try:validate_rules(e.rules);validate_policies(e.rules,e)
         except ValidationError as exc:publish_issues.extend(exc.messages)
         if not e.capacity:publish_issues.append('Define el cupo de participantes.')
+    station_options=[{'index':i,'name':t['name'],'allowed':not e.rules.get('ordered_stations') or i in ([0] if e.status=='open' else [e.active_test,e.active_test+1])} for i,t in enumerate(e.rules['tests'])]
+    active_station=next((t for i,t in enumerate(e.rules['tests']) if i==e.active_test),None)
+    station_done=sum(any(m.test==e.active_test and m.status=='done' for m in r.result_set.all()) for r in confirmed)
     seats=availability(e)
-    return render(request,'operations.html',{'event':e,'seats':seats,'registration_notice':'Cupo agotado' if seats['full'] else e.registration_label,'publish_issues':publish_issues,'can_cash':seats['registration_open'] and not seats['full'],'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
+    return render(request,'operations.html',{'event':e,'station_options':station_options,'active_station':active_station,'station_done':station_done,'seats':seats,'registration_notice':'Cupo agotado' if seats['full'] else e.registration_label,'publish_issues':publish_issues,'can_cash':seats['registration_open'] and not seats['full'],'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
 
 @staff
 def coach(request,pk):
