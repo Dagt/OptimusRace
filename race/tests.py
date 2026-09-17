@@ -150,7 +150,7 @@ class RaceTests(TestCase):
     def test_views_render_all_roles(self):
         self.live()
         self.client.force_login(self.admin)
-        for path in ['/',f'/events/{self.event.id}/',f'/events/{self.event.id}/operations/',f'/events/{self.event.id}/coach/',f'/events/{self.event.id}/configure/',f'/events/{self.event.id}/tv/','/events/new/','/profile/','/login/','/results/','/reset/']:
+        for path in ['/',f'/events/{self.event.id}/',f'/events/{self.event.id}/operations/',f'/events/{self.event.id}/configure/',f'/events/{self.event.id}/tv/','/events/new/','/profile/','/login/','/results/','/reset/']:
             with self.subTest(path=path):self.assertEqual(self.client.get(path).status_code,200)
         self.client.force_login(self.user);self.assertRedirects(self.client.get('/profile/'),'/results/')
     def test_recurrent_account_and_history(self):
@@ -193,13 +193,14 @@ class RaceTests(TestCase):
         change_phase(self.event.id,self.admin,'closed')
         with self.assertRaises(ValidationError):check_in(r.id,self.admin,90,1,'present','Báscula',r.revision)
 
-    def test_admin_corrects_prior_test_with_reason_and_revision_only(self):
+    def test_admin_cannot_correct_prior_test_even_with_reason_and_revision(self):
         r=self.live();capture(r.id,self.coach,0,45,60,'done',0,'')
         change_phase(self.event.id,self.admin,'live',2,2)
         with self.assertRaises(ValidationError):capture(r.id,self.coach,0,46,60,'done',1,'Error',True)
         with self.assertRaises(ValidationError):capture(r.id,self.admin,0,46,60,'done',1,'',True)
-        mark=capture(r.id,self.admin,0,46,60,'done',1,'Error de digitación',True)
-        self.assertEqual(mark.value,46);self.assertEqual(mark.revision,2)
+        with self.assertRaises(ValidationError):capture(r.id,self.admin,0,46,60,'done',1,'Error de digitación',True)
+        mark=Result.objects.get(registration=r,test=0)
+        self.assertEqual(mark.value,45);self.assertEqual(mark.revision,1)
         with self.assertRaises(ValidationError):capture(r.id,self.admin,0,47,60,'done',1,'Error',True)
         with self.assertRaises(ValidationError):capture(r.id,self.admin,1,24,60,'done',0,'Nueva',True)
 

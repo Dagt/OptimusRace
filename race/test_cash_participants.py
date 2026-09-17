@@ -14,6 +14,8 @@ from .services import register_person_cash,capture,change_phase
 @override_settings(PASSWORD_HASHERS=['django.contrib.auth.hashers.MD5PasswordHasher'])
 class CashParticipantTests(TestCase):
     def setUp(self):
+        self.scoring_coach=User.objects.create_user('scoring-coach')
+        self.scoring_coach.groups.add(Group.objects.get_or_create(name='Coach')[0])
         from unittest.mock import patch
         from .test_portraits import picture
         processor=patch('race.portrait.sports_photo',side_effect=lambda upload:picture(size=(600,750)).read());processor.start();self.addCleanup(processor.stop)
@@ -91,15 +93,17 @@ class CashParticipantTests(TestCase):
     def test_new_registration_ready_for_coach(self):
         self.client.post(self.url,self.data());entry=Registration.objects.get()
         change_phase(self.event.pk,self.admin,'live')
-        mark=capture(entry.pk,self.admin,0,45,None,'done',0,'')
+        mark=capture(entry.pk,self.scoring_coach,0,45,None,'done',0,'')
         self.assertEqual(mark.value,45)
         self.client.logout();self.assertContains(self.client.get(f'/results/participants/{entry.participant_id}/'),'45')
     def test_historical_batch_never_hides_or_blocks_a_participant(self):
         self.client.post(self.url,self.data());entry=Registration.objects.get()
         entry.batch=9;entry.save(update_fields=['batch'])
         change_phase(self.event.pk,self.admin,'live')
+        self.client.force_login(self.scoring_coach)
         self.assertContains(self.client.get(f'/events/{self.event.pk}/coach/'),entry.name)
-        mark=capture(entry.pk,self.admin,0,45,None,'done',0,'')
+        self.client.force_login(self.admin)
+        mark=capture(entry.pk,self.scoring_coach,0,45,None,'done',0,'')
         self.assertEqual(mark.value,45)
         page=self.client.get(f'/events/{self.event.pk}/operations/')
         self.assertNotContains(page,'Lote');self.assertNotContains(page,'name="batch"')

@@ -1,6 +1,6 @@
 from copy import deepcopy
 from django.test import TestCase,override_settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User,Group
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from .models import Event,Profile,Registration,Result,TieBreak
@@ -11,6 +11,8 @@ from .progress import comparison_key
 @override_settings(PASSWORD_HASHERS=['django.contrib.auth.hashers.MD5PasswordHasher'])
 class RelativeScoringTests(TestCase):
     def setUp(self):
+        self.scoring_coach=User.objects.create_user('scoring-coach')
+        self.scoring_coach.groups.add(Group.objects.get_or_create(name='Coach')[0])
         self.admin=User.objects.create_superuser('admin','admin@example.test','test-only-password')
         self.rules={'schema_version':2,'tests':[{'name':'Repeticiones','unit':'reps','capacity':'Resistencia','higher':True,'base':None,'elite':None,'max_points':100,'scoring':'relative','parameters':{'metric':'repetitions','duration_seconds':60}}],
                     'categories':[{'name':'M','sex':'M','min':0,'max':None},{'name':'F','sex':'F','min':0,'max':None}]}
@@ -19,7 +21,7 @@ class RelativeScoringTests(TestCase):
     def entry(self,name,value=None,category='M'):
         user=User.objects.create_user(name,email=f'{name}@example.test');Profile.objects.create(user=user,sex=category)
         entry=Registration.objects.create(event=self.event,user=user,name=name,sex=category,category=category,bib=Registration.objects.count()+1,state='confirmed',attendance='present',weight=70)
-        if value is not None:capture(entry.pk,self.admin,0,value,None,'done',0,'')
+        if value is not None:capture(entry.pk,self.scoring_coach,0,value,None,'done',0,'')
         return entry
     def scores(self):return {row['name']:row['total'] for row in board(self.event)}
     def decision(self,order=None):
@@ -40,7 +42,7 @@ class RelativeScoringTests(TestCase):
         self.assertIsNone(Result.objects.get(registration=self.b).points)
     def test_missing_results_excluded_but_zero_is_valid(self):
         pending=self.entry('Pending')
-        capture(pending.pk,self.admin,0,None,None,'absent',0,'')
+        capture(pending.pk,self.scoring_coach,0,None,None,'absent',0,'')
         self.assertEqual(self.scores()['B'],50)
         zero=self.entry('Zero',0)
         self.assertEqual(self.scores()['A'],50)
@@ -68,7 +70,7 @@ class RelativeScoringTests(TestCase):
         Result.objects.filter(registration=self.c).update(value=999)
         self.assertEqual(board(self.event),frozen)
     def test_tie_order_does_not_change_points_or_marks(self):
-        capture(self.b.pk,self.admin,0,40,None,'done',1,'Corregir marca')
+        capture(self.b.pk,self.scoring_coach,0,40,None,'done',1,'Corregir marca')
         with self.assertRaises(ValidationError):change_phase(self.event.pk,self.admin,'closed')
         self.decision([self.c.pk,self.b.pk])
         rows={row['name']:row for row in board(self.event)}
@@ -79,20 +81,20 @@ class RelativeScoringTests(TestCase):
         self.assertEqual(sum(row['champion'] for row in board(self.event)),1)
         with self.assertRaises(ValidationError):self.decision([self.b.pk,self.c.pk])
     def test_stale_tie_is_invalidated_even_when_total_stays_equal(self):
-        capture(self.b.pk,self.admin,0,40,None,'done',1,'Corregir')
+        capture(self.b.pk,self.scoring_coach,0,40,None,'done',1,'Corregir')
         group=tie_groups(board(self.event))[0];self.decision()
-        capture(self.a.pk,self.admin,0,10,None,'done',1,'Corregir extremo')
+        capture(self.a.pk,self.scoring_coach,0,10,None,'done',1,'Corregir extremo')
         self.assertTrue(any(row['tie_pending'] for row in board(self.event)))
         with self.assertRaises(ValidationError):resolve_tie(self.event.pk,self.admin,'M',100,[self.b.pk,self.c.pk],group['fingerprint'],'Vencidas','Resultado','Juez')
         with self.assertRaises(ValidationError):change_phase(self.event.pk,self.admin,'closed')
     def test_tie_rejects_wrong_members_and_unauthorized_actor(self):
-        capture(self.b.pk,self.admin,0,40,None,'done',1,'Corregir')
+        capture(self.b.pk,self.scoring_coach,0,40,None,'done',1,'Corregir')
         with self.assertRaises(ValidationError):self.decision([self.b.pk,self.a.pk])
         group=tie_groups(board(self.event))[0]
         with self.assertRaises(ValidationError):resolve_tie(self.event.pk,self.a.user,'M',100,[self.b.pk,self.c.pk],group['fingerprint'],'Vencidas','Resultado','Juez')
         self.assertEqual(TieBreak.objects.count(),0)
     def test_capture_response_is_provisional_and_does_not_lose_zero(self):
-        self.client.force_login(self.admin)
+        self.client.force_login(self.scoring_coach)
         response=self.client.post(f'/events/{self.event.pk}/coach/',{'registration':self.a.pk,'test':0,'value':20,'status':'done','revision':1,'reason':'Verificar'})
         self.assertEqual(response.json()['points'],0);self.assertTrue(response.json()['provisional'])
         self.assertContains(self.client.get(f'/events/{self.event.pk}/coach/'),'provisional')
@@ -103,7 +105,7 @@ class RelativeScoringTests(TestCase):
         other=deepcopy(test);other['scoring']='linear';other['base']=20
         self.assertEqual(comparison_key(test),comparison_key(other))
     def test_views_show_relative_radar_and_tie_form(self):
-        capture(self.b.pk,self.admin,0,40,None,'done',1,'Corregir')
+        capture(self.b.pk,self.scoring_coach,0,40,None,'done',1,'Corregir')
         self.client.force_login(self.admin)
         response=self.client.get(f'/events/{self.event.pk}/operations/')
         self.assertContains(response,'Registrar desempate');self.assertContains(response,'Empate desde el lugar 1')
@@ -115,7 +117,7 @@ class RelativeScoringTests(TestCase):
         self.assertContains(response,'comparison_key')
 
     def test_operations_tiebreak_and_close_http(self):
-        capture(self.b.pk,self.admin,0,40,None,'done',1,'Corregir')
+        capture(self.b.pk,self.scoring_coach,0,40,None,'done',1,'Corregir')
         group=tie_groups(board(self.event))[0]
         self.client.force_login(self.admin)
         url=f'/events/{self.event.pk}/operations/'
@@ -152,7 +154,7 @@ class RelativeScoringTests(TestCase):
     def test_capacity_tiebreak_is_independent_of_general(self):
         from .capacity_results import capacity_boards,all_ties
         self.event.rules['capacity_podiums']=True;self.event.save()
-        capture(self.b.pk,self.admin,0,40,None,'done',1,'Corregir')
+        capture(self.b.pk,self.scoring_coach,0,40,None,'done',1,'Corregir')
         groups=all_ties(board(self.event));self.assertEqual(len(groups),2)
         self.client.force_login(self.admin)
         self.assertContains(self.client.get(f'/events/{self.event.pk}/operations/'),'Clasificación por capacidad')

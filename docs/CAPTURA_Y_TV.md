@@ -11,7 +11,7 @@
 7. Administración avanza de estación. Las pantallas anteriores bloquean la captura y piden actualizar. Si ingresan nuevos participantes, los coaches reciben un aviso para actualizar la lista después de guardar lo pendiente.
 8. Al cerrar el evento se fijan los resultados y el servidor rechaza nuevas capturas y correcciones.
 
-Los coaches activos tienen acceso a captura en los eventos; no existe una asignación de coach por evento. Administración controla publicación, estación activa y cierre.
+Solo las cuentas de coach activas pueden acceder a captura, registrar marcas y corregirlas en la estación activa. Los administradores no pueden capturar ni corregir marcas, aunque tengan también el grupo Coach. No existe una asignación de coach por evento. Administración controla publicación, estación activa y cierre.
 
 ## Sincronización y conexión
 

@@ -69,6 +69,24 @@ class CaptureFlowTests(TestCase):
         with self.assertRaises(ValidationError):capture(self.entry.pk,self.coach,0,42,None,'done',0,'')
         self.assertFalse(Result.objects.exists())
 
+    def test_administrator_cannot_capture_or_correct_even_with_coach_group(self):
+        capture(self.entry.pk,self.coach,0,42,None,'done',0,'')
+        self.admin.groups.add(Group.objects.get(name='Coach'))
+        self.client.force_login(self.admin)
+        self.assertEqual(self.client.get(self.path).status_code,403)
+        self.assertEqual(self.client.post(self.path,self.payload(revision=1,reason='Cambio')).status_code,403)
+        for administrative in [False,True]:
+            with self.assertRaises(ValidationError):
+                capture(self.entry.pk,self.admin,0,99,None,'done',1,'Cambio',administrative=administrative)
+        path=f'/events/{self.event.pk}/operations/'
+        response=self.client.post(path,{'action':'correct',**self.payload(revision=1,value='99',reason='Cambio')})
+        self.assertEqual(response.status_code,403)
+        response=self.client.get(path)
+        self.assertNotContains(response,f'href="{self.path}"')
+        self.assertNotContains(response,'event-day-flow')
+        self.assertNotContains(response,'name="judged_points"')
+        self.assertEqual(Result.objects.get().value,42)
+
     def test_invalid_numbers_and_wrong_station_do_not_create_marks(self):
         for fields in [{'value':'NaN'},{'value':'Infinity'},{'value':'-1'},{'test':999},{'status':'invented'}]:
             with self.subTest(fields=fields):self.assertEqual(self.client.post(self.path,self.payload(**fields)).status_code,400)
@@ -92,7 +110,7 @@ class CaptureFlowTests(TestCase):
         self.assertNotContains(response,'Abrir captura de marcas')
         response=self.client.post(path,{'action':'phase','phase':'live','test':0},follow=True)
         self.assertContains(response,'Competencia iniciada.')
-        self.assertContains(response,'Abrir captura de marcas')
+        self.assertNotContains(response,'Abrir captura de marcas')
         capture(self.entry.pk,self.coach,0,42,None,'done',0,'')
         self.assertContains(self.client.get(path),'1 de 1 participantes con esta prueba realizada')
         response=self.client.post(path,{'action':'phase','phase':'closed'},follow=True)

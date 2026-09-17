@@ -299,18 +299,17 @@ def check_in(reg_id,actor,weight,batch,attendance,reason='',revision=None):
 
 @transaction.atomic
 def capture(reg_id,actor,test,value,load,status,revision,reason,administrative=False,judged_points=None):
-    if not (actor.is_active and (actor.is_superuser or actor.groups.filter(name='Coach').exists())):
-        raise ValidationError('Solo un coach o administrador puede capturar marcas.')
+    if not actor.is_active or actor.is_superuser or not actor.groups.filter(name='Coach').exists():
+        raise ValidationError('Solo los coaches pueden capturar o corregir marcas.')
     r=Registration.objects.select_for_update().select_related('event').get(pk=reg_id)
     e=Event.objects.select_for_update().get(pk=r.event_id)
     if r.attendance=='disqualified':raise ValidationError('El participante está descalificado.')
-    correction=administrative and actor.is_superuser and reason.strip()
+    if administrative:raise ValidationError('La corrección administrativa de marcas no está permitida.')
     if not 0<=test<len(e.rules['tests']): raise ValidationError('Prueba inválida.')
-    if e.status!='live' or (not correction and test!=e.active_test): raise ValidationError('La prueba activa cambió. Actualiza la pantalla.')
-    if r.state!='confirmed' or (r.attendance!='present' and not correction): raise ValidationError('El atleta debe tener recepción confirmada y estar presente.')
+    if e.status!='live' or test!=e.active_test: raise ValidationError('La prueba activa cambió. Actualiza la pantalla.')
+    if r.state!='confirmed' or r.attendance!='present': raise ValidationError('El atleta debe tener recepción confirmada y estar presente.')
     if status not in ['done','absent','withdrawn','pending']: raise ValidationError('Estado inválido.')
     existing=Result.objects.filter(registration=r,test=test).first()
-    if administrative and (not correction or not existing): raise ValidationError('La corrección administrativa requiere una marca existente y un motivo.')
     if (existing.revision if existing else 0)!=revision: raise ValidationError('Otra persona guardó esta marca. Recarga antes de corregir.')
     if existing and not reason.strip(): raise ValidationError('Escribe el motivo de la corrección.')
     before={'value':existing.value,'points':existing.points,'load':existing.load,'status':existing.status,'revision':existing.revision} if existing else None

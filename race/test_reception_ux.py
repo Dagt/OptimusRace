@@ -75,7 +75,7 @@ class ReceptionUXTests(TestCase):
     def test_public_profiles_linked_and_tv_has_photos_even_after_closing(self):
         self.client.post(self.url,self.data());entry=Registration.objects.get()
         change_phase(self.event.pk,self.admin,'live')
-        capture(entry.pk,self.admin,0,42,None,'done',0,'')
+        capture(entry.pk,self.scoring_coach,0,42,None,'done',0,'')
         self.client.logout()
         path=f'/results/participants/{entry.participant_id}/'
         response=self.client.get('/')

@@ -60,6 +60,3 @@
 .event-day-controls .active-station-summary{display:grid;gap:7px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:#cfd4700a;margin:0 0 16px}
 .active-station-summary>strong{font-size:19px;color:var(--gold)}.active-station-summary>span{font-size:12px;color:var(--muted)}
 .event-day-controls form>label{font-size:13px}.event-day-controls select{font-size:16px;min-height:48px}
-.event-day-flow{list-style:none;display:grid;gap:14px;border-top:1px solid var(--border);padding:20px 0 0;margin:24px 0 12px}
-.event-day-flow li{display:grid;gap:4px;font-size:12px;line-height:1.6}.event-day-flow strong{font-size:13px}.event-day-flow span{color:var(--muted)}
-.event-day-controls .event-public-link{align-self:flex-start;margin-top:16px;font-size:12px}

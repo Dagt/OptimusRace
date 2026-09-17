@@ -57,11 +57,11 @@ class RecoveryView(PasswordResetView):
 def denied(request):
     return render(request,'error.html',{'code':'403','title':'Este espacio es para tu equipo.','detail':'Ingresa con una cuenta que tenga permisos para esta sección.'},status=403)
 
-def staff(view):
+def coach_only(view):
     @wraps(view)
     @login_required
     def wrapped(request,*args,**kwargs):
-        if not (request.user.is_superuser or request.user.groups.filter(name='Coach').exists()): return denied(request)
+        if request.user.is_superuser or not request.user.groups.filter(name='Coach').exists(): return denied(request)
         return view(request,*args,**kwargs)
     return wrapped
 
@@ -216,8 +216,7 @@ def operations(request,pk):
                 r=get_object_or_404(Registration,pk=request.POST['registration'],event=e)
                 check_in(r.id,request.user,request.POST['weight'],r.batch,request.POST['attendance'],request.POST.get('reason',''),int(request.POST['revision']))
             elif action=='correct':
-                r=get_object_or_404(Registration,pk=request.POST['registration'],event=e)
-                capture(r.id,request.user,int(request.POST['test']),request.POST.get('value'),request.POST.get('load'),request.POST['status'],int(request.POST['revision']),request.POST.get('reason',''),administrative=True,judged_points=request.POST.get('judged_points'))
+                return denied(request)
             elif action=='tiebreak':
                 ids=[int(value) for value in request.POST.getlist('member')]
                 places=[int(value) for value in request.POST.getlist('place')]
@@ -264,7 +263,7 @@ def operations(request,pk):
     seats=availability(e)
     return render(request,'operations.html',{'event':e,'station_options':station_options,'active_station':active_station,'station_done':station_done,'seats':seats,'registration_notice':'Cupo agotado' if seats['full'] else e.registration_label,'publish_issues':publish_issues,'can_cash':seats['registration_open'] and not seats['full'],'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
 
-@staff
+@coach_only
 def coach(request,pk):
     e=get_object_or_404(Event,pk=pk)
     if request.method=='POST':

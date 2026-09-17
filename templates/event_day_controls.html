@@ -11,19 +11,13 @@
 {% else %}
 <h2>{% if event.status == 'open' %}Iniciar competencia{% else %}Estación en curso{% endif %}</h2>
 {% if event.status == 'open' %}<p>El evento está publicado, pero los coaches todavía no pueden guardar marcas. Elige la estación inicial y pulsa Iniciar competencia cuando estén listos.</p>
-{% else %}<div class="active-station-summary"><strong>{{ event.active_test|add:1 }} · {{ active_station.name }}</strong><span data-station-progress data-test="{{ event.active_test }}" data-source="{% url 'live_data' event.pk %}">{{ station_done }} de {{ summary.registered }} participantes con esta prueba realizada</span></div><p>Todos los coaches capturan esta estación. Antes de cambiarla, confirma que hayan guardado sus marcas; las pantallas abiertas les pedirán actualizar.</p>{% endif %}
+{% else %}<div class="active-station-summary"><strong>{{ event.active_test|add:1 }} · {{ active_station.name }}</strong><span data-station-progress data-test="{{ event.active_test }}" data-source="{% url 'live_data' event.pk %}">{{ station_done }} de {{ summary.registered }} participantes con esta prueba realizada</span></div>{% endif %}
 <form method="post" {% if event.status == 'live' %}data-confirm="¿Activar la estación seleccionada para todos los coaches? Confirma que hayan guardado sus marcas pendientes."{% else %}data-busy-form{% endif %}>
 {% csrf_token %}<input type="hidden" name="action" value="phase"><input type="hidden" name="phase" value="live">
 <label>{% if event.status == 'open' %}Estación para comenzar{% else %}Estación que capturarán los coaches{% endif %}<select name="test">{% for option in station_options %}<option value="{{ option.index }}"{% if option.index == event.active_test %} selected{% endif %}{% if not option.allowed %} disabled{% endif %}>{{ option.index|add:1 }} · {{ option.name }}</option>{% endfor %}</select></label>
 {% if event.rules.ordered_stations %}<p class="field-help">Orden fijo: comienza en la primera estación y avanza a la siguiente.</p>{% endif %}
-<div class="action-group"><button class="button">{% if event.status == 'open' %}Iniciar competencia{% else %}Activar estación seleccionada{% endif %} {% icon 'arrow' %}</button>{% if event.status == 'live' %}<a class="button secondary" href="{% url 'coach' event.id %}">Abrir captura de marcas</a>{% endif %}</div>
+<div class="action-group"><button class="button">{% if event.status == 'open' %}Iniciar competencia{% else %}Activar estación seleccionada{% endif %} {% icon 'arrow' %}</button></div>
 </form>
-<ol class="event-day-flow">
-<li><strong>Coaches</strong><span>Ingresan con su cuenta → abren el evento → buscan al participante → guardan su marca. Esperan “Guardado confirmado”.</span></li>
-<li><strong>Seguimiento</strong><span>La pestaña Resultados y la TV se actualizan automáticamente. El botón TV está arriba, junto al nombre del evento.</span></li>
-<li><strong>Finalización</strong><span>Revisa faltantes y empates en Resultados. Después usa “Finalizar evento y fijar resultados”, al final de este resumen.</span></li>
-</ol>
-<p class="field-help">Hay una sola estación activa por evento. Iniciar o cambiar de estación no cierra el evento.</p>
 {% endif %}
-<a class="text-button event-public-link" href="{% url 'event' event.id %}">Ver página pública del evento {% icon 'up-right' %}</a>
+
 </article>

@@ -3,7 +3,7 @@ from datetime import datetime,date,timedelta
 from zoneinfo import ZoneInfo
 from unittest.mock import patch
 from django.test import TestCase,override_settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User,Group
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from .models import Event,Profile,Exercise,Registration,Result,Payment
@@ -15,6 +15,8 @@ from .services import validate_rules,cash_register,check_in,capture,board,change
 @override_settings(PASSWORD_HASHERS=['django.contrib.auth.hashers.MD5PasswordHasher'])
 class ConfigurationTests(TestCase):
     def setUp(self):
+        self.scoring_coach=User.objects.create_user('scoring-coach')
+        self.scoring_coach.groups.add(Group.objects.get_or_create(name='Coach')[0])
         self.admin=User.objects.create_superuser('owner','owner@example.test','test-password')
         self.user=User.objects.create_user('athlete','athlete@example.test','test-password')
         Profile.objects.create(user=self.user,sex='M',birth_date=date(1990,1,1))
@@ -46,32 +48,32 @@ class ConfigurationTests(TestCase):
         validate_rules(self.rules)
         self.event.status='live';self.event.save()
         r=Registration.objects.create(event=self.event,user=self.user,name='Atleta',sex='M',bib=1,state='confirmed',attendance='present',category='Varonil')
-        capture(r.pk,self.admin,0,15,None,'done',0,'')
+        capture(r.pk,self.scoring_coach,0,15,None,'done',0,'')
         row=board(self.event)[0]
         self.assertEqual(row['total'],75);self.assertEqual(row['test_count'],1)
         self.assertEqual(row['capacities']['Resistencia'],75)
         self.assertEqual(row['capacities']['Fuerza'],0)
         change_phase(self.event.pk,self.admin,'closed');self.event.refresh_from_db()
         self.assertEqual(board(self.event)[0]['total'],75)
-        with self.assertRaises(ValidationError):capture(r.pk,self.admin,0,20,None,'done',1,'correction')
+        with self.assertRaises(ValidationError):capture(r.pk,self.scoring_coach,0,20,None,'done',1,'correction')
     def test_eight_station_points_are_summed_not_averaged(self):
         self.rules['tests']=[{**self.rules['tests'][0],'name':f'Estación {i}','max_points':12.5} for i in range(8)]
         self.event.rules=self.rules;self.event.status='live';self.event.save()
         r=Registration.objects.create(event=self.event,user=self.user,name='Atleta',sex='M',bib=1,state='confirmed',attendance='present',category='Varonil')
         for i in range(8):
             self.event.active_test=i;self.event.save()
-            capture(r.pk,self.admin,i,20,None,'done',0,'')
+            capture(r.pk,self.scoring_coach,i,20,None,'done',0,'')
         row=board(self.event)[0];self.assertEqual(row['total'],100)
         self.assertTrue(all(m['points']==12.5 for m in row['marks']))
     def test_judge_score_bounds_and_disqualification(self):
         self.event.rules['tests'][0]['scoring']='judge';self.event.status='live';self.event.save()
         r=Registration.objects.create(event=self.event,user=self.user,name='Atleta',sex='M',bib=1,state='confirmed',attendance='present',category='Varonil')
-        with self.assertRaises(ValidationError):capture(r.pk,self.admin,0,20,None,'done',0,'',judged_points=101)
-        capture(r.pk,self.admin,0,20,None,'done',0,'',judged_points=80)
+        with self.assertRaises(ValidationError):capture(r.pk,self.scoring_coach,0,20,None,'done',0,'',judged_points=101)
+        capture(r.pk,self.scoring_coach,0,20,None,'done',0,'',judged_points=80)
         discipline(r.pk,self.admin,True,'Motivo registrado',0)
         self.assertIsNone(board(self.event)[0]['rank'])
         self.assertEqual(Result.objects.get(registration=r).points,80)
-        with self.assertRaises(ValidationError):capture(r.pk,self.admin,0,20,None,'done',1,'correction',judged_points=90)
+        with self.assertRaises(ValidationError):capture(r.pk,self.scoring_coach,0,20,None,'done',1,'correction',judged_points=90)
     def test_age_on_event_day_boundaries(self):
         self.event.date=datetime(2026,10,18,9,tzinfo=ZoneInfo('America/Mexico_City'))
         validate_eligibility(self.event,date(2010,10,18))
@@ -112,7 +114,7 @@ class ConfigurationTests(TestCase):
         self.event.rules['ordered_stations']=True;self.event.save()
         with self.assertRaises(ValidationError):change_phase(self.event.pk,self.admin,'live',test=1)
     def test_event_and_catalog_render_with_parameters(self):
-        for path in [f'/events/{self.event.pk}/',f'/events/{self.event.pk}/operations/',f'/events/{self.event.pk}/configure/',f'/events/{self.event.pk}/coach/','/catalog/new/']:
+        for path in [f'/events/{self.event.pk}/',f'/events/{self.event.pk}/operations/',f'/events/{self.event.pk}/configure/','/catalog/new/']:
             self.assertEqual(self.client.get(path).status_code,200,path)
     def test_blank_draft_can_save_but_cannot_publish(self):
         rules=blank_rules();validate_rules(rules,False)
