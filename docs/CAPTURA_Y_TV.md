@@ -45,3 +45,9 @@ En evaluación relativa, otra marca de la misma categoría puede cambiar los pun
 La inscripción en mostrador y el registro del cobro se guardan en una sola transacción. No se crean reservas ni inscripciones pendientes. El cupo y los usos de descuentos cuentan únicamente inscripciones confirmadas. Ausencia, retiro y demás estados deportivos siguen siendo independientes del pago.
 
 La migración 0014 conserva las antiguas reservas como registros históricos sin inscripción (`expired`), sin ocupar cupo. No inventa pagos ni elimina el historial. Los pagos Stripe históricos pueden conciliarse, verificando importe, identidad, cupo y que el evento no haya cerrado; no se crean nuevos Checkout. La base de datos rechaza los estados de inscripción `reserved` y `pending`.
+
+## Estación y desempates en administración
+
+La estación actual permanece guardada al cambiar de pestaña o volver al evento. El botón indica «Estación activa» y se habilita solo al elegir otra. Repetir la misma activación no modifica marcas ni genera otra transición. Un formulario desactualizado no puede cambiar una estación que otro administrador ya cambió.
+
+«Desempates» tiene una pestaña propia y contador actualizado cada cinco segundos durante la competencia. Resumen muestra un acceso directo cuando hay pendientes. La lista prioriza pendientes de podio y abre un solo formulario a la vez: primero se eligen participantes del primero al último; después se documentan prueba, juez y resultado. No se puede seleccionar dos veces al mismo participante. «Actualizar lista» carga los grupos más recientes; las consultas automáticas no reemplazan una decisión que se está escribiendo. El servidor sigue verificando que las marcas no hayan cambiado antes de aceptar una decisión.

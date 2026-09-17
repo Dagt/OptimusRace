@@ -38,10 +38,11 @@ qa('[data-standings-url]').forEach(panel=>{
 qa('[data-station-progress]').forEach(label=>{
  let busy=false;
  async function refresh(){
-  if(busy||document.hidden||!label.getClientRects().length)return;busy=true;
+  if(busy||document.hidden)return;busy=true;
   try{
    const data=await jsonFetch(label.dataset.source,{cache:'no-store'});
-   if(data.phase!=='live'||String(data.test_index)!==label.dataset.test){label.textContent='El estado o la estación cambiaron en otra pantalla. Actualiza este resumen.';return}
+   qa('[data-tie-count]').forEach(n=>n.textContent=data.pending_ties??0);qa('[data-tie-alert]').forEach(n=>n.hidden=!data.pending_ties);
+   if(data.phase!=='live'||String(data.test_index)!==label.dataset.test){label.textContent='El estado o la estación cambiaron en otra pantalla. Actualiza este resumen.';qa('[data-station-switch]').forEach(f=>{f.dataset.stale='1';q('[data-station-submit]',f).disabled=true});return}
    const done=data.board.filter(row=>row.marks[Number(label.dataset.test)]?.status==='done').length;
    label.textContent=`${done} de ${data.board.length} participantes con esta prueba realizada`;
   }catch{label.textContent='No se pudo actualizar el avance. Revisa la conexión antes de cambiar de estación.'}

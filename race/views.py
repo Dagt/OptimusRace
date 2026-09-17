@@ -204,10 +204,10 @@ def operations(request,pk):
             action=request.POST['action']
             if action=='phase':
                 selected_test=int(request.POST.get('test',0))
-                change_phase(pk,request.user,request.POST['phase'],selected_test,1)
+                change_phase(pk,request.user,request.POST['phase'],selected_test,1,expected_test=int(request.POST['expected_test']) if request.POST.get('expected_test') is not None else None)
                 if request.POST['phase']=='live':
-                    prefix='Competencia iniciada.' if e.status=='open' else 'Estación activada.'
-                    messages.success(request,f'{prefix} Los coaches pueden capturar: {e.rules["tests"][selected_test]["name"]}. Si tenían la captura abierta, deben actualizarla.')
+                    prefix='Competencia iniciada.' if e.status=='open' else 'La estación ya estaba activa.' if selected_test==e.active_test else 'Estación activada.'
+                    messages.success(request,'La estación ya está activa. Las marcas se conservan.' if e.status=='live' and selected_test==e.active_test else f'{prefix} Los coaches pueden capturar: {e.rules["tests"][selected_test]["name"]}. Si tenían la captura abierta, deben actualizarla.')
                 elif request.POST['phase']=='closed':messages.success(request,'Evento finalizado. Los resultados quedaron fijados y la captura está cerrada.')
                 else:messages.success(request,'Evento publicado. Cuando estén listos los coaches, inicia la competencia desde Resumen.')
             elif action=='cash':
@@ -257,11 +257,13 @@ def operations(request,pk):
         try:validate_rules(e.rules);validate_policies(e.rules,e)
         except ValidationError as exc:publish_issues.extend(exc.messages)
         if not e.capacity:publish_issues.append('Define el cupo de participantes.')
+    ties.sort(key=lambda group:(group['resolved'],group['rank']>3,group['category'],group['scope']))
+    pending_ties=sum(not group['resolved'] for group in ties)
     station_options=[{'index':i,'name':t['name'],'allowed':not e.rules.get('ordered_stations') or i in ([0] if e.status=='open' else [e.active_test,e.active_test+1])} for i,t in enumerate(e.rules['tests'])]
     active_station=next((t for i,t in enumerate(e.rules['tests']) if i==e.active_test),None)
     station_done=sum(any(m.test==e.active_test and m.status=='done' for m in r.result_set.all()) for r in confirmed)
     seats=availability(e)
-    return render(request,'operations.html',{'event':e,'station_options':station_options,'active_station':active_station,'station_done':station_done,'seats':seats,'registration_notice':'Cupo agotado' if seats['full'] else e.registration_label,'publish_issues':publish_issues,'can_cash':seats['registration_open'] and not seats['full'],'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
+    return render(request,'operations.html',{'event':e,'station_options':station_options,'active_station':active_station,'station_done':station_done,'seats':seats,'registration_notice':'Cupo agotado' if seats['full'] else e.registration_label,'publish_issues':publish_issues,'can_cash':seats['registration_open'] and not seats['full'],'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'pending_ties':pending_ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
 
 @coach_only
 def coach(request,pk):
@@ -297,7 +299,9 @@ def live_data(request,pk):
         response=render(request,'event_results.html',{'event':e,'board':rows,'capacity_boards':capacity_boards(rows)})
         response['Cache-Control']='no-store'
         return response
-    response=JsonResponse({'status':e.phase_label,'phase':e.status,'test':e.rules.get('tests',[])[e.active_test]['name'] if 0<=e.active_test<len(e.rules.get('tests',[])) else 'Sin estación activa','test_index':e.active_test,'relative_scoring':is_relative(e),'batch':e.active_batch,'board':board(e),'updated':timezone.now().isoformat()})
+    standings=board(e)
+    pending_ties=sum(any(row.get('tie_pending') for row in group['members']) for group in all_ties(standings)) if e.status=='live' else 0
+    response=JsonResponse({'pending_ties':pending_ties,'status':e.phase_label,'phase':e.status,'test':e.rules.get('tests',[])[e.active_test]['name'] if 0<=e.active_test<len(e.rules.get('tests',[])) else 'Sin estación activa','test_index':e.active_test,'relative_scoring':is_relative(e),'batch':e.active_batch,'board':standings,'updated':timezone.now().isoformat()})
     response['Cache-Control']='no-store'
     return response
 

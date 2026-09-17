@@ -106,3 +106,13 @@
 #tv .tv-stage strong{font-size:24px}
 @media(min-width:2200px){#tv{--tv-row-height:78px}#tv .tv-athlete strong{font-size:22px}#tv .tv-category{font-size:14px}}
 @media(max-width:600px){#tv{--tv-row-height:76px}#tv .tv-column-head,#tv .tv-row{grid-template-columns:28px minmax(0,1fr) 64px;gap:8px}#tv .tv-heading h1{font-size:23px}#tv .tv-athlete strong{font-size:15px}}
+
+.tie-alert{justify-content:space-between;flex-wrap:wrap;gap:12px}
+.tie-list{display:grid;gap:14px;max-width:1000px;margin-inline:auto}
+.tie-list .tiebreak-entry{margin:0;padding:20px}
+.tie-list summary{display:flex;align-items:center;justify-content:space-between;gap:16px;cursor:pointer;min-height:48px}
+.tie-list summary strong{display:block;font-size:18px}.tie-list summary small{display:block;margin-top:5px;font-size:12px}
+.tie-members{display:flex;flex-wrap:wrap;gap:8px 18px;padding:16px 0;margin-bottom:12px;border-bottom:1px solid var(--border)}
+.tie-order{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px}
+.tie-list form h3{margin-top:22px}.tie-list select{min-height:48px;font-size:16px}
+@media(max-width:600px){.tie-order{grid-template-columns:1fr}.tie-list summary{align-items:flex-start;flex-direction:column;gap:8px}.tie-list .tiebreak-entry{padding:16px}}

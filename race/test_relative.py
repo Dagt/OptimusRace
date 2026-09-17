@@ -108,7 +108,7 @@ class RelativeScoringTests(TestCase):
         capture(self.b.pk,self.scoring_coach,0,40,None,'done',1,'Corregir')
         self.client.force_login(self.admin)
         response=self.client.get(f'/events/{self.event.pk}/operations/')
-        self.assertContains(response,'Registrar desempate');self.assertContains(response,'Empate desde el lugar 1')
+        self.assertContains(response,'Guardar desempate');self.assertContains(response,'Podio · por resolver')
         from .models import Participant
         person=Participant.objects.create(name=self.b.name,sex='M');self.b.participant=person;self.b.save()
         self.client.logout()
@@ -170,3 +170,17 @@ class RelativeScoringTests(TestCase):
         rows=board(self.event)
         self.assertTrue(next(r for r in rows if r['id']==self.b.pk)['champion'])
         self.assertTrue(next(r for r in rows if r['id']==self.c.pk)['capacity_results']['Resistencia']['winner'])
+
+    def test_ties_have_dedicated_tab_summary_alert_and_live_count(self):
+        capture(self.b.pk,self.scoring_coach,0,40,None,'done',1,'Empate de prueba')
+        self.client.force_login(self.admin)
+        path=f'/events/{self.event.pk}/operations/'
+        response=self.client.get(path)
+        self.assertContains(response,'data-tab="ties"')
+        self.assertContains(response,'Resolver desempates →')
+        self.assertEqual(response.context['pending_ties'],1)
+        self.assertContains(response,'Lugar 1 en este desempate')
+        self.assertNotContains(response,'class="tiebreak-entry panel" open')
+        self.assertEqual(self.client.get(f'/events/{self.event.pk}/live/').json()['pending_ties'],1)
+        self.decision()
+        self.assertEqual(self.client.get(f'/events/{self.event.pk}/live/').json()['pending_ties'],0)

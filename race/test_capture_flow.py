@@ -143,3 +143,18 @@ class CaptureFlowTests(TestCase):
         self.assertEqual(marks[self.entry.pk]['value'],42)
         self.assertEqual(marks[other.pk]['value'],60)
         self.assertEqual(Result.objects.count(),2)
+
+    def test_station_stays_active_and_repeat_activation_preserves_marks(self):
+        from .models import Audit
+        capture(self.entry.pk,self.coach,0,42,None,'done',0,'')
+        self.client.force_login(self.admin)
+        path=f'/events/{self.event.pk}/operations/'
+        before=Audit.objects.filter(action='phase').count()
+        for tab in ['overview','results','reception']:
+            response=self.client.get(path,{'tab':tab})
+            self.assertContains(response,'data-station-submit disabled')
+        response=self.client.post(path,{'action':'phase','phase':'live','test':0,'expected_test':0},follow=True)
+        self.assertContains(response,'La estación ya está activa. Las marcas se conservan.')
+        self.assertEqual(Audit.objects.filter(action='phase').count(),before)
+        self.assertEqual(Result.objects.get().value,42)
+        with self.assertRaises(ValidationError):change_phase(self.event.pk,self.admin,'live',0,expected_test=99)

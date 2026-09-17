@@ -171,8 +171,10 @@ def configure(event_id, actor, data):
     return e
 
 @transaction.atomic
-def change_phase(event_id, actor, phase, test=0,batch=1):
+def change_phase(event_id, actor, phase, test=0,batch=1,expected_test=None):
     e=Event.objects.select_for_update().get(pk=event_id)
+    if expected_test is not None and (e.status!='live' or e.active_test!=expected_test):raise ValidationError('La estación cambió en otra pantalla. Actualiza antes de cambiarla.')
+    if phase=='live' and e.status=='live' and test==e.active_test:return e
     allowed={'draft':['open'],'open':['live'],'live':['live','closed'],'closed':[]}
     if phase not in allowed[e.status]: raise ValidationError('Transición de evento no permitida.')
     validate_rules(e.rules)
