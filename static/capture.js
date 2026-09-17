@@ -1,15 +1,32 @@
 /* Each athlete is saved independently. Polling never replaces an unsaved edit. */
 if(q('#capture-list')){
  const list=q('#capture-list'),forms=qa('.capture-card',list),test=JSON.parse(q('#capture-test').textContent);
- const dirty=new Set(),saving=new Set(),remote=new Map();let filter='all',stale=false,polling=false;
+ const dirty=new Set(),saving=new Set(),remote=new Map();let filter='all',stale=false,polling=false,selected=null,page=0,optionsKey='';
+ const pageSize=6;
  const saveButton=f=>q('[data-save-mark]',f);
  const feedback=(f,text,error=false)=>{const n=q('.save-feedback',f);n.textContent=text;n.className='save-feedback'+(error?' error':'')};
  function connection(text,ok){q('#network-status').replaceChildren(node('span',undefined,ok?'online-dot':'pending-dot'),document.createTextNode(text))}
  function render(){
-  const term=q('#coach-search').value.trim().toLocaleLowerCase('es');const bib=/^#?\d+$/.test(term)?Number(term.replace('#','')):null;let visible=0;
-  forms.forEach(f=>{f.hidden=!(bib!==null?Number(f.dataset.bib)===bib:f.dataset.search.toLocaleLowerCase('es').includes(term))||(filter==='pending'&&f.dataset.done==='1');if(!f.hidden)visible++});
+  const term=q('#coach-search').value.trim().toLocaleLowerCase('es');const bib=/^#?\d+$/.test(term)?Number(term.replace('#','')):null;
+  const matches=forms.filter(f=>(bib!==null?Number(f.dataset.bib)===bib:f.dataset.search.toLocaleLowerCase('es').includes(term))&&
+   (filter!=='pending'||f.dataset.done!=='1')&&(filter!=='done'||f.dataset.done==='1')&&(filter!=='drafts'||dirty.has(f)));
+  const pages=Math.max(1,Math.ceil(matches.length/pageSize));page=Math.min(page,pages-1);
+  const options=matches.slice(page*pageSize,(page+1)*pageSize).map(f=>{
+   const button=document.createElement('button');button.type='button';button.className='capture-option';
+   button.setAttribute('aria-pressed',String(f===selected));button.dataset.registration=f.elements.registration.value;
+   const status=saving.has(f)?'Guardando…':f.dataset.conflict==='1'?'Revisar conflicto':dirty.has(f)?'Sin guardar en este dispositivo':f.dataset.done==='1'?'Realizada':f.dataset.enabled!=='1'?'No disponible':'Pendiente';
+   button.replaceChildren(node('strong',`#${String(f.dataset.bib).padStart(3,'0')} · ${f.dataset.name||f.dataset.search}`),node('span',status));
+   button.onclick=()=>{selected=f;render();q('.capture-identity',f).scrollIntoView?.({block:'nearest',behavior:'smooth'})};return button;
+  });
+  const key=JSON.stringify(options.map(b=>[b.dataset.registration,b.textContent,b.getAttribute('aria-pressed')]));
+  if(key!==optionsKey){const focused=document.activeElement?.dataset.registration;q('#capture-options').replaceChildren(...options);optionsKey=key;if(focused)options.find(b=>b.dataset.registration===focused)?.focus()}
+  forms.forEach(f=>{f.hidden=f!==selected});
+  q('#capture-selection-empty').hidden=!!selected||!forms.length;
+  q('#capture-page').textContent=matches.length?`${page+1} / ${pages} · ${matches.length} participantes`:'Sin coincidencias';
+  q('#capture-prev').disabled=page===0;q('#capture-next').disabled=page>=pages-1;
   const complete=forms.filter(f=>f.dataset.done==='1').length;
-  q('#capture-empty').hidden=visible>0;q('#capture-complete').textContent=complete;q('#pending-count').textContent=forms.length-complete;
+  q('#capture-empty').hidden=matches.length>0;q('#capture-complete').textContent=complete;q('#pending-count').textContent=forms.length-complete;
+  q('#done-count').textContent=complete;q('#draft-count').textContent=dirty.size;
   q('#capture-progress').style.width=`${forms.length?complete/forms.length*100:0}%`;
  }
  function preview(f){
@@ -34,11 +51,13 @@ if(q('#capture-list')){
   paintScore(f,mark);preview(f);
  }
  function paintScore(f,mark){const state=q('.capture-state',f);state.className='capture-state'+(mark.status==='done'?' saved':'');state.textContent=mark.status==='done'?`${mark.points==null?'—':fmt(mark.points)} pts${mark.provisional?' · provisional':''}`:(stateNames[mark.status]||'Pendiente')}
- q('#coach-search').oninput=render;
- qa('button',q('#coach-filter')).forEach(b=>b.onclick=()=>{filter=b.dataset.filter;qa('button',q('#coach-filter')).forEach(x=>x.classList.toggle('selected',x===b));render()});
+ q('#coach-search').oninput=()=>{page=0;render()};
+ q('#capture-prev').onclick=()=>{if(page>0){page--;render()}};
+ q('#capture-next').onclick=()=>{page++;render()};
+ qa('button',q('#coach-filter')).forEach(b=>b.onclick=()=>{filter=b.dataset.filter;page=0;qa('button',q('#coach-filter')).forEach(x=>x.classList.toggle('selected',x===b));render()});
  forms.forEach(f=>{
   preview(f);
-  f.addEventListener('input',()=>{dirty.add(f);feedback(f,'Cambios sin guardar');preview(f)});
+  f.addEventListener('input',()=>{dirty.add(f);feedback(f,'Cambios sin guardar');preview(f);render()});
   q('[data-load-saved]',f).onclick=()=>{
    if(dirty.has(f)&&!confirm('¿Descartar lo escrito en esta tarjeta y cargar la marca guardada en el servidor?'))return;
    const mark=remote.get(f);if(mark){dirty.delete(f);applyMark(f,mark);feedback(f,'Versión del servidor cargada.');render()}
@@ -46,7 +65,7 @@ if(q('#capture-list')){
   f.addEventListener('submit',async event=>{
    event.preventDefault();if(stale||saving.has(f)||f.dataset.enabled!=='1'||f.dataset.conflict==='1')return;
    if(Number(f.elements.revision.value)>0&&!f.elements.reason.value.trim()){feedback(f,'Escribe el motivo de la corrección.',true);f.elements.reason.focus();return}
-   const body=new FormData(f);saving.add(f);dirty.add(f);preview(f);saveButton(f).setAttribute('aria-busy','true');feedback(f,'Guardando…');
+   const body=new FormData(f);saving.add(f);dirty.add(f);preview(f);render();saveButton(f).setAttribute('aria-busy','true');feedback(f,'Guardando…');
    try{
     const data=await jsonFetch(location.pathname,{method:'POST',body,headers:{'X-Requested-With':'XMLHttpRequest'}});
     dirty.delete(f);applyMark(f,{revision:data.revision,status:data.status,points:data.points,provisional:data.provisional,value:data.status==='done'?body.get('value'):null,load:data.status==='done'?body.get('load'):null});

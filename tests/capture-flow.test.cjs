@@ -3,31 +3,34 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm');
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 
-function setup(){
+function setup(count=1){
  class Element{
   constructor(){this.value='';this.dataset={};this.hidden=false;this.disabled=false;this.style={};this.listeners={};this.classList={add(){},toggle(){}}}
   addEventListener(type,fn){this.listeners[type]=fn}
-  setAttribute(){} removeAttribute(){} focus(){this.focused=true}
-  replaceChildren(...children){this.textContent=children.map(c=>c.textContent||'').join('')}
+  setAttribute(k,v){(this.attributes??={})[k]=v} getAttribute(k){return this.attributes?.[k]} removeAttribute(){} focus(){this.focused=true}
+  replaceChildren(...children){this.children=children;this.textContent=children.map(c=>c.textContent||'').join('')}
  }
  const globals=new Map(),locals=new Map(),form=new Element();
  const element=(map,key)=>{if(!map.has(key))map.set(key,new Element());return map.get(key)};
- const q=(key,root)=>element(root===form?locals:globals,key);
+ const localMaps=new Map([[form,locals]]);
+ const q=(key,root)=>element(localMaps.get(root)||globals,key);
  form.elements={};for(const [key,value] of Object.entries({registration:'1',test:'0',revision:'0',value:'',status:'done',reason:''})){form.elements[key]=new Element();form.elements[key].value=value}
  form.dataset={enabled:'1',done:'0',bib:'1',search:'Ana 1'};
+ const forms=[form];for(let i=2;i<=count;i++){const f=new Element();f.dataset={...form.dataset,bib:String(i),search:'Atleta '+i};f.elements={};for(const [k,v] of Object.entries(form.elements)){f.elements[k]=new Element();f.elements[k].value=k==='registration'?String(i):v.value}forms.push(f);localMaps.set(f,new Map())}
+ const filters=['all','pending','done','drafts'].map(filter=>{const b=new Element();b.dataset.filter=filter;return b});
  const list=q('#capture-list');list.dataset={liveUrl:'/live/',test:'0'};
  q('#capture-test').textContent=JSON.stringify({scoring:'relative',max_points:100});
  const mark={revision:0,value:null,load:null,points:null,status:'pending'};
- const state={feed:{phase:'live',test_index:0,board:[{id:1,attendance:'present',marks:[mark]}]},posts:[],intervals:[]};
- const context={q,qa:(key,root)=>key==='.capture-card'?[form]:[],
+ const state={feed:{phase:'live',test_index:0,board:forms.map((f,i)=>({id:i+1,attendance:'present',marks:[i?{...mark}:mark]}))},posts:[],intervals:[]};
+ const context={q,qa:(key,root)=>key==='.capture-card'?forms:root===q('#coach-filter')?filters:[],
   node:(tag,text)=>({textContent:text}),fmt:String,stateNames:{pending:'Faltante',done:'Realizada',absent:'Ausente'},
-  document:Object.assign(new Element(),{hidden:false,createTextNode:text=>({textContent:text})}),
+  document:Object.assign(new Element(),{hidden:false,createElement:()=>new Element(),createTextNode:text=>({textContent:text})}),
   window:new Element(),navigator:{onLine:true},location:{pathname:'/coach/'},confirm:()=>true,
   FormData:class{constructor(f){this.values=Object.fromEntries(Object.entries(f.elements).filter(([k,v])=>!v.disabled).map(([k,v])=>[k,v.value]))}get(key){return this.values[key]}},
   jsonFetch:async(url,options)=>options?.method==='POST'?await new Promise((resolve,reject)=>state.posts.push({resolve,reject,body:options.body})):structuredClone(state.feed),
   setInterval:fn=>state.intervals.push(fn)};
  vm.runInNewContext(fs.readFileSync('static/capture.js','utf8'),context);
- return {q,form,state,context,mark,poll:()=>state.intervals[0](),edit(value){form.elements.value.value=value;form.listeners.input()}};
+ return {q,form,forms,filters,state,context,mark,poll:()=>state.intervals[0](),edit(value){form.elements.value.value=value;form.listeners.input()}};
 }
 
 test('clean card receives another coach’s save and current relative points',async()=>{
@@ -75,5 +78,30 @@ test('unconfirmed network response preserves input; reconciliation exposes saved
 test('new registration prompts roster refresh without blocking current captures',async()=>{
  const f=setup();await flush();f.state.feed.board.push({id:2,attendance:'present',marks:[]});await f.poll();
  assert.equal(f.q('#roster-changed').hidden,false);assert.equal(f.q('[data-save-mark]',f.form).disabled,false);
- f.q('#coach-search').value='#001';f.q('#coach-search').oninput();assert.equal(f.form.hidden,false);
+ f.q('#coach-search').value='#001';f.q('#coach-search').oninput();f.q('#capture-options').children[0].onclick();assert.equal(f.form.hidden,false);
+});
+
+
+test('large roster has six selectors per page and one explicitly selected form',async()=>{
+ const f=setup(20);await flush();
+ assert.equal(f.q('#capture-options').children.length,6);assert.ok(f.forms.every(x=>x.hidden));
+ f.q('#capture-options').children[0].onclick();assert.equal(f.forms.filter(x=>!x.hidden).length,1);
+ f.edit('55');f.q('#capture-next').onclick();
+ assert.equal(f.q('#capture-options').children[0].dataset.registration,'7');
+ f.q('#capture-options').children[0].onclick();assert.equal(f.forms[6].hidden,false);assert.equal(f.form.hidden,true);
+ assert.equal(f.form.elements.value.value,'55');assert.equal(f.q('#draft-count').textContent,1);
+ f.filters[3].onclick();assert.equal(f.q('#capture-options').children.length,1);
+ f.q('#capture-options').children[0].onclick();assert.equal(f.form.elements.value.value,'55');
+ f.q('#coach-search').value='unmatched';f.q('#coach-search').oninput();
+ assert.equal(f.q('#capture-options').children.length,0);assert.equal(f.form.hidden,false);
+});
+
+test('remote save updates selector and filters without changing the selected athlete',async()=>{
+ const f=setup(8);await flush();f.q('#capture-options').children[0].onclick();
+ Object.assign(f.mark,{revision:1,value:42,points:100,status:'done'});await f.poll();
+ assert.match(f.q('#capture-options').children[0].textContent,/Realizada/);
+ f.filters[1].onclick();assert.equal(f.q('#capture-options').children[0].dataset.registration,'2');
+ assert.equal(f.form.hidden,false);assert.equal(f.form.elements.value.value,42);
+ f.filters[2].onclick();assert.equal(f.q('#capture-options').children.length,1);
+ assert.equal(f.q('#capture-options').children[0].dataset.registration,'1');
 });

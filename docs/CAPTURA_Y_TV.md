@@ -6,7 +6,7 @@
 2. Administración inicia la competencia y activa una estación desde el resumen del evento. Actualmente hay **una estación activa por evento**, compartida por todos los coaches; no hay asignaciones individuales de estación ni lotes.
 3. Cada coach entra con su cuenta de equipo, abre el evento y busca al participante por nombre o número (también admite `#001`). Comprueba nombre, foto y categoría antes de capturar.
 4. Registra la marca en la unidad indicada, la carga si corresponde y los puntos del juez solo en pruebas que usan ese método. «Ausente», «Retirado» o «Faltante» no conservan marca ni puntos.
-5. Pulsa «Guardar marca» y espera **Guardado confirmado**. Durante el envío se bloquean los campos de esa tarjeta para evitar cambios que no formen parte de lo enviado. Las demás tarjetas siguen disponibles.
+5. Pulsa «Guardar marca» y espera **Guardado confirmado**. Durante el envío se bloquean los campos de esa tarjeta para evitar cambios que no formen parte de lo enviado. Puede seleccionar otro participante sin perder la ficha que se está guardando.
 6. Una corrección requiere motivo. La revisión de cada marca impide que dos dispositivos sobrescriban cambios sin enterarse. Si aparece un conflicto, «Cargar versión guardada» permite revisar la marca del servidor; pide confirmación antes de descartar una edición pendiente.
 7. Administración avanza de estación. Las pantallas anteriores bloquean la captura y piden actualizar. Si ingresan nuevos participantes, los coaches reciben un aviso para actualizar la lista después de guardar lo pendiente.
 8. Al cerrar el evento se fijan los resultados y el servidor rechaza nuevas capturas y correcciones.
@@ -25,15 +25,17 @@ En evaluación relativa, otra marca de la misma categoría puede cambiar los pun
 
 ## Celular, tableta y escritorio
 
-- Una columna de tarjetas hasta 1100 px; dos en escritorio amplio.
+- Selector paginado de seis participantes: tres columnas en escritorio y dos en celular/tableta. Solo se muestra el formulario del participante seleccionado.
+- Filtros Todos, Pendientes, Realizadas y Mis pendientes (borradores de este dispositivo). Cambiar de página, filtro o participante conserva las ediciones en esta pestaña. La sincronización nunca cambia la selección.
+- Varios coaches pueden capturar distintos participantes del mismo evento. No hay reparto automático ni reserva de participantes; si coinciden en la misma marca, el control de revisión rechaza la segunda escritura y permite revisar la versión guardada.
 - Campos de al menos 50 px, botones de al menos 46–48 px y teclado decimal en entradas numéricas.
 - Búsqueda y filtro se apilan en celulares; marca, unidad y estado permanecen junto al participante.
 - TV mantiene fotografía, nombre, número y puntos en vistas estrechas; categoría y completitud tienen columnas propias en pantallas amplias.
 
 ## Validación realizada
 
-- 148 pruebas Django: permisos, validación de marcas, revisiones entre coaches, correcciones, cálculo relativo, cierre, privacidad, registros y flujos existentes.
-- 13 pruebas JavaScript: captura, respuestas tardías, conflictos, pérdida de confirmación, paginación y conexión de TV, además del modal de fotografía.
+- Pruebas Django: permisos, validación de marcas, revisiones entre coaches, correcciones, cálculo relativo, cierre, privacidad, registros y flujos existentes.
+- Pruebas JavaScript: captura, respuestas tardías, conflictos, pérdida de confirmación, paginación y conexión de TV, además del modal de fotografía.
 - `manage.py check`, revisión de sintaxis JavaScript y renderizado de las plantillas mediante el cliente de pruebas.
 
 **Pendiente de validación física:** no hay navegador conectado a las herramientas de esta sesión. Las pruebas de JavaScript usan dobles de DOM/red; no sustituyen una revisión visual ni una prueba táctil en iPhone/Android/tableta y TV real. No se cambiaron las marcas ni los datos de eventos reales para probar.

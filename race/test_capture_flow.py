@@ -26,6 +26,9 @@ class CaptureFlowTests(TestCase):
     def test_two_coaches_cannot_overwrite_each_other_and_feed_matches_saved_revision(self):
         first=self.client.post(self.path,self.payload()).json()
         self.assertEqual(first['revision'],1)
+        other_coach=User.objects.create_user('second-coach',password='test-password')
+        other_coach.groups.add(Group.objects.get(name='Coach'))
+        self.client.force_login(other_coach)
         second=self.client.post(self.path,self.payload(value='99'))
         self.assertEqual(second.status_code,400)
         self.assertEqual(Result.objects.get().value,42)
@@ -116,3 +119,27 @@ class CaptureFlowTests(TestCase):
         response=self.client.post(path,{'action':'phase','phase':'closed'},follow=True)
         self.assertContains(response,'Evento finalizado')
         self.assertNotContains(response,'Activar estación seleccionada')
+
+    def test_capture_workspace_starts_with_hidden_cards_and_bounded_selector(self):
+        response=self.client.get(self.path)
+        self.assertContains(response,'id="capture-options"')
+        self.assertContains(response,'id="capture-next"')
+        self.assertContains(response,'data-filter="drafts"')
+        self.assertContains(response,'<form class="capture-card" hidden')
+
+    def test_different_coaches_save_different_participants_in_same_station(self):
+        self.client.force_login(self.admin)
+        self.event.allow_onsite=True;self.event.save(update_fields=['allow_onsite'])
+        data=self.data();data['name']='Segundo atleta'
+        self.client.post(self.url,data)
+        other=Registration.objects.exclude(pk=self.entry.pk).get()
+        second_coach=User.objects.create_user('second-coach',password='test-password')
+        second_coach.groups.add(Group.objects.get(name='Coach'))
+        self.client.force_login(self.coach)
+        self.assertEqual(self.client.post(self.path,self.payload()).status_code,200)
+        self.client.force_login(second_coach)
+        self.assertEqual(self.client.post(self.path,self.payload(registration=other.pk,value='60')).status_code,200)
+        marks={r['id']:r['marks'][0] for r in self.client.get(self.feed).json()['board']}
+        self.assertEqual(marks[self.entry.pk]['value'],42)
+        self.assertEqual(marks[other.pk]['value'],60)
+        self.assertEqual(Result.objects.count(),2)
