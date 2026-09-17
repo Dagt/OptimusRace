@@ -135,41 +135,42 @@ class RelativeScoringTests(TestCase):
         rows={r['id']:r for r in board(self.event)}
         self.assertTrue(rows[self.c.pk]['champion']);self.assertFalse(rows[self.b.pk]['champion'])
         self.assertEqual(rows[self.b.pk]['total'],rows[self.c.pk]['total'])
-        self.assertContains(self.client.get(url),'Campeón')
+        self.assertContains(self.client.get(url),'Primer lugar de categoría')
 
-    def test_capacity_podium_accepts_missing_other_capacities_and_freezes(self):
-        self.event.rules['capacity_podiums']=True
-        first=self.event.rules['tests'][0];first['capacity']='Fuerza';first['max_points']=50
-        second=deepcopy(first);second['capacity']='Velocidad';second['name']='Otra prueba'
+    def test_overall_winner_uses_all_stations_and_separate_sex_categories(self):
+        self.event.rules['capacity_podiums']=True  # Historical flag must have no effect.
+        first=self.event.rules['tests'][0];first['max_points']=50
+        second=deepcopy(first);second['name']='Otra prueba';second['capacity']='Fuerza'
         self.event.rules['tests'].append(second);self.event.save()
-        rows=board(self.event)
-        winner=next(r for r in rows if r['id']==self.c.pk)
-        self.assertEqual(winner['capacity_results']['Fuerza']['rank'],1)
-        self.assertIsNone(winner['capacity_results']['Velocidad']['rank'])
+        woman=self.entry('Mujer',10,category='F')
+        change_phase(self.event.pk,self.admin,'live',1)
+        for entry,value in [(self.a,50),(self.b,40),(self.c,0)]:
+            capture(entry.pk,self.scoring_coach,1,value,None,'done',0,'')
+        capture(woman.pk,self.scoring_coach,1,10,None,'done',0,'')
+        rows={r['id']:r for r in board(self.event)}
+        self.assertEqual(rows[self.b.pk]['total'],65)
+        self.assertEqual(rows[self.b.pk]['rank'],1)
+        self.assertEqual(rows[woman.pk]['rank'],1)
+        self.assertTrue(all('capacity_results' not in r for r in rows.values()))
+        self.assertEqual(rows[self.c.pk]['marks'][0]['points'],50)
         change_phase(self.event.pk,self.admin,'closed');self.event.refresh_from_db()
-        frozen=next(r for r in board(self.event) if r['id']==self.c.pk)
-        self.assertTrue(frozen['capacity_results']['Fuerza']['winner'])
-        self.assertFalse(frozen['capacity_results']['Fuerza']['provisional'])
+        winners={r['id'] for r in board(self.event) if r['champion']}
+        self.assertEqual(winners,{self.b.pk,woman.pk})
 
-    def test_capacity_tiebreak_is_independent_of_general(self):
-        from .capacity_results import capacity_boards,all_ties
+    def test_only_overall_tiebreak_is_available_and_can_close(self):
+        from .capacity_results import all_ties
         self.event.rules['capacity_podiums']=True;self.event.save()
         capture(self.b.pk,self.scoring_coach,0,40,None,'done',1,'Corregir')
-        groups=all_ties(board(self.event));self.assertEqual(len(groups),2)
+        groups=all_ties(board(self.event));self.assertEqual(len(groups),1)
         self.client.force_login(self.admin)
-        self.assertContains(self.client.get(f'/events/{self.event.pk}/operations/'),'Clasificación por capacidad')
-        self.assertContains(self.client.get(f'/events/{self.event.pk}/'),'Clasificación por capacidad')
-        self.assertContains(self.client.get(f'/events/{self.event.pk}/tv/'),'tv-scope')
-        group=next(g for g in groups if g['scope']=='Resistencia')
-        resolve_tie(self.event.pk,self.admin,'M',100,[self.c.pk,self.b.pk],group['fingerprint'],'Destreza','C gana','Juez',scope='Resistencia')
-        rows=board(self.event)
-        self.assertTrue(next(r for r in rows if r['id']==self.c.pk)['tie_pending'])
-        self.assertEqual(next(r for r in capacity_boards(rows)['Resistencia'] if r['id']==self.c.pk)['rank'],1)
+        for path in [f'/events/{self.event.pk}/operations/',f'/events/{self.event.pk}/']:
+            self.assertNotContains(self.client.get(path),'Clasificación por capacidad')
+        self.assertNotContains(self.client.get(f'/events/{self.event.pk}/tv/'),'tv-scope')
+        with self.assertRaises(ValidationError):
+            resolve_tie(self.event.pk,self.admin,'M',100,[self.c.pk,self.b.pk],groups[0]['fingerprint'],'Destreza','C gana','Juez',scope='Resistencia')
         self.decision([self.b.pk,self.c.pk])
         change_phase(self.event.pk,self.admin,'closed');self.event.refresh_from_db()
-        rows=board(self.event)
-        self.assertTrue(next(r for r in rows if r['id']==self.b.pk)['champion'])
-        self.assertTrue(next(r for r in rows if r['id']==self.c.pk)['capacity_results']['Resistencia']['winner'])
+        self.assertEqual([r['id'] for r in board(self.event) if r['champion']],[self.b.pk])
 
     def test_ties_have_dedicated_tab_summary_alert_and_live_count(self):
         capture(self.b.pk,self.scoring_coach,0,40,None,'done',1,'Empate de prueba')

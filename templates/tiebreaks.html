@@ -1,5 +1,5 @@
 {% load race_labels %}
-<div class="section-heading"><div><h2>Resolver desempates</h2><p>Solo se resuelven empates por el primer lugar de cada categoría o capacidad. Realiza la prueba de desempate y registra el orden decidido por el juez. Las marcas del evento se conservan.</p></div><a class="button secondary small" href="?tab=ties">Actualizar lista</a></div>
+<div class="section-heading"><div><h2>Resolver desempates</h2><p>Solo se resuelven empates por el primer lugar de cada categoría de sexo y peso. Realiza la prueba de desempate y registra el orden decidido por el juez. Las marcas del evento se conservan.</p></div><a class="button secondary small" href="?tab=ties">Actualizar lista</a></div>
 {% if event.status == 'live' %}
 <div class="tie-list">
 {% for tie in ties %}

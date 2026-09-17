@@ -159,7 +159,7 @@ def event_edit(request,pk=None):
     e=get_object_or_404(Event,pk=pk) if pk else None
     form=EventForm(request.POST or None,instance=e)
     rules=e.rules if e else blank_rules()
-    if not e or (e.status=='draft' and not e.registration_set.exists()):rules={**rules,'category_bounds':'upper_inclusive','capacity_podiums':True}
+    if not e or (e.status=='draft' and not e.registration_set.exists()):rules={**rules,'category_bounds':'upper_inclusive','capacity_podiums':False}
     policy=PolicyForm(request.POST or None,rules=rules)
     if request.method=='POST':
         try:rules=json.loads(request.POST.get('rules','{}'))
@@ -168,7 +168,7 @@ def event_edit(request,pk=None):
         try:
             rules=json.loads(request.POST['rules'])
             policy.apply(rules)
-            if not e or (e.status=='draft' and not e.registration_set.exists()):rules['category_bounds']='upper_inclusive';rules['capacity_podiums']=True
+            if not e or (e.status=='draft' and not e.registration_set.exists()):rules['category_bounds']='upper_inclusive';rules['capacity_podiums']=False
             validate_policies(rules,form.instance)
             validate_rules(rules,False)
             if e: e=configure(e.id,request.user,{**form.cleaned_data,'rules':rules})

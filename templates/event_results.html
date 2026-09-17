@@ -1,4 +1,5 @@
 <div class="event-results-stack" data-standings-url="{% url 'live_data' event.pk %}?view=standings">
+<p class="standings-sync">Una persona ganadora por categoría femenil o varonil y rango de peso. El acumulado suma los puntos de todas las pruebas, hasta 100 puntos.</p>
 <section class="panel no-padding category-results" aria-label="Resultados por categoría">{% include 'ranking.html' %}</section>
-{% include 'capacity_results.html' %}
+
 </div>

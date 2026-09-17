@@ -156,7 +156,7 @@ def attach_participant_links(event,rows):
         person=people.get(row['id'])
         identity={'participant_id':person.pk if person else None,'photo_url':person.photo.url if person and person.photo else '', 'profile_url':reverse('public_participant',args=[person.pk]) if person else ''}
         row.update(identity)
-        for result in row.get('capacity_results',{}).values():result.update(identity)
+        row.pop('capacity_results',None)
     return rows
 
 @transaction.atomic
@@ -186,13 +186,8 @@ def change_phase(event_id, actor, phase, test=0,batch=1,expected_test=None):
         e.active_test=test; e.active_batch=batch
     if phase=='closed':
         frozen=board(e)
+        if any(r['tie_pending'] and r['rank']==1 for r in frozen if r['rank'] is not None):raise ValidationError('Resuelve los empates por el primer lugar de cada categoría antes de cerrar el evento.')
         for row in frozen:
-            if any(result['tie_pending'] and result['rank'] is not None and result['rank']==1 for result in row.get('capacity_results',{}).values()):raise ValidationError('Resuelve los empates por el primer lugar de cada capacidad antes de cerrar.')
-        if is_relative(e) and any(r['tie_pending'] and r['rank']==1 for r in frozen if r['rank'] is not None):raise ValidationError('Resuelve los empates por el primer lugar de cada categoría antes de cerrar el evento.')
-        for row in frozen:
-            for result in row.get('capacity_results',{}).values():
-                result['provisional']=False;result['winner']=result['rank']==1 and not result['tie_pending']
-                for mark in result['marks']:mark['provisional']=False
             row['provisional']=False;row['champion']=row['rank']==1 and not row['tie_pending']
             for index,mark in enumerate(row['marks']):
                 mark['provisional']=False

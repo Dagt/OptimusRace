@@ -53,11 +53,7 @@ def resolve_tie(event_id,actor,category,total,order,fingerprint,challenge,detail
     if not all(str(x).strip() for x in [challenge,details,judge]):raise ValidationError('Indica destreza, resultado y juez del desempate.')
     if len(challenge)>150 or len(judge)>150 or len(details)>3000:raise ValidationError('El texto del desempate supera el límite permitido.')
     rows=board(event)
-    if scope!="general":
-        from .capacity_results import capacity_boards
-        boards=capacity_boards(rows)
-        if scope not in boards:raise ValidationError("Capacidad inválida para desempate.")
-        rows=boards[scope]
+    if scope!="general":raise ValidationError('Solo se desempata el primer lugar de la clasificación general de cada categoría.')
     group=next((g for g in tie_groups(rows) if g['category']==category and g['total']==total),None)
     if not group or group['fingerprint']!=fingerprint:raise ValidationError('Las marcas o la categoría cambiaron. Recarga y revisa el empate antes de resolverlo.')
     expected={r['id'] for r in group['members']}

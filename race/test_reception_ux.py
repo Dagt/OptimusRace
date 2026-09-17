@@ -84,7 +84,8 @@ class ReceptionUXTests(TestCase):
         self.assertContains(self.client.get(f'/events/{self.event.pk}/'),path)
         row=self.client.get(f'/events/{self.event.pk}/live/').json()['board'][0]
         self.assertEqual(row['photo_url'],entry.participant.photo.url);self.assertEqual(row['profile_url'],path)
-        self.assertEqual(row['capacity_results']['Potencia']['photo_url'],entry.participant.photo.url)
+        self.assertNotIn('capacity_results',row)
+        self.assertIn('Potencia',row['capacities'])
         change_phase(self.event.pk,self.admin,'closed');self.event.refresh_from_db()
         stored=deepcopy(self.event.final_board)
         person=entry.participant;person.photo='athletes/new-photo.jpg';person.save()

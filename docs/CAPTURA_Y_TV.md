@@ -21,7 +21,7 @@ Solo las cuentas de coach activas pueden acceder a captura, registrar marcas y c
 - Un fallo o demora al guardar **no equivale a guardado confirmado**. Los valores permanecen en esa pantalla. Si el servidor sí alcanzó a registrar la marca, la siguiente consulta detecta la nueva revisión y ofrece cargarla.
 - No hay cola de guardado sin conexión ni almacenamiento permanente de borradores en el teléfono. No cierres la pestaña con capturas pendientes; se avisa antes de salir cuando el navegador lo permite.
 
-En evaluación relativa, otra marca de la misma categoría puede cambiar los puntos de participantes ya capturados. Esos puntos son provisionales hasta el cierre. Las posiciones por capacidad requieren completar sus pruebas; no equivalen automáticamente a la clasificación general.
+En evaluación relativa, otra marca de la misma categoría puede cambiar los puntos de participantes ya capturados. Esos puntos son provisionales hasta el cierre. Las capacidades se muestran como desglose del desempeño; no tienen clasificación, premio ni desempate propios.
 
 ## Celular, tableta y escritorio
 
@@ -50,6 +50,12 @@ La migración 0014 conserva las antiguas reservas como registros históricos sin
 
 La estación actual permanece guardada al cambiar de pestaña o volver al evento. El botón indica «Estación activa» y se habilita solo al elegir otra. Repetir la misma activación no modifica marcas ni genera otra transición. Un formulario desactualizado no puede cambiar una estación que otro administrador ya cambió.
 
-«Desempates» tiene una pestaña propia y contador actualizado cada cinco segundos durante la competencia. Resumen muestra un acceso directo cuando hay pendientes. La lista muestra únicamente empates por el primer lugar de cada categoría o capacidad y abre un solo formulario a la vez: primero se eligen participantes del primero al último; después se documentan prueba, juez y resultado. No se puede seleccionar dos veces al mismo participante. «Actualizar lista» carga los grupos más recientes; las consultas automáticas no reemplazan una decisión que se está escribiendo. El servidor sigue verificando que las marcas no hayan cambiado antes de aceptar una decisión.
+«Desempates» tiene una pestaña propia y contador actualizado cada cinco segundos durante la competencia. Resumen muestra un acceso directo cuando hay pendientes. La lista muestra únicamente empates por el primer lugar de cada categoría de sexo y peso y abre un solo formulario a la vez: primero se eligen participantes del primero al último; después se documentan prueba, juez y resultado. No se puede seleccionar dos veces al mismo participante. «Actualizar lista» carga los grupos más recientes; las consultas automáticas no reemplazan una decisión que se está escribiendo. El servidor sigue verificando que las marcas no hayan cambiado antes de aceptar una decisión.
 
 Los empates en segundo lugar o posteriores conservan posiciones compartidas; no generan decisiones pendientes ni impiden cerrar el evento.
+
+## Premiación general por categoría
+
+Hay un ganador por categoría femenil y rango de peso, y uno por categoría varonil y rango de peso. La clasificación usa el acumulado de todas las estaciones (máximos configurados que suman 100); no se suman marcas crudas de unidades distintas ni se premia cada habilidad. Las pruebas sin marca aportan cero según la regla existente; la tabla muestra cuántas se realizaron. Los puntajes son provisionales mientras se captura.
+
+Solo un empate en el mayor acumulado de una categoría requiere desempate. Los eventos con la antigua opción de podios por capacidad también usan esta regla. Los registros históricos de decisiones se conservan para auditoría, pero las decisiones por capacidad no se aplican. Las gráficas por habilidad siguen disponibles como información. Los resultados ya cerrados conservan su acumulado y ganador general; se omite la antigua premiación por capacidad al mostrarlos.
