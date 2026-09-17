@@ -1,4 +1,4 @@
-<div class="event-results-stack">
+<div class="event-results-stack" data-standings-url="{% url 'live_data' event.pk %}?view=standings">
 <section class="panel no-padding category-results" aria-label="Resultados por categoría">{% include 'ranking.html' %}</section>
 {% include 'capacity_results.html' %}
 </div>

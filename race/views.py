@@ -264,10 +264,10 @@ def coach(request,pk):
             return JsonResponse({'ok':True,'points':m.points,'revision':m.revision,'status':m.status,'provisional':e.rules['tests'][int(request.POST['test'])].get('scoring')=='relative'})
         except (ValidationError,ValueError,KeyError) as exc: return JsonResponse({'ok':False,'error':' '.join(exc.messages) if isinstance(exc,ValidationError) else 'Datos inválidos.'},status=400)
     if not e.rules.get('tests'):
-        messages.info(request,'Agrega estaciones antes de abrir la captura.');return redirect('operations',pk=pk)
+        messages.info(request,'Agrega estaciones antes de abrir la captura.');return redirect('home')
     rows=[]
-    for r in Registration.objects.filter(event=e,state='confirmed').order_by('bib'):
-        rows.append({'entry':r,'mark':Result.objects.filter(registration=r,test=e.active_test).first(),'suggested':load_for(e.rules['tests'][e.active_test],r.weight) if e.rules.get('schema_version')==2 else suggested_load(e,r.weight)})
+    for r in Registration.objects.filter(event=e,state='confirmed').select_related('participant').prefetch_related('result_set').order_by('bib'):
+        rows.append({'entry':r,'mark':next((mark for mark in r.result_set.all() if mark.test==e.active_test),None),'suggested':load_for(e.rules['tests'][e.active_test],r.weight) if e.rules.get('schema_version')==2 else suggested_load(e,r.weight)})
     if e.rules['tests'][e.active_test].get('scoring')=='relative':
         computed={item['id']:item for item in board(e)}
         for row in rows:
@@ -283,7 +283,12 @@ def tv(request,pk):
 def live_data(request,pk):
     e=get_object_or_404(Event,pk=pk)
     if e.status=='draft': return HttpResponseForbidden()
-    response=JsonResponse({'status':e.get_status_display(),'phase':e.status,'test':e.rules['tests'][e.active_test]['name'],'test_index':e.active_test,'relative_scoring':is_relative(e),'batch':e.active_batch,'board':board(e),'updated':timezone.now().isoformat()})
+    if request.GET.get('view')=='standings':
+        rows=board(e)
+        response=render(request,'event_results.html',{'event':e,'board':rows,'capacity_boards':capacity_boards(rows)})
+        response['Cache-Control']='no-store'
+        return response
+    response=JsonResponse({'status':e.phase_label,'phase':e.status,'test':e.rules.get('tests',[])[e.active_test]['name'] if 0<=e.active_test<len(e.rules.get('tests',[])) else 'Sin estación activa','test_index':e.active_test,'relative_scoring':is_relative(e),'batch':e.active_batch,'board':board(e),'updated':timezone.now().isoformat()})
     response['Cache-Control']='no-store'
     return response
 

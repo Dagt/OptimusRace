@@ -299,6 +299,8 @@ def check_in(reg_id,actor,weight,batch,attendance,reason='',revision=None):
 
 @transaction.atomic
 def capture(reg_id,actor,test,value,load,status,revision,reason,administrative=False,judged_points=None):
+    if not (actor.is_active and (actor.is_superuser or actor.groups.filter(name='Coach').exists())):
+        raise ValidationError('Solo un coach o administrador puede capturar marcas.')
     r=Registration.objects.select_for_update().select_related('event').get(pk=reg_id)
     e=Event.objects.select_for_update().get(pk=r.event_id)
     if r.attendance=='disqualified':raise ValidationError('El participante está descalificado.')

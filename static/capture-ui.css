@@ -1,0 +1,76 @@
+/* Touch-first judge workspace: two cards on wide screens, one on phones/tablets. */
+.capture-stage{gap:20px;flex-wrap:wrap}
+.stage-title{min-width:0}.stage-title h2{overflow-wrap:anywhere}
+.capture-list{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.capture-card{min-width:0;scroll-margin-top:20px}
+.capture-identity{align-items:flex-start;gap:12px;flex-wrap:wrap}
+.capture-identity>div{flex:1;min-width:150px}.capture-identity h3{font-size:17px;line-height:1.35}
+.capture-identity small,.capture-state{font-size:12px;line-height:1.5}
+.capture-state{max-width:100%;white-space:normal}
+.capture-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.capture-fields>label{min-width:0;font-size:13px;line-height:1.5}
+.capture-fields input,.capture-fields select{width:100%;min-height:50px;font-size:16px;box-sizing:border-box}
+.capture-fields .numeric-wrap>input{font-size:24px;margin-top:7px}
+.capture-fields .numeric-wrap>span{font-size:12px;top:23px}
+.capture-fields label>small{display:block;font-size:12px;margin-top:7px}
+.capture-preview{padding:10px 0;min-width:0}.capture-preview>small{font-size:10px}.capture-preview>strong{font-size:22px}
+.correction-reason{display:block;font-size:13px}.correction-reason input{font-size:16px;min-height:48px}
+.capture-footer{align-items:stretch;flex-direction:column;gap:12px}
+.capture-footer .save-feedback{max-width:none;font-size:12px;line-height:1.5;min-height:18px}
+.capture-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.capture-actions .button{min-height:48px;font-size:14px;white-space:normal}
+.capture-card[data-conflict="1"]{border-color:var(--gold)}
+.capture-toolbar{flex-wrap:wrap;gap:14px}.capture-toolbar .search-box{max-width:none;min-width:220px}
+.capture-toolbar .search-box input{font-size:16px}
+#coach-filter button{min-height:46px;font-size:13px}
+.connection-indicator{font-size:12px;line-height:1.5;white-space:normal}
+#stale-stage,#roster-changed{flex-wrap:wrap;font-size:14px;line-height:1.5}
+#stale-stage a,#roster-changed a{text-decoration:underline;font-weight:600}
+@media(max-width:1100px){.capture-list{grid-template-columns:1fr}}
+@media(max-width:600px){
+ .capture-stage{padding:18px;gap:14px}.stage-number{font-size:40px;padding-right:14px}
+ .stage-title h2{font-size:27px}.stage-title>span:last-child{font-size:12px}
+ .stage-completion{width:100%;display:flex;gap:8px;align-items:center;flex-wrap:wrap}.stage-completion .progress{width:100%;margin:0}
+ .capture-toolbar{align-items:stretch}.capture-toolbar .search-box{flex-basis:100%;min-width:0}
+ #coach-filter{display:flex;width:100%}#coach-filter button{flex:1}
+ .capture-identity{padding:16px}.capture-state{flex-basis:100%;margin-left:0}
+ .capture-fields{padding:16px;gap:14px}.capture-footer{padding:16px}
+ .capture-actions .button{flex:1}.correction-reason{padding-inline:16px}
+}
+/* Allocate the board actual remaining screen height; pagination uses that height. */
+.tv-mode main{height:100dvh;box-sizing:border-box;padding:20px 28px;overflow:hidden}
+#tv{--tv-row-height:88px;display:flex;flex-direction:column;height:100%;min-height:0;box-sizing:border-box}
+#tv .tv-heading,#tv .tv-stage,#tv .tv-column-head,#tv .tv-bottom{flex-shrink:0}
+#tv .tv-heading{margin-bottom:16px}.tv-heading h1{overflow-wrap:anywhere}
+#tv .tv-stage{margin-bottom:16px;gap:20px}
+#tv-board{flex:1;min-height:0;overflow:hidden}
+#tv .tv-row{height:var(--tv-row-height);box-sizing:border-box;margin-bottom:8px;padding:12px 20px}
+#tv .tv-athlete{min-width:0}#tv .tv-person-link{min-width:0}#tv .tv-person-link>div{min-width:0}
+#tv .tv-athlete strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.2}
+#tv .tv-bottom{padding:12px 0 0;flex-wrap:wrap;font-size:10px}
+@media(min-width:1600px) and (min-height:900px){#tv{--tv-row-height:114px}#tv .tv-athlete strong{font-size:24px}#tv .tv-category{font-size:17px}}
+@media(max-width:900px){
+ .tv-mode main{padding:14px}.tv-heading{flex-wrap:wrap;gap:12px}.tv-heading h1{font-size:26px}.tv-brand{font-size:34px}
+ #tv .tv-stage{gap:12px;padding:12px;flex-wrap:wrap}#tv .tv-stage>div{padding-right:12px}
+ #tv .tv-stage strong{font-size:22px}#tv .tv-category-control select{font-size:14px;min-height:40px}
+ #tv .tv-column-head,#tv .tv-row{grid-template-columns:35px minmax(0,1fr) 95px 55px 75px;gap:10px}
+ #tv .tv-row{padding:10px}.tv-column-head{padding-inline:10px}
+}
+@media(max-width:600px){
+ #tv{--tv-row-height:106px}#tv .tv-brand{display:none}#tv .tv-heading h1{font-size:23px}
+ #tv .tv-live{font-size:9px}#tv .tv-stage>div:first-child{flex-basis:100%;border:0}
+ #tv .tv-column-head,#tv .tv-row{grid-template-columns:28px minmax(0,1fr) 64px;gap:8px}
+ #tv .tv-column-head>span:nth-child(3),#tv .tv-column-head>span:nth-child(4),#tv .tv-category,#tv .tv-completion{display:none}
+ #tv .tv-athlete strong{font-size:15px}#tv .tv-athlete small{font-size:10px}#tv .tv-score{font-size:28px}
+ #tv .tv-person-link{gap:8px}#tv .tv-person-link .avatar{width:36px;height:44px;flex:none}
+ #tv .tv-bottom>span:nth-child(2){display:none}
+}
+
+.standings-sync{font-size:12px;color:var(--muted);margin:0 0 14px}
+#tv .tv-column-head{display:grid}
+#tv .tv-category,#tv .tv-score{grid-column:auto;grid-row:auto}
+#tv .tv-completion{display:block}
+.capture-photo{width:42px;height:52px;object-fit:cover;object-position:center 25%;border-radius:8px;flex:none}
+@media(max-width:900px){#tv .tv-stage>.tv-category-control{flex:1 1 140px;order:initial;border:0;padding:0}#tv .tv-clock{font-size:20px}}
+@media(max-width:600px){#tv .tv-category,#tv .tv-completion{display:none}#tv .tv-stage small,#tv .tv-category-control label{font-size:10px}}
+@media(max-height:550px){#tv .tv-heading{margin-bottom:8px}#tv .tv-heading .eyebrow{display:none}#tv .tv-stage{padding:8px;margin-bottom:8px}#tv .tv-stage>div:first-child{flex-basis:auto}#tv .tv-stage strong{font-size:18px}#tv .tv-bottom{padding-top:5px;font-size:9px}#tv{--tv-row-height:76px}}
