@@ -112,7 +112,7 @@ def signin(request):
             user=authenticate(request,username=candidates[0].username,password=request.POST.get('password')) if len(candidates)==1 else None
             if user and (user.is_superuser or user.groups.filter(name='Coach').exists()):
                 LoginAttempt.objects.filter(key=key).delete(); login(request,user); return redirect(next_url(request))
-            messages.error(request,'Correo o contraseña incorrectos.')
+            messages.error(request,'Usuario, correo o contraseña incorrectos.')
     return render(request,'login.html',{'next':next_url(request),'email':request.POST.get('email','')})
 
 def signup(request):

@@ -336,6 +336,14 @@ class CleanInstallTests(TestCase):
         self.assertEqual(Participant.objects.count(),0)
 
 class EmailLoginTests(TestCase):
+    def test_admin_can_login_by_username_and_form_accepts_plain_text(self):
+        user=User.objects.create_superuser('MixedCaseAdmin','owner@example.test','valid-secret-for-test')
+        self.assertContains(self.client.get('/login/'), 'type="text" name="email"')
+        response=self.client.post('/login/',{'email':' mixedcaseadmin ','password':'valid-secret-for-test'})
+        self.assertEqual(response.status_code,302)
+        self.assertEqual(int(self.client.session['_auth_user_id']),user.pk)
+
+
     def test_admin_with_distinct_mixed_case_username_can_login_by_email(self):
         user=User.objects.create_superuser('MixedCaseAdmin','owner@example.test','valid-secret-for-test')
         response=self.client.post('/login/',{'email':'OWNER@example.test','password':'valid-secret-for-test'})
@@ -346,7 +354,7 @@ class EmailLoginTests(TestCase):
         User.objects.create_user('first','shared@example.test','valid-secret-for-test')
         User.objects.create_user('second','shared@example.test','another-secret-for-test')
         response=self.client.post('/login/',{'email':'shared@example.test','password':'valid-secret-for-test'})
-        self.assertContains(response,'Correo o contraseña incorrectos')
+        self.assertContains(response,'Usuario, correo o contraseña incorrectos')
         self.assertNotIn('_auth_user_id',self.client.session)
 
 class PlatformManagementTests(TestCase):
