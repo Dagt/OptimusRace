@@ -73,3 +73,11 @@
 
 .catalog-save-actions{display:flex;justify-content:center;margin-top:24px}
 .catalog-save-actions .button{min-width:200px;max-width:100%;margin:0}
+
+.datetime-picker{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;width:100%;min-width:0}
+.datetime-date,.datetime-clock{display:flex;align-items:center;gap:8px;min-width:0}
+.datetime-date input{width:100%;min-width:0;box-sizing:border-box;color-scheme:dark}
+.datetime-clock select{flex:1;min-width:0;width:0;min-height:46px;margin:0}
+.datetime-clock>span{flex:none}
+.datetime-clear{justify-self:end;font-size:12px;margin:0;padding:2px 0}
+.datetime-clear[hidden]{display:none}
