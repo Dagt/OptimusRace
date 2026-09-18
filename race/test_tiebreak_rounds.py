@@ -96,3 +96,69 @@ class CatalogPlayoffTests(TestCase):
         self.event.status='closed';self.event.save()
         with self.assertRaises(ValidationError):save_mark(rnd.pk,self.scoring_coach,self.b.pk,15)
         with self.assertRaises(ValidationError):finish_round(rnd.pk,self.scoring_coach)
+
+    def duel(self,target=2):
+        self.exercise.parameters={'metric':'duel','wins_required':target};self.exercise.unit='victorias';self.exercise.higher=True;self.exercise.save()
+        return self.start()
+
+    def test_configurable_duel_and_no_score_changes(self):
+        from .tiebreak_rounds import record_victory
+        before=list(Result.objects.values())
+        rnd=self.duel(3);match=rnd.matches.get()
+        for i,winner in enumerate([self.b.pk,self.c.pk,self.b.pk,self.b.pk]):record_victory(rnd.pk,self.scoring_coach,match.pk,i,winner)
+        with self.assertRaises(ValidationError):record_victory(rnd.pk,self.scoring_coach,match.pk,4,self.c.pk)
+        with self.assertRaises(ValidationError):save_mark(rnd.pk,self.scoring_coach,self.b.pk,100)
+        finish_round(rnd.pk,self.scoring_coach)
+        self.assertEqual(before,list(Result.objects.values()))
+        self.assertEqual(TieBreak.objects.get().order[0],self.b.pk)
+        self.client.force_login(self.scoring_coach)
+        self.assertContains(self.client.get(f'/events/{self.event.pk}/tiebreaks/'),'Primero en llegar a 3 victorias')
+
+    def test_victory_revision_undo_permissions_and_snapshot(self):
+        from .tiebreak_rounds import record_victory
+        rnd=self.duel();match=rnd.matches.get()
+        self.exercise.parameters['wins_required']=5;self.exercise.save()
+        with self.assertRaises(ValidationError):record_victory(rnd.pk,self.admin,match.pk,0,self.b.pk)
+        with self.assertRaises(ValidationError):record_victory(rnd.pk,self.scoring_coach,match.pk,0,self.a.pk)
+        record_victory(rnd.pk,self.scoring_coach,match.pk,0,self.b.pk)
+        with self.assertRaises(ValidationError):record_victory(rnd.pk,self.scoring_coach,match.pk,0,self.c.pk)
+        record_victory(rnd.pk,self.scoring_coach,match.pk,1,None)
+        match.refresh_from_db();self.assertEqual(match.games,[])
+        with self.assertRaises(ValidationError):finish_round(rnd.pk,self.scoring_coach)
+        record_victory(rnd.pk,self.scoring_coach,match.pk,2,self.c.pk)
+        record_victory(rnd.pk,self.scoring_coach,match.pk,3,self.c.pk)
+        finish_round(rnd.pk,self.scoring_coach)
+        with self.assertRaises(ValidationError):record_victory(rnd.pk,self.scoring_coach,match.pk,4,None)
+
+    def test_three_contenders_round_robin_can_tie_again(self):
+        from .tiebreak_rounds import record_victory
+        capture(self.a.pk,self.scoring_coach,0,40,None,'done',1,'Empate')
+        rnd=self.duel(1)
+        self.assertEqual(rnd.matches.count(),3)
+        for match in rnd.matches.all():
+            pair={match.first_id,match.second_id}
+            winner=self.a.pk if pair=={self.a.pk,self.b.pk} else self.b.pk if pair=={self.b.pk,self.c.pk} else self.c.pk
+            record_victory(rnd.pk,self.scoring_coach,match.pk,0,winner)
+        finish_round(rnd.pk,self.scoring_coach)
+        rnd.refresh_from_db();self.assertEqual(rnd.status,'tied');self.assertEqual(len(rnd.finalists),3)
+        self.assertEqual(len(self.start().contenders),3)
+
+    def test_catalog_duel_target_required_and_editor_roundtrip(self):
+        from .management_forms import CatalogForm
+        data={'name':'Vencidas','capacity':'Fuerza','measurement':'duel','wins_required':4,'load_mode':'none','round_mode':'none'}
+        form=CatalogForm(data);self.assertTrue(form.is_valid(),form.errors)
+        exercise=form.save();self.assertEqual(exercise.parameters['wins_required'],4)
+        self.assertEqual(CatalogForm(instance=exercise).initial['measurement'],'duel')
+        for invalid in ['',0,1.5,100]:
+            form=CatalogForm({**data,'wins_required':invalid},instance=exercise)
+            self.assertFalse(form.is_valid())
+
+    def test_frozen_winner_remains_visible_after_event_closes(self):
+        from .tiebreak_rounds import rounds_for
+        from .services import change_phase
+        rnd=self.start()
+        save_mark(rnd.pk,self.scoring_coach,self.b.pk,10)
+        save_mark(rnd.pk,self.scoring_coach,self.c.pk,20)
+        finish_round(rnd.pk,self.scoring_coach)
+        change_phase(self.event.pk,self.admin,'closed');self.event.refresh_from_db()
+        self.assertFalse(rounds_for(self.event)[0].stale)

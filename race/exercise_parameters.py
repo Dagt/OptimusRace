@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 
 def validate_parameters(p):
     if not isinstance(p,dict):raise ValidationError('Parámetros de ejercicio inválidos.')
-    if p.get('metric','custom') not in ['time','repetitions','distance','weight','custom']:raise ValidationError('Tipo de resultado inválido.')
+    if p.get('metric','custom') not in ['time','repetitions','distance','weight','custom','duel']:raise ValidationError('Tipo de resultado inválido.')
     if p.get('load_mode','none') not in ['none','fixed','body_percent']:raise ValidationError('Tipo de carga inválido.')
     for key in ['duration_seconds','distance_meters','laps','load_value','load_step','bar_weight','min_value','max_value','precision']:
         value=p.get(key)
@@ -17,6 +17,9 @@ def validate_parameters(p):
     if p.get('load_mode','none')!='none' and not p.get('load_value'):raise ValidationError('Especifica el peso fijo o porcentaje de carga.')
     if p.get('round_mode','none') not in ['none','nearest','down','up']:raise ValidationError('Redondeo de carga inválido.')
     if p.get('round_mode','none')!='none' and not p.get('load_step'):raise ValidationError('El redondeo requiere un incremento de carga positivo.')
+    if p.get('metric')=='duel':
+        wins=p.get('wins_required')
+        if isinstance(wins,bool) or not isinstance(wins,int) or not 1<=wins<=99:raise ValidationError('Indica entre 1 y 99 victorias para ganar el enfrentamiento.')
     return p
 
 def load_for(test,weight):

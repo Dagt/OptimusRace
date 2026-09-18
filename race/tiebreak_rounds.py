@@ -1,9 +1,10 @@
 """Separate, catalog-backed first-place playoffs; never write normal Results."""
 import math
+from itertools import combinations
 from copy import deepcopy
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from .models import Event, Exercise, Registration, TieBreak, TieBreakRound, TieBreakMark, Audit
+from .models import Event, Exercise, Registration, TieBreak, TieBreakRound, TieBreakMark, TieBreakMatch, Audit
 from .relative_scoring import tie_groups
 from .exercise_parameters import validate_parameters, validate_mark, load_for, needs_load
 from .time_marks import supports_time_input, time_seconds
@@ -39,6 +40,8 @@ def start_round(event_id, actor, category, fingerprint, exercise_id):
     contenders = previous.finalists if previous and previous.status == 'tied' else [r['id'] for r in group['members']]
     rnd = TieBreakRound.objects.create(event=event, category=category, total=group['total'], fingerprint=fingerprint,
         exercise=exercise, test=test, contenders=contenders, actor=actor)
+    if test['parameters'].get('metric')=='duel':
+        TieBreakMatch.objects.bulk_create([TieBreakMatch(round=rnd,first_id=a,second_id=b) for a,b in combinations(contenders,2)])
     Audit.objects.create(event=event, actor=actor, action='tiebreak_round_started', details={'round':rnd.pk, 'test':test, 'contenders':contenders})
     return rnd
 
@@ -52,6 +55,8 @@ def save_mark(round_id, actor, registration_id, value, load=None, revision=0):
     current_group(event, rnd.category, rnd.fingerprint)
     if rnd.status != 'open':
         raise ValidationError('La ronda está cerrada.')
+    if rnd.test['parameters'].get('metric')=='duel':
+        raise ValidationError('Registra cada victoria en el marcador del enfrentamiento.')
     if registration_id not in rnd.contenders:
         raise ValidationError('El participante no pertenece a este desempate.')
     registration = Registration.objects.get(pk=registration_id, event=event, state='confirmed')
@@ -84,6 +89,17 @@ def finish_round(round_id, actor):
     group = current_group(event, rnd.category, rnd.fingerprint)
     if rnd.status != 'open':
         raise ValidationError('Esta ronda ya está cerrada.')
+    if rnd.test['parameters'].get('metric')=='duel':
+        matches=list(rnd.matches.all())
+        wins={key:0 for key in rnd.contenders}
+        if len(matches)!=len(rnd.contenders)*(len(rnd.contenders)-1)//2 or not matches:
+            raise ValidationError('Los enfrentamientos están incompletos.')
+        for match in matches:
+            winner=match_winner(match,rnd.test['parameters']['wins_required'])
+            if winner is None:raise ValidationError('Termina todos los enfrentamientos antes de finalizar.')
+            wins[winner]+=1
+        for registration_id,value in wins.items():
+            TieBreakMark.objects.create(round=rnd,registration_id=registration_id,value=value,actor=actor)
     marks = list(rnd.marks.all())
     if {m.registration_id for m in marks} != set(rnd.contenders):
         raise ValidationError('Faltan marcas de participantes en esta ronda.')
@@ -106,12 +122,58 @@ def finish_round(round_id, actor):
 
 def rounds_for(event):
     from .services import board
-    current = {g['category']:g['fingerprint'] for g in tie_groups(board(event))}
-    rounds = list(TieBreakRound.objects.filter(event=event).prefetch_related('marks').order_by('-pk'))
+    standings=board(event)
+    current = {g['category']:g['fingerprint'] for g in tie_groups(standings)}
+    frozen_decisions={r.get('tiebreak',{}).get('decision_id') for r in standings} if event.status=='closed' else set()
+    rounds = list(TieBreakRound.objects.filter(event=event).prefetch_related('marks','matches__first__participant','matches__second__participant').order_by('-pk'))
     for rnd in rounds:
-        rnd.stale = current.get(rnd.category) != rnd.fingerprint
+        rnd.stale = current.get(rnd.category) != rnd.fingerprint and not (rnd.decision_id and rnd.decision_id in frozen_decisions)
         marks = {m.registration_id:m for m in rnd.marks.all()}
         rnd.rows = [{'entry':r,'mark':marks.get(r.pk),'load':load_for(rnd.test,r.weight)} for r in Registration.objects.filter(pk__in=rnd.contenders).select_related('participant').order_by('bib')]
         rnd.complete = len(marks) == len(rnd.contenders)
         rnd.requires_load = needs_load(rnd.test)
+        rnd.duel = rnd.test['parameters'].get('metric')=='duel'
+        rnd.editable = event.status=='live' and rnd.status=='open' and not rnd.stale
+        rnd.label = 'Sin vigencia' if rnd.stale else {'open':'En captura','tied':'Nueva prueba necesaria','resolved':'Resuelto'}.get(rnd.status,rnd.status)
+        rnd.unit = 'min.seg' if rnd.test['parameters'].get('time_entry')=='minutes_seconds_dot' else rnd.test['unit']
+        rnd.match_rows = list(rnd.matches.all())
+        for match in rnd.match_rows:
+            match.first_score=match.games.count(match.first_id)
+            match.second_score=match.games.count(match.second_id)
+            match.winner_id=match_winner(match,rnd.test['parameters'].get('wins_required',1))
+            match.game_rows=[{'number':i+1,'winner':match.first if key==match.first_id else match.second} for i,key in enumerate(match.games)]
+        if rnd.duel:rnd.complete=bool(rnd.match_rows) and all(m.winner_id for m in rnd.match_rows)
+        rnd.winner=next((r['entry'] for r in rnd.rows if r['entry'].pk in rnd.finalists),None) if rnd.status=='resolved' else None
     return rounds
+
+
+def match_winner(match, required):
+    for key in [match.first_id,match.second_id]:
+        if match.games.count(key)>=required:return key
+    return None
+
+
+@transaction.atomic
+def record_victory(round_id,actor,match_id,revision,winner_id):
+    require_coach(actor)
+    initial=TieBreakRound.objects.get(pk=round_id)
+    event=Event.objects.select_for_update().get(pk=initial.event_id)
+    rnd=TieBreakRound.objects.select_for_update().get(pk=round_id)
+    current_group(event,rnd.category,rnd.fingerprint)
+    if rnd.status!='open' or rnd.test['parameters'].get('metric')!='duel':
+        raise ValidationError('Este enfrentamiento no admite capturas.')
+    match=rnd.matches.filter(pk=match_id).first()
+    if not match:raise ValidationError('El enfrentamiento no pertenece a esta ronda.')
+    if revision!=match.revision:raise ValidationError('Otro coach actualizó el marcador. Recarga antes de continuar.')
+    before=list(match.games)
+    if winner_id is None:
+        if not match.games:raise ValidationError('No hay victorias que corregir.')
+        match.games=match.games[:-1]
+    else:
+        if winner_id not in [match.first_id,match.second_id]:raise ValidationError('Selecciona uno de los dos competidores.')
+        if match_winner(match,rnd.test['parameters']['wins_required']):raise ValidationError('El enfrentamiento ya tiene ganador.')
+        match.games=[*match.games,winner_id]
+    match.revision+=1;match.actor=actor
+    match.save(update_fields=['games','revision','actor','updated_at'])
+    Audit.objects.create(event=event,actor=actor,action='tiebreak_victory',details={'round':rnd.pk,'match':match.pk,'before':before,'after':match.games,'revision':match.revision})
+    return match

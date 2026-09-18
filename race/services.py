@@ -36,6 +36,7 @@ def validate_rules(rules, complete=True):
             raise ValidationError('Se requieren ocho pruebas: dos por capacidad.')
         if len({t['name'] for t in tests}) != len(tests): raise ValidationError('Las pruebas deben ser distintas.')
         for t in tests:
+            if t.get('parameters',{}).get('metric')=='duel':raise ValidationError('Los enfrentamientos por victorias se eligen desde Desempates, no como estación individual.')
             if not t['name'].strip() or not t['unit'].strip() or not isinstance(t['higher'],bool): raise ValidationError('Nombre, unidad y dirección obligatorios.')
             method=t.get('scoring','linear')
             if method not in ['pending','linear','judge','relative']:raise ValidationError('Método de puntuación inválido.')

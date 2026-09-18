@@ -188,7 +188,7 @@ def event_edit(request,pk=None):
             else:messages.success(request,'Borrador guardado. Puedes seguir editándolo o publicarlo cuando esté listo.')
             return redirect('operations',pk=e.id)
         except (ValidationError,ValueError,KeyError) as exc: error(request,exc)
-    return render(request,'configure.html',{'form':form,'policy_form':policy,'event':e,'rules':rules,'locked':bool(e and (e.status!='draft' or e.registration_set.exists())),'catalog':list(Exercise.objects.values('name','unit','capacity','higher','base','elite','parameters'))})
+    return render(request,'configure.html',{'form':form,'policy_form':policy,'event':e,'rules':rules,'locked':bool(e and (e.status!='draft' or e.registration_set.exists())),'catalog':[t for t in Exercise.objects.values('name','unit','capacity','higher','base','elite','parameters') if t['parameters'].get('metric')!='duel']})
 
 def default_rules():
     names=['Sentadilla','Press banca','1000 m','Burpees 5 min','50 m','Shuttle 10x10','Salto horizontal','Salto vertical']
@@ -410,12 +410,15 @@ def portrait_preview(request):
 @never_cache
 @coach_only
 def coach_tiebreaks(request,pk):
-    from .tiebreak_rounds import rounds_for,save_mark,finish_round
+    from .tiebreak_rounds import rounds_for,save_mark,finish_round,record_victory
     event=get_object_or_404(Event,pk=pk)
     if request.method=='POST':
         rnd=get_object_or_404(TieBreakRound,pk=request.POST.get('round'),event=event)
         try:
-            if request.POST.get('action')=='finish':
+            if request.POST.get('action') in ['victory','undo_victory']:
+                record_victory(rnd.pk,request.user,int(request.POST['match']),int(request.POST['revision']),int(request.POST['winner']) if request.POST.get('action')=='victory' else None)
+                messages.success(request,'Marcador actualizado.')
+            elif request.POST.get('action')=='finish':
                 finished=finish_round(rnd.pk,request.user)
                 messages.success(request,'Primer lugar resuelto.' if finished.status=='resolved' else 'Persiste el empate. Administración debe elegir otra prueba.')
             else:
@@ -424,4 +427,6 @@ def coach_tiebreaks(request,pk):
         except (ValidationError,ValueError,KeyError) as exc:
             error(request,exc)
         return redirect('coach_tiebreaks',pk=pk)
-    return render(request,'coach_tiebreaks.html',{'event':event,'rounds':rounds_for(event)})
+    rounds=rounds_for(event)
+    rounds.sort(key=lambda rnd:(0 if rnd.editable else 1 if rnd.status=='tied' and not rnd.stale else 2,-rnd.pk))
+    return render(request,'coach_tiebreaks.html',{'event':event,'rounds':rounds})

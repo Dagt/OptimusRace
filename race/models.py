@@ -175,3 +175,16 @@ class TieBreakMark(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['round', 'registration'], name='one_tiebreak_mark')]
+
+
+class TieBreakMatch(models.Model):
+    round = models.ForeignKey(TieBreakRound, on_delete=models.PROTECT, related_name='matches')
+    first = models.ForeignKey(Registration, on_delete=models.PROTECT, related_name='+')
+    second = models.ForeignKey(Registration, on_delete=models.PROTECT, related_name='+')
+    games = models.JSONField(default=list)
+    revision = models.PositiveIntegerField(default=0)
+    actor = models.ForeignKey(User, null=True, on_delete=models.PROTECT)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['round','first','second'],name='one_playoff_pair')]

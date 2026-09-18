@@ -57,9 +57,10 @@ class TeamForm(forms.Form):
         return value
 
 class CatalogForm(forms.ModelForm):
-    measurement=forms.ChoiceField(label='Resultado que registra el juez',required=False,choices=[('repetitions','Repeticiones'),('time','Tiempo · Segundos'),('time_minutes','Tiempo · Minutos'),('distance_cm','Distancia o altura en centímetros'),('distance_m','Distancia en metros'),('weight','Peso levantado en kg'),('custom','Otra medida')])
-    measurement_defaults={'repetitions':('repetitions','reps',True),'time':('time','seg',False),'time_minutes':('time','seg',False),'distance_cm':('distance','cm',True),'distance_m':('distance','m',True),'weight':('weight','kg',True)}
-    metric=forms.ChoiceField(label='Tipo de resultado',choices=[('time','Tiempo'),('repetitions','Repeticiones'),('distance','Distancia / altura'),('weight','Peso levantado'),('custom','Otro (unidad libre)')])
+    measurement=forms.ChoiceField(label='Resultado que registra el juez',required=False,choices=[('repetitions','Repeticiones'),('time','Tiempo · Segundos'),('time_minutes','Tiempo · Minutos'),('distance_cm','Distancia o altura en centímetros'),('distance_m','Distancia en metros'),('weight','Peso levantado en kg'),('duel','Enfrentamiento · victorias'),('custom','Otra medida')])
+    measurement_defaults={'duel':('duel','victorias',True),'repetitions':('repetitions','reps',True),'time':('time','seg',False),'time_minutes':('time','seg',False),'distance_cm':('distance','cm',True),'distance_m':('distance','m',True),'weight':('weight','kg',True)}
+    metric=forms.ChoiceField(label='Tipo de resultado',choices=[('time','Tiempo'),('repetitions','Repeticiones'),('distance','Distancia / altura'),('weight','Peso levantado'),('duel','Enfrentamiento'),('custom','Otro (unidad libre)')])
+    wins_required=forms.IntegerField(label='Victorias necesarias para ganar',required=False,min_value=1,max_value=99,initial=2)
     duration_seconds=forms.FloatField(label='Duración del esfuerzo · segundos',required=False,min_value=.01,help_text='Opcional. Ejemplo: 60 para un minuto de burpees.')
     distance_meters=forms.FloatField(label='Distancia por recorrido · metros',required=False,min_value=.01)
     laps=forms.IntegerField(label='Número de recorridos',required=False,min_value=1,help_text='Ejemplo: distancia 10 y recorridos 10 para shuttle 10 × 10.')
@@ -73,7 +74,7 @@ class CatalogForm(forms.ModelForm):
     max_value=forms.FloatField(label='Marca máxima válida (opcional)',required=False,min_value=0)
     equipment=forms.CharField(label='Equipo permitido / necesario',required=False,widget=forms.Textarea(attrs={'rows':2}))
     instructions=forms.CharField(label='Indicaciones para el juez (opcional)',required=False,widget=forms.Textarea(attrs={'rows':4}))
-    parameter_fields=['metric','duration_seconds','distance_meters','laps','load_mode','load_value','bar_weight','load_step','round_mode','precision','min_value','max_value','equipment','instructions']
+    parameter_fields=['wins_required','metric','duration_seconds','distance_meters','laps','load_mode','load_value','bar_weight','load_step','round_mode','precision','min_value','max_value','equipment','instructions']
     def __init__(self,*args,**kwargs):
         instance=kwargs.get('instance')
         if args and args[0] is not None:
@@ -89,6 +90,9 @@ class CatalogForm(forms.ModelForm):
                 data['metric']=metric;data['unit']=unit
                 if 'higher' not in data:data['higher']=str(higher)
             elif data.get('measurement')=='custom':data['metric']='custom'
+            if data.get('measurement')=='duel':
+                data['higher']='True';data['load_mode']='none';data['base']='';data['elite']=''
+                for key in ['duration_seconds','distance_meters','laps','precision','min_value','max_value']:data[key]=''
             if data.get('load_mode')=='none':
                 for key in ['load_value','bar_weight','load_step']:data[key]=''
                 data['round_mode']='none'
@@ -103,7 +107,7 @@ class CatalogForm(forms.ModelForm):
         measurement=self.data.get('measurement') if self.is_bound else self.initial.get('measurement')
         if measurement in self.measurement_defaults:self.fields['unit'].widget.attrs['readonly']=True
     def sections(self):
-        groups=[('La prueba', 'Elige qué medirá el juez. La unidad se obtiene del resultado seleccionado.', ['name','capacity','measurement','unit','higher']),
+        groups=[('La prueba', 'Elige qué medirá el juez. La unidad se obtiene del resultado seleccionado.', ['name','capacity','measurement','wins_required','unit','higher']),
                 ('Condiciones del ejercicio · opcionales', 'Deja vacío lo que no aplique. Duración y recorrido describen el ejercicio; no son la marca que se calificará.', ['duration_seconds','distance_meters','laps','load_mode','load_value','instructions'])]
         return [{'title':title,'help':help_text,'fields':[self[name] for name in names]} for title,help_text,names in groups]
 
@@ -124,6 +128,9 @@ class CatalogForm(forms.ModelForm):
         help_texts={'unit':'Unidad de captura: seg, reps, cm, m, kg u otra. No se convierten unidades automáticamente.','base':'Referencias opcionales para evaluación lineal: base = 50% y élite = 100% del máximo de la estación. La puntuación se elige en cada evento.'}
     def clean(self):
         d=super().clean();base=d.get('base');elite=d.get('elite')
+        if d.get('measurement')=='duel' and not d.get('wins_required'):
+            self.add_error('wins_required','Indica cuántas victorias se necesitan para ganar.')
+        if d.get('measurement')!='duel':d.pop('wins_required',None)
         if (base is None)!=(elite is None):raise forms.ValidationError('Completa ambas referencias o deja ambas vacías.')
         if base is not None and elite is not None:
             if not all(math.isfinite(x) and x>=0 for x in [base,elite]):raise forms.ValidationError('Las referencias deben ser números finitos no negativos.')

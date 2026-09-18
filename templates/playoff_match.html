@@ -1,0 +1,10 @@
+<article class="duel-board">
+<div class="duel-target">Primero en llegar a {{ round.test.parameters.wins_required }} victorias</div>
+<div class="duel-players">
+{% with entry=match.first score=match.first_score %}{% include 'playoff_player.html' %}{% endwith %}
+<span class="duel-versus">VS</span>
+{% with entry=match.second score=match.second_score %}{% include 'playoff_player.html' %}{% endwith %}
+</div>
+{% if match.game_rows %}<div class="duel-timeline">{% for game in match.game_rows %}<span>{{ game.number }} · #{{ game.winner.bib }}</span>{% endfor %}</div>{% endif %}
+{% if capture and round.editable and match.games %}<form method="post" class="duel-undo">{% csrf_token %}<input type="hidden" name="round" value="{{ round.pk }}"><input type="hidden" name="match" value="{{ match.pk }}"><input type="hidden" name="revision" value="{{ match.revision }}"><button class="text-button" name="action" value="undo_victory">Corregir última victoria</button></form>{% endif %}
+</article>
