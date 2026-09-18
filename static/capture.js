@@ -22,6 +22,10 @@ if(q('#capture-list')){
   forms.forEach(f=>{f.hidden=f!==selected});
   q('#capture-picker').hidden=filter==='search'&&(!term||!!selected);
   q('#capture-change').hidden=!selected;
+  q('#capture-change').textContent=filter==='search'?'Otro competidor':'Volver a lista';
+  q('#capture-change').setAttribute('aria-label',filter==='search'?'Buscar otro competidor':'Volver a la lista');
+  q('#capture-console').dataset.view=filter;
+  q('#capture-console').dataset.selected=selected?'1':'0';
   q('#capture-list-actions').hidden=filter==='search';
   qa('button',q('#coach-filter')).forEach(b=>{b.hidden=b.dataset.filter==='drafts'&&!dirty.size;b.setAttribute('aria-pressed',String(b.dataset.filter===filter))});
   q('#capture-next-pending').disabled=!forms.some(f=>!resolved(f)&&f.dataset.enabled==='1');
@@ -51,7 +55,7 @@ if(q('#capture-list')){
  function select(f){selected=f;if(filter==='search')q('#coach-search').value='';render();q('.capture-identity',f).scrollIntoView?.({block:'nearest',behavior:'smooth'});if(filter==='search'&&!f.elements.value.disabled)f.elements.value.focus()}
  q('#coach-search').oninput=()=>{if(filter==='search')selected=null;render()};
  q('#coach-search').onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();const options=q('#capture-options').children;if(options.length===1)options[0].onclick()}};
- q('#capture-change').onclick=()=>{selected=null;filter='search';q('#coach-search').value='';qa('button',q('#coach-filter')).forEach(b=>b.classList.toggle('selected',b.dataset.filter===filter));render();q('#coach-search').focus()};
+ q('#capture-change').onclick=()=>{selected=null;q('#coach-search').value='';qa('button',q('#coach-filter')).forEach(b=>b.classList.toggle('selected',b.dataset.filter===filter));render();q('#coach-search').focus()};
  q('#capture-next-pending').onclick=()=>{const candidates=forms.filter(f=>!resolved(f)&&f.dataset.enabled==='1');if(!candidates.length)return;selected=candidates[(candidates.indexOf(selected)+1)%candidates.length];render();q('.capture-identity',selected).scrollIntoView?.({block:'nearest',behavior:'smooth'})};
  qa('button',q('#coach-filter')).forEach(b=>b.onclick=()=>{if(filter!==b.dataset.filter)selected=null;filter=b.dataset.filter;q('#coach-search').value='';qa('button',q('#coach-filter')).forEach(x=>x.classList.toggle('selected',x===b));render()});
  forms.forEach(f=>{

@@ -193,3 +193,12 @@ test('changing tabs clears the selected card and search but preserves a recovera
  f.filters[0].onclick();assert.ok(f.forms.every(x=>x.hidden));
  assert.equal(f.q('#capture-options').children.length,3);
 });
+
+test('list selection exposes detail layout and return keeps the current tab',async()=>{
+ const f=setup(3);await flush();f.filters[1].onclick();f.q('#capture-options').children[0].onclick();
+ assert.equal(f.q('#capture-console').dataset.selected,'1');assert.equal(f.q('#capture-console').dataset.view,'pending');
+ assert.equal(f.q('#capture-change').textContent,'Volver a lista');
+ f.q('#capture-change').onclick();assert.ok(f.forms.every(x=>x.hidden));
+ assert.equal(f.q('#capture-console').dataset.selected,'0');assert.equal(f.q('#capture-console').dataset.view,'pending');
+ assert.equal(f.q('#capture-options').children.length,3);
+});

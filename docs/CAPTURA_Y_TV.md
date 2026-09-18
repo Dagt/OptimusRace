@@ -66,3 +66,5 @@ Solo un empate en el mayor acumulado de una categoría requiere desempate. Los e
 La pantalla sigue consultando el estado mientras una estación está cerrada. Si administración abre otra y no hay borradores ni envíos pendientes, carga automáticamente la nueva estación. Si hay datos sin guardar, bloquea la estación anterior y conserva esos datos para revisión; no los traslada a otra prueba. Reabrir la misma estación vuelve a habilitarla. La pantalla de captura no se almacena en caché y los campos se inicializan con los valores del servidor para evitar restaurar marcas de la estación anterior al recargar.
 
 El control de estaciones mantiene selector, estado y acciones visibles. Los participantes pendientes se actualizan automáticamente en una lista compacta. El cierre consulta las marcas actuales, aunque el contador visible aún no se haya actualizado.
+
+La captura usa una lista junto a la ficha en escritorio. Hasta 900 px, seleccionar un participante sustituye la lista por la ficha; «Volver a lista» conserva la pestaña activa. Buscar sigue mostrando únicamente las coincidencias o la ficha seleccionada.

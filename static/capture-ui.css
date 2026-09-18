@@ -210,3 +210,37 @@
  .coach-workspace .capture-search-row .search-box{flex-basis:0}
  .coach-workspace .capture-search-row #capture-change{font-size:12px;padding-inline:10px}
 }
+
+/* One coherent capture surface: bounded search, and list/detail for larger screens. */
+.coach-workspace{max-width:960px}
+.coach-workspace .capture-console{max-width:640px;margin-inline:auto}
+.coach-workspace .capture-toolbar{gap:14px;margin-bottom:14px}
+.coach-workspace #coach-filter{border:0;border-bottom:1px solid var(--border);border-radius:0;background:transparent;padding:0;gap:4px;justify-content:flex-start}
+.coach-workspace #coach-filter button{flex:0 0 auto;border:0;border-radius:0;background:transparent;padding:12px;color:var(--muted);box-shadow:none;border-bottom:2px solid transparent}
+.coach-workspace #coach-filter button.selected{border-bottom-color:var(--gold);color:var(--ink);background:transparent}
+.coach-workspace .capture-search-row{max-width:none;width:100%}
+.coach-workspace .capture-search-row .search-box{max-width:none;flex:1}
+.coach-workspace .capture-workbench{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+.coach-workspace .capture-picker,.coach-workspace .capture-list{width:100%;min-width:0;max-width:none;margin:0}
+.coach-workspace .capture-list:has(>form):not(:has(>form:not([hidden]))){display:none}
+.coach-workspace .capture-card{margin:0;box-shadow:none}
+.coach-workspace #capture-options{max-height:340px;border-radius:10px;background:var(--panel)}
+.coach-workspace #capture-options .capture-option{min-height:58px;background:transparent;box-shadow:none}
+.coach-workspace #capture-options .capture-option[aria-pressed="true"]{background:#f2ed0010;box-shadow:inset 3px 0 var(--gold)}
+.coach-workspace #capture-options .capture-option:last-child{border-bottom:0}
+.coach-workspace #capture-options .capture-option span{background:transparent;padding:0;color:var(--muted);font-size:11px}
+.coach-workspace #capture-options .capture-option[data-status="done"] span{color:var(--gold)}
+.coach-workspace .capture-fields label{margin-bottom:0}
+.coach-workspace .capture-pagination{justify-content:flex-end;margin-top:12px}
+@media(min-width:901px){
+ .coach-workspace .capture-console[data-selected="1"]:not([data-view="search"]){max-width:960px}
+ .coach-workspace .capture-console[data-selected="1"]:not([data-view="search"]) .capture-workbench{grid-template-columns:minmax(0,0.85fr) minmax(0,1.15fr)}
+ .coach-workspace .capture-console[data-selected="1"]:not([data-view="search"]) #capture-options{max-height:440px}
+ .coach-workspace .capture-console[data-selected="1"]:not([data-view="search"]) .capture-fields{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:900px){
+ .coach-workspace .capture-console[data-selected="1"] #capture-picker{display:none}
+ .coach-workspace #capture-options{max-height:45dvh}
+}
+
+.coach-workspace>.page-heading,.coach-workspace>.capture-stage{max-width:640px;margin-inline:auto}
