@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm');
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 
-function setup(count=1){
+function setup(count=1,restoredValue=null){
  class Element{
   constructor(){this.value='';this.dataset={};this.hidden=false;this.disabled=false;this.style={};this.listeners={};this.classList={add(){},toggle(){}}}
   addEventListener(type,fn){this.listeners[type]=fn}
@@ -17,6 +17,8 @@ function setup(count=1){
  form.elements={};for(const [key,value] of Object.entries({registration:'1',test:'0',revision:'0',value:'',status:'done',reason:''})){form.elements[key]=new Element();form.elements[key].value=value}
  form.dataset={enabled:'1',done:'0',status:'pending',attendance:'pending',bib:'1',search:'Ana 1'};
  const forms=[form];for(let i=2;i<=count;i++){const f=new Element();f.dataset={...form.dataset,bib:String(i),search:'Atleta '+i};f.elements={};for(const [k,v] of Object.entries(form.elements)){f.elements[k]=new Element();f.elements[k].value=k==='registration'?String(i):v.value}forms.push(f);localMaps.set(f,new Map())}
+ forms.forEach(f=>{const defaults=Object.fromEntries(Object.entries(f.elements).map(([k,v])=>[k,v.value]));f.reset=()=>{for(const [k,v] of Object.entries(defaults))f.elements[k].value=v}});
+ if(restoredValue!==null)form.elements.value.value=restoredValue;
  const filters=['all','pending','done','drafts','search'].map(filter=>{const b=new Element();b.dataset.filter=filter;return b});
  const list=q('#capture-list');list.dataset={liveUrl:'/live/',test:'0'};
  q('#capture-test').textContent=JSON.stringify({scoring:'relative',max_points:100});
@@ -25,7 +27,7 @@ function setup(count=1){
  const context={q,qa:(key,root)=>key==='.capture-card'?forms:root===q('#coach-filter')?filters:[],
   node:(tag,text)=>({textContent:text}),fmt:String,stateNames:{pending:'Faltante',done:'Realizada',absent:'Ausente'},
   document:Object.assign(new Element(),{hidden:false,createElement:()=>new Element(),createTextNode:text=>({textContent:text})}),
-  window:new Element(),navigator:{onLine:true},location:{pathname:'/coach/'},confirm:()=>true,
+  window:new Element(),navigator:{onLine:true},location:{pathname:'/coach/',replace:url=>{state.navigation=url}},confirm:()=>true,
   FormData:class{constructor(f){this.values=Object.fromEntries(Object.entries(f.elements).filter(([k,v])=>!v.disabled).map(([k,v])=>[k,v.value]))}get(key){return this.values[key]}},
   jsonFetch:async(url,options)=>options?.method==='POST'?await new Promise((resolve,reject)=>state.posts.push({resolve,reject,body:options.body})):structuredClone(state.feed),
   setInterval:fn=>state.intervals.push(fn)};
@@ -156,4 +158,26 @@ test('late save confirmation does not close another competitor selected meanwhil
  f.q('#capture-options').children[1].onclick();
  f.state.posts[0].resolve({revision:1,status:'done',points:100});await save;
  assert.equal(f.forms[1].hidden,false);assert.equal(f.form.hidden,true);
+});
+
+test('reload discards browser-restored values from a previous station',async()=>{
+ const f=setup(1,'99');await flush();assert.equal(f.form.elements.value.value,'');
+ f.form.elements.value.value='99';f.context.window.listeners.pageshow({persisted:false});await flush();
+ assert.equal(f.form.elements.value.value,'');assert.equal(f.form.elements.revision.value,0);
+});
+test('closed station keeps polling and loads the next station automatically when clean',async()=>{
+ const f=setup();await flush();f.state.feed.station_closed=true;await f.poll();
+ assert.equal(f.q('[data-save-mark]',f.form).disabled,true);
+ f.state.feed.station_closed=false;f.state.feed.test_index=1;await f.poll();
+ assert.equal(f.state.navigation,'/coach/?station=1');
+});
+test('reopening the same station unlocks it without losing drafts',async()=>{
+ const f=setup();await flush();f.edit('45');f.state.feed.station_closed=true;await f.poll();
+ f.state.feed.station_closed=false;await f.poll();
+ assert.equal(f.form.elements.value.value,'45');assert.equal(f.q('[data-save-mark]',f.form).disabled,false);
+});
+test('changing stations never reloads a coach with unsaved input',async()=>{
+ const f=setup();await flush();f.edit('45');f.state.feed.test_index=1;await f.poll();await f.poll();
+ assert.equal(f.state.navigation,undefined);assert.equal(f.form.elements.value.value,'45');
+ assert.equal(f.q('[data-save-mark]',f.form).disabled,true);
 });

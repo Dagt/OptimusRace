@@ -59,3 +59,8 @@ Los empates en segundo lugar o posteriores conservan posiciones compartidas; no 
 Hay un ganador por categoría femenil y rango de peso, y uno por categoría varonil y rango de peso. La clasificación usa el acumulado de todas las estaciones (máximos configurados que suman 100); no se suman marcas crudas de unidades distintas ni se premia cada habilidad. Las pruebas sin marca aportan cero según la regla existente; la tabla muestra cuántas se realizaron. Los puntajes son provisionales mientras se captura.
 
 Solo un empate en el mayor acumulado de una categoría requiere desempate. Los eventos con la antigua opción de podios por capacidad también usan esta regla. Los registros históricos de decisiones se conservan para auditoría, pero las decisiones por capacidad no se aplican. Las gráficas por habilidad siguen disponibles como información. Los resultados ya cerrados conservan su acumulado y ganador general; se omite la antigua premiación por capacidad al mostrarlos.
+
+
+## Cambio de estación en la captura
+
+La pantalla sigue consultando el estado mientras una estación está cerrada. Si administración abre otra y no hay borradores ni envíos pendientes, carga automáticamente la nueva estación. Si hay datos sin guardar, bloquea la estación anterior y conserva esos datos para revisión; no los traslada a otra prueba. Reabrir la misma estación vuelve a habilitarla. La pantalla de captura no se almacena en caché y los campos se inicializan con los valores del servidor para evitar restaurar marcas de la estación anterior al recargar.

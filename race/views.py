@@ -1,3 +1,4 @@
+from django.views.decorators.cache import never_cache
 from .account_names import name_parts,save_name
 import json, hashlib, secrets
 from datetime import timedelta
@@ -267,6 +268,7 @@ def operations(request,pk):
     seats=availability(e)
     return render(request,'operations.html',{'event':e,'station_options':station_options,'active_station':active_station,'station_done':station_done,'station_pending_count':station_pending(e).count(),'station_pending_entries':station_pending(e).order_by('bib'),'seats':seats,'registration_notice':'Cupo agotado' if seats['full'] else e.registration_label,'publish_issues':publish_issues,'can_cash':seats['registration_open'] and not seats['full'],'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'pending_ties':pending_ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
 
+@never_cache
 @coach_only
 def coach(request,pk):
     e=get_object_or_404(Event,pk=pk)

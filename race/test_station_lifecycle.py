@@ -71,3 +71,17 @@ class StationLifecycleTests(TestCase):
         response=self.client.post(url,{'action':'reopen_station','test':0})
         self.assertEqual(response.status_code,302)
         self.event.refresh_from_db();self.assertFalse(self.event.station_capture_closed)
+
+    def test_coach_reload_only_renders_marks_for_current_station(self):
+        from django.urls import reverse
+        self.mark('done',42)
+        close_station(self.event.pk,self.admin,0)
+        change_phase(self.event.pk,self.admin,'live',1)
+        self.client.force_login(self.scoring_coach)
+        response=self.client.get(reverse('coach',args=[self.event.pk]))
+        self.assertEqual(response.status_code,200)
+        self.assertIn('no-store',response['Cache-Control'])
+        self.assertEqual(response.context['event'].active_test,1)
+        self.assertIsNone(response.context['rows'][0]['mark'])
+        self.assertContains(response,'name="test" value="1"')
+        self.assertEqual(Result.objects.get(test=0).value,42)

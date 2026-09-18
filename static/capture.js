@@ -56,7 +56,7 @@ if(q('#capture-list')){
  q('#capture-next-pending').onclick=()=>{const candidates=forms.filter(f=>!resolved(f)&&f.dataset.enabled==='1');if(!candidates.length)return;selected=candidates[(candidates.indexOf(selected)+1)%candidates.length];render();q('.capture-identity',selected).scrollIntoView?.({block:'nearest',behavior:'smooth'})};
  qa('button',q('#coach-filter')).forEach(b=>b.onclick=()=>{filter=b.dataset.filter;q('#coach-search').value='';qa('button',q('#coach-filter')).forEach(x=>x.classList.toggle('selected',x===b));render()});
  forms.forEach(f=>{
-  preview(f);
+  f.reset();f.elements.test.value=list.dataset.test;preview(f);
   f.addEventListener('input',()=>{dirty.add(f);feedback(f,'Cambios sin guardar');preview(f);render()});
   q('[data-load-saved]',f).onclick=()=>{
    if(dirty.has(f)&&!confirm('¿Descartar lo escrito en esta tarjeta y cargar la marca guardada en el servidor?'))return;
@@ -77,13 +77,16 @@ if(q('#capture-list')){
   });
  });
  async function poll(){
-  if(polling||stale||document.hidden)return;polling=true;
+  if(polling||document.hidden)return;polling=true;
   try{
    const data=await jsonFetch(list.dataset.liveUrl,{cache:'no-store'});connection('Sincronizado · '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),true);
    if(data.station_closed||data.phase!=='live'||String(data.test_index)!==list.dataset.test){
     stale=true;q('#stale-stage').hidden=false;q('#stale-message').textContent=data.station_closed?'Administración cerró esta estación. Las capturas guardadas se conservan. Actualiza si se reabre.':data.phase==='closed'?'El evento terminó. La captura está cerrada.':data.phase!=='live'?'La competencia aún no está en curso. Actualiza cuando administración la inicie.':'La estación activa cambió. Revisa tus datos pendientes antes de actualizar.';
-    forms.forEach(preview);return;
+    forms.forEach(preview);
+    if(data.phase==='live'&&!data.station_closed&&String(data.test_index)!==list.dataset.test&&!dirty.size&&!saving.size){location.replace(location.pathname+'?station='+encodeURIComponent(data.test_index))}
+    return;
    }
+   stale=false;q('#stale-stage').hidden=true;
    const rows=new Map(data.board.map(row=>[String(row.id),row]));
    q('#roster-changed').hidden=rows.size===forms.length&&forms.every(f=>rows.has(f.elements.registration.value));
    forms.forEach(f=>{
@@ -96,7 +99,7 @@ if(q('#capture-list')){
      if(mark.revision>Number(f.elements.revision.value)){
       if(dirty.has(f)){f.dataset.conflict='1';q('[data-load-saved]',f).hidden=false;feedback(f,'Existe otra versión guardada. Tu captura pendiente se conserva; revisa la versión del servidor antes de corregir.',true)}
       else{applyMark(f,mark);feedback(f,'Actualizado desde el servidor.')}
-     }else if(mark.revision===Number(f.elements.revision.value))paintScore(f,mark);
+     }else if(mark.revision===Number(f.elements.revision.value)){if(!dirty.has(f))applyMark(f,mark);else paintScore(f,mark)}
     }
     if(!row||['withdrawn','disqualified'].includes(row.attendance))feedback(f,'Captura bloqueada: revisa la inscripción o asistencia con administración.',true);
     preview(f);
@@ -104,6 +107,11 @@ if(q('#capture-list')){
   }catch(error){connection(navigator.onLine?'Sin respuesta del servidor':'Sin conexión · no guardado',false)}
   finally{polling=false}
  }
+ window.addEventListener('pageshow',event=>{
+  if(!event.persisted&&!dirty.size&&!saving.size){forms.forEach(f=>{f.reset();f.elements.test.value=list.dataset.test;preview(f)})}
+  if(event.persisted){stale=true;forms.forEach(preview)}
+  poll();
+ });
  window.addEventListener('beforeunload',event=>{if(dirty.size||saving.size){event.preventDefault();event.returnValue=''}});
  window.addEventListener('offline',()=>connection('Sin conexión · no guardado',false));window.addEventListener('online',poll);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll()});
