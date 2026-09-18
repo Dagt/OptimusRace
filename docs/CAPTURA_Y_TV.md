@@ -26,7 +26,7 @@ En evaluación relativa, otra marca de la misma categoría puede cambiar los pun
 ## Celular, tableta y escritorio
 
 - Lista compacta con desplazamiento dentro de una altura limitada, sin páginas de seis participantes. Solo se muestra un formulario de captura. «Siguiente por revisar» recorre participantes sin resolver.
-- Filtro inicial «Por revisar», además de Todos, Realizadas y Mis pendientes (borradores de este dispositivo). Cambiar de filtro o participante conserva las ediciones en esta pestaña. La sincronización nunca cambia la selección.
+- Vista inicial «Buscar»: escribe nombre o número, selecciona una coincidencia y captura. Enter abre al participante cuando hay una sola coincidencia; nunca guarda automáticamente. «Buscar otro competidor» vuelve al buscador. Las pestañas Todos, Realizados y Pendientes muestran listas desplazables; «Sin guardar» aparece cuando existen borradores. Cambiar de vista o participante conserva las ediciones en esta pestaña. La sincronización nunca cambia la selección.
 - Varios coaches pueden capturar distintos participantes del mismo evento. No hay reparto automático ni reserva de participantes; si coinciden en la misma marca, el control de revisión rechaza la segunda escritura y permite revisar la versión guardada.
 - Campos de al menos 50 px, botones de al menos 46–48 px y teclado decimal en entradas numéricas.
 - Búsqueda y filtro se apilan en celulares; marca, unidad y estado permanecen junto al participante.

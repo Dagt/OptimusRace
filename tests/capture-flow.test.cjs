@@ -17,7 +17,7 @@ function setup(count=1){
  form.elements={};for(const [key,value] of Object.entries({registration:'1',test:'0',revision:'0',value:'',status:'done',reason:''})){form.elements[key]=new Element();form.elements[key].value=value}
  form.dataset={enabled:'1',done:'0',status:'pending',attendance:'pending',bib:'1',search:'Ana 1'};
  const forms=[form];for(let i=2;i<=count;i++){const f=new Element();f.dataset={...form.dataset,bib:String(i),search:'Atleta '+i};f.elements={};for(const [k,v] of Object.entries(form.elements)){f.elements[k]=new Element();f.elements[k].value=k==='registration'?String(i):v.value}forms.push(f);localMaps.set(f,new Map())}
- const filters=['all','pending','done','drafts'].map(filter=>{const b=new Element();b.dataset.filter=filter;return b});
+ const filters=['all','pending','done','drafts','search'].map(filter=>{const b=new Element();b.dataset.filter=filter;return b});
  const list=q('#capture-list');list.dataset={liveUrl:'/live/',test:'0'};
  q('#capture-test').textContent=JSON.stringify({scoring:'relative',max_points:100});
  const mark={revision:0,value:null,load:null,points:null,status:'pending'};
@@ -83,7 +83,7 @@ test('new registration prompts roster refresh without blocking current captures'
 
 
 test('review queue has no pagination and preserves drafts when selecting another athlete',async()=>{
- const f=setup(20);await flush();
+ const f=setup(20);await flush();f.filters[1].onclick();
  assert.equal(f.q('#capture-options').children.length,20);assert.ok(f.forms.every(x=>x.hidden));
  f.q('#capture-options').children[0].onclick();assert.equal(f.forms.filter(x=>!x.hidden).length,1);
  f.edit('55');f.q('#capture-next-pending').onclick();
@@ -96,7 +96,7 @@ test('review queue has no pagination and preserves drafts when selecting another
 });
 
 test('remote save updates selector and filters without changing the selected athlete',async()=>{
- const f=setup(8);await flush();f.q('#capture-options').children[0].onclick();
+ const f=setup(8);await flush();f.filters[1].onclick();f.q('#capture-options').children[0].onclick();
  Object.assign(f.mark,{revision:1,value:42,points:100,status:'done'});await f.poll();
  assert.equal(f.q('#capture-options').children[0].dataset.registration,'2');
  f.filters[1].onclick();assert.equal(f.q('#capture-options').children[0].dataset.registration,'2');
@@ -106,7 +106,7 @@ test('remote save updates selector and filters without changing the selected ath
 });
 
 test('absence is resolved for this station, without claiming event attendance',async()=>{
- const f=setup(2);await flush();Object.assign(f.mark,{revision:1,status:'absent'});await f.poll();
+ const f=setup(2);await flush();f.filters[1].onclick();Object.assign(f.mark,{revision:1,status:'absent'});await f.poll();
  assert.equal(f.q('#pending-count').textContent,1);assert.equal(f.q('#capture-options').children[0].dataset.registration,'2');
  assert.equal(f.q('#capture-complete').textContent,1);
 });
@@ -114,4 +114,24 @@ test('administrator closing a station blocks coach saves and preserves drafts',a
  const f=setup();await flush();f.edit('45');f.state.feed.station_closed=true;await f.poll();
  assert.equal(f.q('[data-save-mark]',f.form).disabled,true);assert.equal(f.form.elements.value.value,'45');
  await f.form.listeners.submit({preventDefault(){}});assert.equal(f.state.posts.length,0);
+});
+
+test('search starts empty, finds exact number and selects with Enter without saving',async()=>{
+ const f=setup(20);await flush();
+ assert.equal(f.q('#capture-options').children?.length||0,0);
+ assert.equal(f.q('#capture-picker').hidden,true);assert.equal(f.q('#capture-empty').hidden,true);
+ f.q('#coach-search').value='#001';f.q('#coach-search').oninput();
+ assert.equal(f.q('#capture-options').children.length,1);
+ f.q('#coach-search').onkeydown({key:'Enter',preventDefault(){}});
+ assert.equal(f.form.hidden,false);assert.equal(f.q('#capture-picker').hidden,true);
+ assert.equal(f.form.elements.value.focused,true);assert.equal(f.state.posts.length,0);
+ f.edit('51');f.q('#capture-change').onclick();
+ assert.equal(f.form.hidden,true);assert.equal(f.form.elements.value.value,'51');
+ f.filters[3].onclick();f.q('#capture-options').children[0].onclick();
+ assert.equal(f.form.elements.value.value,'51');
+});
+test('ambiguous search does not select a competitor on Enter',async()=>{
+ const f=setup(20);await flush();f.q('#coach-search').value='Atleta';f.q('#coach-search').oninput();
+ f.q('#coach-search').onkeydown({key:'Enter',preventDefault(){}});
+ assert.ok(f.forms.every(x=>x.hidden));assert.equal(f.state.posts.length,0);
 });
