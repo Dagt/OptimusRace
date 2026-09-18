@@ -135,3 +135,25 @@ test('ambiguous search does not select a competitor on Enter',async()=>{
  f.q('#coach-search').onkeydown({key:'Enter',preventDefault(){}});
  assert.ok(f.forms.every(x=>x.hidden));assert.equal(f.state.posts.length,0);
 });
+
+test('confirmed save closes selected card and leaves a visible confirmation',async()=>{
+ const f=setup(2);await flush();f.filters[0].onclick();f.q('#capture-options').children[0].onclick();f.edit('45');
+ const save=f.form.listeners.submit({preventDefault(){}});
+ assert.equal(f.form.hidden,false);
+ f.state.posts[0].resolve({revision:1,status:'done',points:100});await save;
+ assert.ok(f.forms.every(x=>x.hidden));assert.equal(f.q('#capture-saved').hidden,false);
+ assert.match(f.q('#capture-saved').textContent,/#001/);
+});
+test('failed save keeps selected card and its input visible',async()=>{
+ const f=setup();await flush();f.filters[0].onclick();f.q('#capture-options').children[0].onclick();f.edit('45');
+ const save=f.form.listeners.submit({preventDefault(){}});
+ f.state.posts[0].reject(new Error('Failed to fetch'));await save;
+ assert.equal(f.form.hidden,false);assert.equal(f.form.elements.value.value,'45');
+});
+test('late save confirmation does not close another competitor selected meanwhile',async()=>{
+ const f=setup(2);await flush();f.filters[0].onclick();f.q('#capture-options').children[0].onclick();f.edit('45');
+ const save=f.form.listeners.submit({preventDefault(){}});
+ f.q('#capture-options').children[1].onclick();
+ f.state.posts[0].resolve({revision:1,status:'done',points:100});await save;
+ assert.equal(f.forms[1].hidden,false);assert.equal(f.form.hidden,true);
+});

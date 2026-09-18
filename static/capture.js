@@ -49,7 +49,7 @@ if(q('#capture-list')){
   paintScore(f,mark);preview(f);
  }
  function paintScore(f,mark){const state=q('.capture-state',f);state.className='capture-state'+(mark.status==='done'?' saved':'');state.textContent=mark.status==='done'?`${mark.points==null?'—':fmt(mark.points)} pts${mark.provisional?' · provisional':''}`:(stateNames[mark.status]||'Pendiente')}
- function select(f){selected=f;if(filter==='search')q('#coach-search').value='';render();q('.capture-identity',f).scrollIntoView?.({block:'nearest',behavior:'smooth'});if(filter==='search'&&!f.elements.value.disabled)f.elements.value.focus()}
+ function select(f){q('#capture-saved').hidden=true;selected=f;if(filter==='search')q('#coach-search').value='';render();q('.capture-identity',f).scrollIntoView?.({block:'nearest',behavior:'smooth'});if(filter==='search'&&!f.elements.value.disabled)f.elements.value.focus()}
  q('#coach-search').oninput=()=>{if(filter==='search')selected=null;render()};
  q('#coach-search').onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();const options=q('#capture-options').children;if(options.length===1)options[0].onclick()}};
  q('#capture-change').onclick=()=>{selected=null;filter='search';q('#coach-search').value='';qa('button',q('#coach-filter')).forEach(b=>b.classList.toggle('selected',b.dataset.filter===filter));render();q('#coach-search').focus()};
@@ -70,6 +70,8 @@ if(q('#capture-list')){
     const data=await jsonFetch(location.pathname,{method:'POST',body,headers:{'X-Requested-With':'XMLHttpRequest'}});
     dirty.delete(f);applyMark(f,{revision:data.revision,status:data.status,points:data.points,provisional:data.provisional,value:data.status==='done'?body.get('value'):null,load:data.status==='done'?body.get('load'):null});
     feedback(f,'Guardado confirmado · '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}));q('.save-feedback',f).classList.add('success');
+    const confirmation=q('#capture-saved');confirmation.textContent=`Guardado · #${String(f.dataset.bib).padStart(3,'0')} · ${f.dataset.name||f.dataset.search}`;confirmation.hidden=false;
+    if(selected===f){selected=null;render();if(filter==='search')q('#coach-search').focus();else q('#capture-next-pending').focus()}
    }catch(error){feedback(f,error.name==='AbortError'?'No llegó la confirmación. Conservamos tus datos; consulta la versión guardada antes de reintentar.':error.message==='Failed to fetch'?'Sin conexión. Tus datos siguen en esta pantalla y todavía no están confirmados.':error.message,true)}
    finally{saving.delete(f);saveButton(f).removeAttribute('aria-busy');preview(f);render();poll()}
   });
