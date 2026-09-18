@@ -70,3 +70,6 @@
 .catalog-editor-workspace .compact-editor{width:100%;max-width:none;box-sizing:border-box}
 
 .capture-fields select[name="time_format"]{margin-top:8px;font-size:13px;min-height:44px;width:100%}
+
+.catalog-save-actions{display:flex;justify-content:center;margin-top:24px}
+.catalog-save-actions .button{min-width:200px;max-width:100%;margin:0}

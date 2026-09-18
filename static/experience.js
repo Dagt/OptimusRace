@@ -70,9 +70,8 @@ qa('[data-catalog-form] input,[data-catalog-form] select,[data-catalog-form] tex
 
 // Measurement and load are visible; irrelevant values are disabled, not hidden.
 if(q('[data-catalog-form]')){
- const measurement=q('#id_measurement'),unit=q('#id_unit'),higher=q('#id_higher'),load=q('#id_load_mode'),amount=q('#id_load_value'),summary=q('#measurement-summary');
- function describe(){if(measurement.value==='time'){summary.textContent='El coach puede capturar segundos, minutos decimales o minutos:segundos. Los resultados se guardan y comparan en segundos.';return}summary.textContent=`El juez registra ${unit.value||'la unidad elegida'}. ${higher.value==='True'?'Mayor':'Menor'} marca es mejor. El evento calcula los puntos.`}
- function syncMeasurement(changed){const preset={repetitions:['reps','True'],time:['seg','False'],distance_cm:['cm','True'],distance_m:['m','True'],weight:['kg','True']}[measurement.value];unit.readOnly=!!preset;unit.closest('[data-exercise-field]').hidden=!!preset;if(preset){unit.value=preset[0];if(changed)higher.value=preset[1]}describe()}
+ const measurement=q('#id_measurement'),unit=q('#id_unit'),higher=q('#id_higher'),load=q('#id_load_mode'),amount=q('#id_load_value');
+ function syncMeasurement(changed){const preset={repetitions:['reps','True'],time:['seg','False'],distance_cm:['cm','True'],distance_m:['m','True'],weight:['kg','True']}[measurement.value];unit.readOnly=!!preset;unit.closest('[data-exercise-field]').hidden=!!preset;if(preset){unit.value=preset[0];if(changed)higher.value=preset[1]}}
  function syncLoad(){amount.disabled=load.value==='none';amount.required=!amount.disabled;amount.closest('label').firstChild.textContent=load.value==='body_percent'?'Porcentaje del peso corporal':load.value==='fixed'?'Carga total · kg':'Carga · no aplica'}
- measurement.onchange=()=>syncMeasurement(true);higher.onchange=unit.oninput=describe;load.onchange=syncLoad;syncMeasurement(false);syncLoad();
+ measurement.onchange=()=>syncMeasurement(true);load.onchange=syncLoad;syncMeasurement(false);syncLoad();
 }
