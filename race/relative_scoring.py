@@ -40,8 +40,8 @@ def apply_tiebreaks(event,rows,scope="general"):
         for r in group['members']:
             r['tie_pending']=decision is None
             if decision:
-                r['rank']=group['rank']+decision.order.index(r['id'])
-                r['tiebreak']={'challenge':decision.challenge,'judge':decision.judge,'place':decision.order.index(r['id'])+1,'decision_id':decision.pk}
+                r['rank']=group['rank']+(min(1,decision.order.index(r['id'])) if decision.winner_only else decision.order.index(r['id']))
+                r['tiebreak']={'challenge':decision.challenge,'judge':decision.judge,'place':r['rank'],'decision_id':decision.pk}
         group['resolved']=bool(decision)
     return groups
 

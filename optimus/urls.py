@@ -23,3 +23,5 @@ urlpatterns += [path('participants/',people.participants,name='participants'),pa
 urlpatterns += [path('profile/portrait-preview/',v.portrait_preview,name='portrait_preview')]
 
 urlpatterns += [path('results/',people.public_search,name='public_search'),path('results/participants/<int:pk>/',people.public_profile,name='public_participant'),path('events/<int:pk>/register/',people.desk_register,name='desk_register')]
+
+urlpatterns += [path('events/<int:pk>/tiebreaks/',v.coach_tiebreaks,name='coach_tiebreaks')]

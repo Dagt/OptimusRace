@@ -108,7 +108,7 @@ class RelativeScoringTests(TestCase):
         capture(self.b.pk,self.scoring_coach,0,40,None,'done',1,'Corregir')
         self.client.force_login(self.admin)
         response=self.client.get(f'/events/{self.event.pk}/operations/')
-        self.assertContains(response,'Guardar desempate');self.assertContains(response,'Primer lugar · por resolver')
+        self.assertContains(response,'Abrir captura de desempate');self.assertContains(response,'Por resolver')
         from .models import Participant
         person=Participant.objects.create(name=self.b.name,sex='M');self.b.participant=person;self.b.save()
         self.client.logout()
@@ -127,9 +127,18 @@ class RelativeScoringTests(TestCase):
         self.assertEqual(TieBreak.objects.count(),0)
         self.client.post(url,{'action':'phase','phase':'closed'})
         self.event.refresh_from_db();self.assertEqual(self.event.status,'live')
-        data['place']=[2,1]
-        response=self.client.post(url,data)
-        self.assertEqual(response.status_code,302);self.assertEqual(TieBreak.objects.count(),1)
+        from .models import Exercise,TieBreakRound
+        exercise=Exercise.objects.create(name='Sprint',unit='seg',capacity='Velocidad',higher=False,parameters={'metric':'time'})
+        response=self.client.post(url,{'action':'start_tiebreak','tab':'ties','category':'M','fingerprint':group['fingerprint'],'exercise':exercise.pk})
+        self.assertEqual(response.status_code,302)
+        rnd=TieBreakRound.objects.get()
+        self.client.force_login(self.scoring_coach)
+        coach_url=f'/events/{self.event.pk}/tiebreaks/'
+        for entry,value in [(self.b,16),(self.c,15)]:
+            self.client.post(coach_url,{'round':rnd.pk,'registration':entry.pk,'revision':0,'value':value})
+        self.client.post(coach_url,{'round':rnd.pk,'action':'finish'})
+        self.assertEqual(TieBreak.objects.count(),1)
+        self.client.force_login(self.admin)
         self.client.post(url,{'action':'phase','phase':'closed'})
         self.event.refresh_from_db();self.assertEqual(self.event.status,'closed')
         rows={r['id']:r for r in board(self.event)}
@@ -181,7 +190,7 @@ class RelativeScoringTests(TestCase):
         self.assertContains(response,'data-tab="ties"')
         self.assertContains(response,'Resolver desempates →')
         self.assertEqual(response.context['pending_ties'],1)
-        self.assertContains(response,'Lugar 1 en este desempate')
+        self.assertContains(response,'Prueba del catálogo')
         self.assertNotContains(response,'class="tiebreak-entry panel" open')
         self.assertEqual(self.client.get(f'/events/{self.event.pk}/live/').json()['pending_ties'],1)
         self.decision()

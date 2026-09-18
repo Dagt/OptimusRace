@@ -129,6 +129,7 @@ class LoginAttempt(models.Model):
 
 
 class TieBreak(models.Model):
+    winner_only = models.BooleanField(default=False)
     scope = models.CharField(max_length=20,default="general")
     event = models.ForeignKey(Event,on_delete=models.PROTECT)
     category = models.CharField(max_length=100)
@@ -146,3 +147,31 @@ class AccountName(models.Model):
     user = models.OneToOneField(User,on_delete=models.CASCADE,related_name='account_name')
     paternal = models.CharField(max_length=74,blank=True)
     maternal = models.CharField(max_length=74,blank=True)
+
+
+class TieBreakRound(models.Model):
+    event = models.ForeignKey(Event, on_delete=models.PROTECT)
+    category = models.CharField(max_length=100)
+    total = models.FloatField()
+    fingerprint = models.CharField(max_length=64)
+    exercise = models.ForeignKey(Exercise, on_delete=models.PROTECT)
+    test = models.JSONField()
+    contenders = models.JSONField(default=list)
+    finalists = models.JSONField(default=list)
+    status = models.CharField(max_length=15, default='open')
+    actor = models.ForeignKey(User, on_delete=models.PROTECT)
+    decision = models.OneToOneField(TieBreak, null=True, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class TieBreakMark(models.Model):
+    round = models.ForeignKey(TieBreakRound, on_delete=models.PROTECT, related_name='marks')
+    registration = models.ForeignKey(Registration, on_delete=models.PROTECT)
+    value = models.FloatField()
+    load = models.FloatField(null=True)
+    actor = models.ForeignKey(User, on_delete=models.PROTECT)
+    revision = models.PositiveIntegerField(default=1)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['round', 'registration'], name='one_tiebreak_mark')]

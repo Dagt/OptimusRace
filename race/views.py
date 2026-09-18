@@ -224,12 +224,11 @@ def operations(request,pk):
                 check_in(r.id,request.user,request.POST['weight'],r.batch,request.POST['attendance'],request.POST.get('reason',''),int(request.POST['revision']))
             elif action=='correct':
                 return denied(request)
+            elif action=='start_tiebreak':
+                from .tiebreak_rounds import start_round
+                start_round(pk,request.user,request.POST['category'],request.POST['fingerprint'],int(request.POST['exercise']))
             elif action=='tiebreak':
-                ids=[int(value) for value in request.POST.getlist('member')]
-                places=[int(value) for value in request.POST.getlist('place')]
-                if len(ids)!=len(places) or set(places)!=set(range(1,len(ids)+1)):raise ValidationError('Asigna una posición distinta a cada participante empatado.')
-                order=[member for place,member in sorted(zip(places,ids))]
-                resolve_tie(pk,request.user,request.POST['category'],float(request.POST['total']),order,request.POST['fingerprint'],request.POST.get('challenge',''),request.POST.get('details',''),request.POST.get('judge',''),scope=request.POST.get('scope','general'))
+                raise ValidationError('Elige una prueba del catálogo; los coaches registran el desempate.')
             elif action=='capacity':
                 set_capacity(pk,request.user,int(request.POST['capacity']),request.POST.get('reason',''))
             elif action=='discipline':
@@ -259,6 +258,11 @@ def operations(request,pk):
     for group in ties:
         group['positions']=range(1,len(group['members'])+1)
         group['resolved']=not any(row.get('tie_pending') for row in group['members'])
+    from .tiebreak_rounds import rounds_for
+    tie_rounds=rounds_for(e)
+    for group in ties:
+        group['rounds']=[r for r in tie_rounds if r.category==group['category'] and r.fingerprint==group['fingerprint']]
+        group['open_round']=any(r.status=='open' for r in group['rounds'])
     publish_issues=[]
     if e.status=='draft':
         try:validate_rules(e.rules);validate_policies(e.rules,e)
@@ -270,7 +274,7 @@ def operations(request,pk):
     active_station=next((t for i,t in enumerate(e.rules['tests']) if i==e.active_test),None)
     station_done=sum(any(m.test==e.active_test and m.status=='done' for m in r.result_set.all()) for r in confirmed)
     seats=availability(e)
-    return render(request,'operations.html',{'event':e,'station_options':station_options,'active_station':active_station,'station_done':station_done,'station_pending_count':station_pending(e).count(),'station_pending_entries':station_pending(e).order_by('bib'),'seats':seats,'registration_notice':'Cupo agotado' if seats['full'] else e.registration_label,'publish_issues':publish_issues,'can_cash':seats['registration_open'] and not seats['full'],'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'pending_ties':pending_ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
+    return render(request,'operations.html',{'event':e,'station_options':station_options,'active_station':active_station,'station_done':station_done,'station_pending_count':station_pending(e).count(),'station_pending_entries':station_pending(e).order_by('bib'),'seats':seats,'registration_notice':'Cupo agotado' if seats['full'] else e.registration_label,'publish_issues':publish_issues,'can_cash':seats['registration_open'] and not seats['full'],'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'tie_exercises':Exercise.objects.order_by('name'),'pending_ties':pending_ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
 
 @never_cache
 @coach_only
@@ -401,3 +405,23 @@ def portrait_preview(request):
     except Exception:
         logging.getLogger(__name__).exception('Local portrait processing failed')
         return JsonResponse({'error':'No se pudo generar el acabado deportivo. Vuelve a intentar o toma otra foto.'},status=503)
+
+
+@never_cache
+@coach_only
+def coach_tiebreaks(request,pk):
+    from .tiebreak_rounds import rounds_for,save_mark,finish_round
+    event=get_object_or_404(Event,pk=pk)
+    if request.method=='POST':
+        rnd=get_object_or_404(TieBreakRound,pk=request.POST.get('round'),event=event)
+        try:
+            if request.POST.get('action')=='finish':
+                finished=finish_round(rnd.pk,request.user)
+                messages.success(request,'Primer lugar resuelto.' if finished.status=='resolved' else 'Persiste el empate. Administración debe elegir otra prueba.')
+            else:
+                save_mark(rnd.pk,request.user,int(request.POST['registration']),request.POST.get('value'),request.POST.get('load'),int(request.POST.get('revision',0)))
+                messages.success(request,'Marca de desempate guardada.')
+        except (ValidationError,ValueError,KeyError) as exc:
+            error(request,exc)
+        return redirect('coach_tiebreaks',pk=pk)
+    return render(request,'coach_tiebreaks.html',{'event':event,'rounds':rounds_for(event)})

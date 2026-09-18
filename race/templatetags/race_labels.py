@@ -19,7 +19,7 @@ def state_label(value):
 
 @register.filter
 def capture_value(value,test):
-    if value is None:return ''
+    if value is None or value=='':return ''
     if test.get('parameters',{}).get('time_entry')=='minutes_seconds_dot':
         minutes,seconds=divmod(int(value),60)
         return f'{minutes}.{seconds:02d}'
