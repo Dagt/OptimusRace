@@ -1,4 +1,4 @@
-{% extends 'base.html' %}{% load race_labels static %}{% block content %}<link rel="stylesheet" href="{% static 'tiebreaks.css' %}?v=duels-2">
+{% extends 'base.html' %}{% load race_labels static %}{% block content %}<link rel="stylesheet" href="{% static 'tiebreaks.css' %}?v=broadcast-3">
 <div class="playoff-workspace"><a class="back-link" href="{% url 'coach' event.id %}">← Captura de estaciones</a><div class="playoff-heading"><div><p class="eyebrow">{{ event.name }}</p><h1>Desempates</h1></div><a class="button secondary small" href="">Actualizar</a></div>
 <div class="playoff-coach-list">{% for round in rounds %}<section class="playoff-panel">
 <header class="playoff-panel-heading"><div><p class="eyebrow">{{ round.category }}</p><h2>{{ round.test.name }}</h2></div><span class="playoff-status">{{ round.label }}</span></header>

@@ -120,9 +120,9 @@ def finish_round(round_id, actor):
     return rnd
 
 
-def rounds_for(event):
+def rounds_for(event, standings=None):
     from .services import board
-    standings=board(event)
+    if standings is None:standings=board(event)
     current = {g['category']:g['fingerprint'] for g in tie_groups(standings)}
     frozen_decisions={r.get('tiebreak',{}).get('decision_id') for r in standings} if event.status=='closed' else set()
     rounds = list(TieBreakRound.objects.filter(event=event).prefetch_related('marks','matches__first__participant','matches__second__participant').order_by('-pk'))
@@ -177,3 +177,29 @@ def record_victory(round_id,actor,match_id,revision,winner_id):
     match.save(update_fields=['games','revision','actor','updated_at'])
     Audit.objects.create(event=event,actor=actor,action='tiebreak_victory',details={'round':rnd.pk,'match':match.pk,'before':before,'after':match.games,'revision':match.revision})
     return match
+
+
+def broadcast_playoffs(event, standings):
+    """Public broadcast cards contain sporting results only, never account data."""
+    from .templatetags.race_labels import capture_value
+    by_id={r['id']:r for r in standings}
+    rounds=rounds_for(event,standings)
+    cards=[]
+    def person(key,value=None):
+        row=by_id[key]
+        return {field:row.get(field) for field in ['id','name','bib','photo_url']} | {'value':value}
+    for group in tie_groups(standings):
+        rnd=next((r for r in rounds if r.category==group['category'] and not r.stale),None)
+        common={'category':group['category'],'total':group['total'],'status':rnd.status if rnd else 'pending',
+                'test':rnd.test['name'] if rnd else 'Empate por el primer lugar','winner':rnd.winner.pk if rnd and rnd.winner else None}
+        if rnd and rnd.duel:
+            for match in rnd.match_rows:
+                cards.append({**common,'key':f'match-{match.pk}','unit':'victorias','target':rnd.test['parameters']['wins_required'],
+                    'match_winner':match.winner_id,'players':[person(match.first_id,match.first_score),person(match.second_id,match.second_score)]})
+        else:
+            members=[r['id'] for r in group['members']] if not rnd else rnd.contenders
+            marks={r['entry'].pk:r['mark'] for r in rnd.rows} if rnd else {}
+            for offset in range(0,len(members),2):
+                cards.append({**common,'key':f"category-{group['category']}-{offset}",'unit':rnd.unit if rnd else 'pts generales','target':None,
+                    'players':[person(key,capture_value(marks[key].value,rnd.test) if marks.get(key) else None) for key in members[offset:offset+2]]})
+    return cards

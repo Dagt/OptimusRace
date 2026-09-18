@@ -315,8 +315,10 @@ def live_data(request,pk):
     standings=board(e)
     from .event_highlights import event_highlights
     highlights=event_highlights(e.rules.get('tests',[]),standings)
+    from .tiebreak_rounds import broadcast_playoffs
+    playoffs=broadcast_playoffs(e,standings)
     pending_ties=sum(any(row.get('tie_pending') for row in group['members']) for group in all_ties(standings)) if e.status=='live' else 0
-    response=JsonResponse({'station_closed':e.station_capture_closed,'station_pending':station_pending(e).count(),'pending_ties':pending_ties,'status':e.phase_label,'phase':e.status,'test':e.rules.get('tests',[])[e.active_test]['name'] if 0<=e.active_test<len(e.rules.get('tests',[])) else 'Sin estación activa','test_index':e.active_test,'relative_scoring':is_relative(e),'batch':e.active_batch,'board':standings,'highlights':highlights,'updated':timezone.now().isoformat()})
+    response=JsonResponse({'station_closed':e.station_capture_closed,'station_pending':station_pending(e).count(),'pending_ties':pending_ties,'status':e.phase_label,'phase':e.status,'test':e.rules.get('tests',[])[e.active_test]['name'] if 0<=e.active_test<len(e.rules.get('tests',[])) else 'Sin estación activa','test_index':e.active_test,'relative_scoring':is_relative(e),'batch':e.active_batch,'board':standings,'highlights':highlights,'playoffs':playoffs,'updated':timezone.now().isoformat()})
     response['Cache-Control']='no-store'
     return response
 

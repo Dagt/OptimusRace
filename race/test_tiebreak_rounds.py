@@ -162,3 +162,28 @@ class CatalogPlayoffTests(TestCase):
         finish_round(rnd.pk,self.scoring_coach)
         change_phase(self.event.pk,self.admin,'closed');self.event.refresh_from_db()
         self.assertFalse(rounds_for(self.event)[0].stale)
+
+    def test_public_broadcast_shows_pending_live_and_resolved_without_private_data(self):
+        from .tiebreak_rounds import broadcast_playoffs,record_victory
+        pending=broadcast_playoffs(self.event,board(self.event))
+        self.assertEqual(pending[0]['status'],'pending')
+        rnd=self.duel();match=rnd.matches.get()
+        record_victory(rnd.pk,self.scoring_coach,match.pk,0,self.b.pk)
+        live=self.client.get(f'/events/{self.event.pk}/live/').json()['playoffs']
+        self.assertEqual(live[0]['target'],2)
+        self.assertEqual(live[0]['players'][0]['value'],1)
+        self.assertEqual(set(live[0]['players'][0]),{'id','name','bib','photo_url','value'})
+        record_victory(rnd.pk,self.scoring_coach,match.pk,1,self.b.pk)
+        finish_round(rnd.pk,self.scoring_coach)
+        resolved=broadcast_playoffs(self.event,board(self.event))
+        self.assertEqual(resolved[0]['winner'],self.b.pk)
+        self.assertEqual(resolved[0]['status'],'resolved')
+
+    def test_broadcast_ignores_stale_round_and_formats_minutes(self):
+        from .tiebreak_rounds import broadcast_playoffs
+        self.exercise.parameters['time_entry']='minutes_seconds_dot';self.exercise.save()
+        rnd=self.start();save_mark(rnd.pk,self.scoring_coach,self.b.pk,'2.15')
+        data=broadcast_playoffs(self.event,board(self.event))
+        self.assertEqual(data[0]['players'][0]['value'],'2.15')
+        capture(self.b.pk,self.scoring_coach,0,39,None,'done',2,'Cambio')
+        self.assertEqual(broadcast_playoffs(self.event,board(self.event)),[])

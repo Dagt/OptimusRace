@@ -66,3 +66,19 @@ test('global highlights follow every athlete page, preserve ties and return to a
  rotate();assert.equal(f.q('#tv').dataset.view,'athletes');
  assert.equal(f.q('#tv-highlight-heading').hidden,true);
 });
+
+test('playoffs rotate, refresh scores without switching slide, and respect category selection',async()=>{
+ const f=setup();await flush();
+ f.state.feed.playoffs=[{key:'match-1',category:'Varonil',test:'Vencidas',status:'open',target:2,unit:'victorias',players:[{id:1,bib:1,name:'Uno',value:0},{id:2,bib:2,name:'Dos',value:1}]}];
+ await f.poll();const rotate=f.state.intervals.find(x=>x.ms===10000).fn;
+ rotate();rotate();assert.equal(f.q('#tv').dataset.view,'playoffs');
+ const previous=f.q('#tv-board').children[0];
+ await f.poll();assert.equal(f.q('#tv-board').style.gridTemplateRows,'minmax(0,1fr)');
+ assert.equal(f.q('#tv-board').children[0],previous);
+ f.state.feed.playoffs[0].players[0].value=2;f.state.feed.playoffs[0].winner=1;
+ await f.poll();assert.notEqual(f.q('#tv-board').children[0],previous);
+ assert.equal(f.q('#tv').dataset.view,'playoffs');
+ rotate();assert.equal(f.q('#tv').dataset.view,'athletes');
+ f.q('#tv-category').value='Femenil';f.q('#tv-category').onchange();
+ assert.match(f.q('#tv-page').textContent,/01 \/ 01/);
+});
