@@ -6,6 +6,7 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
 function setup(count=1,restoredValue=null){
  class Element{
   constructor(){this.value='';this.dataset={};this.hidden=false;this.disabled=false;this.style={};this.listeners={};this.classList={add(){},toggle(){}}}
+  prepend(child){this.prepended=child}
   addEventListener(type,fn){this.listeners[type]=fn}
   setAttribute(k,v){(this.attributes??={})[k]=v} getAttribute(k){return this.attributes?.[k]} removeAttribute(){} focus(){this.focused=true}
   replaceChildren(...children){this.children=children;this.textContent=children.map(c=>c.textContent||'').join('')}
@@ -210,4 +211,16 @@ test('calculated load is prefilled and polling preserves drafts and saved loads'
  Object.assign(f.mark,{revision:1,status:'done',value:15,load:60});await f.poll();
  f.q('[data-load-saved]',f.form).onclick();assert.equal(f.form.elements.load.value,60);
  await f.poll();assert.equal(f.form.elements.load.value,60);
+});
+
+test('every tab uses the same detail-only screen with next action inside the card',async()=>{
+ const f=setup(3);await flush();
+ for(const tab of [0,1]){
+  f.filters[tab].onclick();f.q('#capture-options').children[0].onclick();
+  assert.equal(f.q('#capture-picker').hidden,true);
+  assert.equal(f.q('.capture-actions',f.form).prepended,f.q('#capture-list-actions'));
+  assert.equal(f.q('#capture-list-actions').hidden,false);
+  f.q('#capture-change').onclick();assert.equal(f.q('#capture-picker').hidden,false);
+  assert.equal(f.q('#capture-list-actions').hidden,true);
+ }
 });

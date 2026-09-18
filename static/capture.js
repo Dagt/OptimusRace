@@ -20,14 +20,15 @@ if(q('#capture-list')){
   const key=JSON.stringify(options.map(b=>[b.dataset.registration,b.textContent,b.getAttribute('aria-pressed')]));
   if(key!==optionsKey){const focused=document.activeElement?.dataset.registration;q('#capture-options').replaceChildren(...options);optionsKey=key;if(focused)options.find(b=>b.dataset.registration===focused)?.focus()}
   forms.forEach(f=>{f.hidden=f!==selected});
-  q('#capture-picker').hidden=filter==='search'&&(!term||!!selected);
+  q('#capture-picker').hidden=!!selected||(filter==='search'&&!term);
   q('#capture-change').hidden=!selected;
   q('#capture-change').textContent=filter==='search'?'Otro competidor':'Volver a lista';
   q('#capture-change').setAttribute('aria-label',filter==='search'?'Buscar otro competidor':'Volver a la lista');
   q('#capture-console').dataset.view=filter;
   q('.coach-workspace').dataset.view=filter;
   q('#capture-console').dataset.selected=selected?'1':'0';
-  q('#capture-list-actions').hidden=filter==='search';
+  q('#capture-list-actions').hidden=!selected;
+  if(selected)q('.capture-actions',selected).prepend(q('#capture-list-actions'));
   qa('button',q('#coach-filter')).forEach(b=>{b.hidden=b.dataset.filter==='drafts'&&!dirty.size;b.setAttribute('aria-pressed',String(b.dataset.filter===filter))});
   q('#capture-next-pending').disabled=!forms.some(f=>!resolved(f)&&f.dataset.enabled==='1');
   const complete=forms.filter(f=>f.dataset.done==='1').length,reviewed=forms.filter(resolved).length;

@@ -129,45 +129,6 @@
 
 .station-review{padding:16px 0;border-block:1px solid var(--border);margin-bottom:20px}.station-review form{margin-top:12px}.station-pending-list{max-height:180px;overflow:auto}.station-pending-list p{margin:8px 0}
 
-/* Coach capture starts with a search; review lists are secondary views. */
-.coach-workspace{max-width:760px;margin-inline:auto}
-.coach-workspace .page-heading{margin-bottom:16px;gap:12px}
-.coach-workspace .page-heading h1{font-size:30px;line-height:1.15}
-.coach-workspace .page-heading .eyebrow{font-size:11px;margin-bottom:6px}
-.coach-workspace .capture-stage{padding:14px 18px;margin-bottom:16px;gap:14px}
-.coach-workspace .stage-number{font-size:30px;padding-right:12px}
-.coach-workspace .stage-title h2{font-size:24px;margin:4px 0}
-.coach-workspace .stage-title>span{font-size:11px}
-.coach-workspace .stage-completion{width:auto;margin-left:auto;font-size:11px}
-.coach-workspace .stage-completion strong{font-size:24px}
-.coach-workspace .stage-completion .progress{display:none}
-.coach-workspace .capture-toolbar{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-bottom:12px}
-.coach-workspace #coach-filter{order:-1;overflow-x:auto;max-width:100%;box-sizing:border-box;flex-wrap:nowrap}
-.coach-workspace #coach-filter button{flex:1 0 auto;white-space:nowrap;padding:10px 12px}
-.coach-workspace .search-box{width:100%;box-sizing:border-box}
-.coach-workspace .search-box input{min-height:48px}
-.coach-workspace #capture-change{margin:0 0 12px}
-.coach-workspace #capture-options{max-height:230px}
-.coach-workspace .capture-pagination{margin:10px 0}
-.coach-workspace .capture-card{margin-top:12px}
-.coach-workspace .capture-fields{padding:16px;gap:12px}
-.coach-workspace .capture-identity{padding:16px}
-.coach-workspace .capture-footer{padding:12px 16px;gap:8px}
-.coach-workspace .capture-photo{width:42px;height:50px;object-fit:cover}
-.coach-workspace .bib-number{font-size:24px}
-.coach-workspace [hidden]{display:none!important}
-@media(max-width:600px){
- .coach-workspace .page-heading h1{font-size:25px}
- .coach-workspace .connection-indicator{font-size:10px}
- .coach-workspace .capture-stage{gap:10px;padding:12px}
- .coach-workspace .stage-title{flex:1}.coach-workspace .stage-title h2{font-size:21px}
- .coach-workspace .stage-completion{flex-basis:100%;display:flex;justify-content:flex-end;gap:4px}
- .coach-workspace .stage-completion strong{font-size:14px}
- .coach-workspace .capture-fields{grid-template-columns:minmax(0,1fr)}
- .coach-workspace .capture-identity>div{min-width:110px}
- .coach-workspace #capture-options{max-height:200px}
-}
-
 /* Compact station administration with secondary controls on demand. */
 .event-day-controls .station-control-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 18px}
 .station-control-heading>div{min-width:0}.station-control-heading h2{margin:4px 0 0;font-size:30px;overflow-wrap:anywhere}
@@ -200,95 +161,67 @@
 #capture-options .capture-option[data-status="done"] span{color:var(--gold)}
 #capture-options .capture-option[aria-pressed="true"]{background:#f2ed000b;box-shadow:inset 3px 0 var(--gold)}
 
-/* Keep search and its reset action together, without stretching across the page. */
-.coach-workspace .capture-search-row{display:flex;align-items:center;gap:10px;width:100%;max-width:550px}
-.coach-workspace .capture-search-row .search-box{flex:1;min-width:0;max-width:360px;margin:0}
-.coach-workspace .capture-search-row #capture-change{flex:none;margin:0;min-height:48px;padding:10px 12px}
-.coach-workspace .capture-search-row .search-box input{margin:0;min-width:0}
-@media(max-width:600px){
- .coach-workspace .capture-search-row{gap:8px}
- .coach-workspace .capture-search-row .search-box{flex-basis:0}
- .coach-workspace .capture-search-row #capture-change{font-size:12px;padding-inline:10px}
-}
-
-/* One coherent capture surface: bounded search, and list/detail for larger screens. */
-.coach-workspace{max-width:960px}
-.coach-workspace .capture-console{max-width:640px;margin-inline:auto}
-.coach-workspace .capture-toolbar{gap:14px;margin-bottom:14px}
-.coach-workspace #coach-filter{border:0;border-bottom:1px solid var(--border);border-radius:0;background:transparent;padding:0;gap:4px;justify-content:flex-start}
-.coach-workspace #coach-filter button{flex:0 0 auto;border:0;border-radius:0;background:transparent;padding:12px;color:var(--muted);box-shadow:none;border-bottom:2px solid transparent}
-.coach-workspace #coach-filter button.selected{border-bottom-color:var(--gold);color:var(--ink);background:transparent}
-.coach-workspace .capture-search-row{max-width:none;width:100%}
-.coach-workspace .capture-search-row .search-box{max-width:none;flex:1}
-.coach-workspace .capture-workbench{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
-.coach-workspace .capture-picker,.coach-workspace .capture-list{width:100%;min-width:0;max-width:none;margin:0}
-.coach-workspace .capture-list:has(>form):not(:has(>form:not([hidden]))){display:none}
-.coach-workspace .capture-card{margin:0;box-shadow:none}
-.coach-workspace #capture-options{max-height:340px;border-radius:10px;background:var(--panel)}
-.coach-workspace #capture-options .capture-option{min-height:58px;background:transparent;box-shadow:none}
-.coach-workspace #capture-options .capture-option[aria-pressed="true"]{background:#f2ed0010;box-shadow:inset 3px 0 var(--gold)}
+/* Coach capture: one width and one form layout for every tab and selection. */
+.coach-workspace{width:100%;max-width:720px;margin-inline:auto}
+.coach-workspace .page-heading{margin-bottom:16px;gap:12px}
+.coach-workspace .page-heading h1{font-size:30px;margin-bottom:0}
+.coach-workspace .eyebrow{font-size:11px}
+.coach-workspace .capture-stage{padding:16px;margin-bottom:18px;gap:16px}
+.coach-workspace .stage-number{font-size:32px;padding-right:12px}
+.coach-workspace .stage-title{min-width:0;flex:1}
+.coach-workspace .stage-title h2{font-size:26px;margin:4px 0}
+.coach-workspace .stage-title>span{font-size:11px}
+.coach-workspace .stage-completion{width:auto;margin-left:auto;font-size:11px}
+.coach-workspace .stage-completion strong{font-size:24px}
+.coach-workspace .stage-completion .progress{display:none}
+.coach-workspace .capture-console,.coach-workspace .capture-workbench,.coach-workspace .capture-list,.coach-workspace .capture-picker{width:100%;max-width:none;margin:0;min-width:0}
+.coach-workspace .capture-workbench{display:block}
+.coach-workspace .capture-list{display:block}
+.coach-workspace .capture-toolbar{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-bottom:16px}
+.coach-workspace #coach-filter{order:-1;display:flex;flex-wrap:nowrap;overflow-x:auto;gap:0;border:0;border-bottom:1px solid var(--border);border-radius:0;padding:0;background:transparent}
+.coach-workspace #coach-filter button{flex:1 0 auto;padding:12px;min-height:46px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--muted);white-space:nowrap;font-size:13px;box-shadow:none}
+.coach-workspace #coach-filter button.selected{color:var(--ink);border-bottom-color:var(--gold)}
+.coach-workspace .capture-search-row{display:flex;align-items:center;gap:10px;width:100%}
+.coach-workspace .capture-search-row .search-box{flex:1;min-width:0;margin:0;max-width:none}
+.coach-workspace .search-box input{margin:0;min-height:48px;font-size:16px}
+.coach-workspace #capture-change{flex:none;min-height:48px;margin:0;padding:10px 12px}
+.coach-workspace #capture-options{display:flex;flex-direction:column;gap:0;max-height:360px;overflow:auto;border:1px solid var(--border);border-radius:12px}
+.coach-workspace #capture-options:empty{border:0}
+.coach-workspace #capture-options .capture-option{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:12px;min-height:58px;flex-shrink:0;padding:12px 16px;border:0;border-bottom:1px solid var(--border);border-radius:0;background:var(--panel);color:var(--ink);box-shadow:none}
 .coach-workspace #capture-options .capture-option:last-child{border-bottom:0}
-.coach-workspace #capture-options .capture-option span{background:transparent;padding:0;color:var(--muted);font-size:11px}
-.coach-workspace #capture-options .capture-option[data-status="done"] span{color:var(--gold)}
-.coach-workspace .capture-fields label{margin-bottom:0}
-.coach-workspace .capture-pagination{justify-content:flex-end;margin-top:12px}
-@media(min-width:901px){
- .coach-workspace .capture-console[data-selected="1"]:not([data-view="search"]){max-width:960px}
- .coach-workspace .capture-console[data-selected="1"]:not([data-view="search"]) .capture-workbench{grid-template-columns:minmax(0,0.85fr) minmax(0,1.15fr)}
- .coach-workspace .capture-console[data-selected="1"]:not([data-view="search"]) #capture-options{max-height:440px}
- .coach-workspace .capture-console[data-selected="1"]:not([data-view="search"]) .capture-fields{grid-template-columns:minmax(0,1fr)}
-}
-@media(max-width:900px){
- .coach-workspace .capture-console[data-selected="1"] #capture-picker{display:none}
- .coach-workspace #capture-options{max-height:45dvh}
-}
-
-.coach-workspace>.page-heading,.coach-workspace>.capture-stage{max-width:640px;margin-inline:auto}
-
-/* Athlete form: consistent field rhythm and a compact save row. */
-.coach-workspace .capture-card{overflow:hidden;border-radius:12px}
-.coach-workspace .capture-card .capture-identity{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:center;gap:6px 12px;padding:16px}
-.coach-workspace .capture-card .capture-identity>div{min-width:0}
-.coach-workspace .capture-card .capture-identity h3{font-size:16px;line-height:1.35;margin:0 0 4px;overflow-wrap:anywhere}
-.coach-workspace .capture-card .capture-identity small{font-size:11px;line-height:1.4}
-.coach-workspace .capture-card .capture-state{grid-column:1/-1;justify-self:start;margin:4px 0 0;font-size:11px;line-height:1.4}
-.coach-workspace .capture-card .capture-identity:not(:has(.capture-photo)){grid-template-columns:auto minmax(0,1fr)}
-.coach-workspace .capture-card .capture-fields{align-items:start;padding:16px;gap:16px}
-.coach-workspace .capture-card .capture-fields label{font-size:12px;line-height:18px;margin:0}
-.coach-workspace .capture-card .capture-fields input,.coach-workspace .capture-card .capture-fields select{height:52px;min-height:52px;margin:6px 0 0;padding:10px 12px;font-size:16px;line-height:normal}
-.coach-workspace .capture-card .numeric-wrap{margin-top:6px}
-.coach-workspace .capture-card .numeric-wrap>input{margin:0;padding-right:52px;font-size:24px}
-.coach-workspace .capture-card .numeric-wrap>span{top:50%;transform:translateY(-50%);right:14px;font-size:12px;pointer-events:none}
-.coach-workspace .capture-card .correction-reason{padding:0 16px;margin:0 0 16px}
-.coach-workspace .capture-card .capture-footer{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 16px}
-.coach-workspace .capture-card .save-feedback{min-height:0;font-size:12px;line-height:1.4;overflow-wrap:anywhere}
-.coach-workspace .capture-card .capture-actions{margin:0;gap:8px;max-width:260px}
-.coach-workspace .capture-card .capture-actions .button{min-height:46px;margin:0}
-@media(max-width:600px){
- .coach-workspace .capture-card .capture-footer{grid-template-columns:minmax(0,1fr);gap:10px}
- .coach-workspace .capture-card .capture-actions{width:100%;max-width:none}
- .coach-workspace .capture-card .capture-actions .button{width:100%}
-}
-
-/* Size the split view by available content width, including the sidebar. */
-.coach-workspace{container-type:inline-size}
-.coach-workspace[data-view]:not([data-view="search"])>.page-heading,
-.coach-workspace[data-view]:not([data-view="search"])>.capture-stage,
-.coach-workspace[data-view]:not([data-view="search"]) .capture-console{max-width:960px}
+.coach-workspace .capture-option strong{font-size:14px;overflow-wrap:anywhere;text-align:left}
+.coach-workspace .capture-option span{font-size:11px;background:transparent;color:var(--muted);text-align:right;flex-shrink:0}
+.coach-workspace .capture-option[data-status="done"] span{color:var(--gold)}
+.coach-workspace .capture-card{margin:0;border-radius:12px;overflow:hidden;box-shadow:none}
+.coach-workspace .capture-identity{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:6px 12px;align-items:center;padding:16px}
+.coach-workspace .capture-identity:not(:has(.capture-photo)){grid-template-columns:auto minmax(0,1fr)}
+.coach-workspace .capture-identity>div{min-width:0}
+.coach-workspace .capture-identity h3{font-size:16px;line-height:1.35;margin:0 0 4px;overflow-wrap:anywhere}
+.coach-workspace .capture-identity small{font-size:11px;line-height:1.4}
+.coach-workspace .bib-number{font-size:24px}
+.coach-workspace .capture-state{grid-column:1/-1;font-size:11px;margin:4px 0 0}
+.coach-workspace .capture-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:16px;padding:16px}
 .coach-workspace .capture-fields>label:last-of-type{grid-column:1/-1}
-@container(max-width:850px){
- .coach-workspace .capture-console[data-selected="1"]:not([data-view="search"]) .capture-workbench{grid-template-columns:minmax(0,1fr)}
- .coach-workspace .capture-console[data-selected="1"] #capture-picker{display:none}
- .coach-workspace .capture-console,.coach-workspace .capture-console[data-selected="1"]:not([data-view="search"]){max-width:640px}
- .coach-workspace>.page-heading,.coach-workspace>.capture-stage{max-width:640px}
+.coach-workspace .capture-fields label{margin:0;font-size:12px;line-height:18px}
+.coach-workspace .capture-fields input,.coach-workspace .capture-fields select{height:52px;min-height:52px;margin:6px 0 0;padding:10px 12px;font-size:16px;line-height:normal}
+.coach-workspace .numeric-wrap{margin-top:6px}
+.coach-workspace .capture-fields .numeric-wrap>input{margin:0;padding-right:52px;font-size:24px}
+.coach-workspace .capture-fields .numeric-wrap>span{top:50%;transform:translateY(-50%);right:14px;font-size:12px;pointer-events:none}
+.coach-workspace .correction-reason{padding:0 16px;margin:0 0 16px}
+.coach-workspace .capture-footer{display:flex;flex-direction:column;align-items:stretch;padding:12px 16px;gap:10px}
+.coach-workspace .save-feedback{min-height:0;font-size:12px;line-height:1.4}
+.coach-workspace .capture-actions{display:flex;align-items:stretch;justify-content:flex-end;flex-wrap:wrap;gap:10px;margin:0}
+.coach-workspace .capture-actions .button{min-height:46px;font-size:13px;margin:0}
+.coach-workspace #capture-list-actions{display:contents;margin:0}
+.coach-workspace [hidden]{display:none!important}
+@media(max-width:600px){
+ .coach-workspace .page-heading{flex-wrap:wrap}.coach-workspace .page-heading h1{font-size:26px}
+ .coach-workspace .capture-stage{padding:12px;gap:10px}.coach-workspace .stage-title h2{font-size:23px}
+ .coach-workspace .stage-completion{flex-basis:100%;display:flex;justify-content:flex-end;gap:4px}.coach-workspace .stage-completion strong{font-size:14px}
+ .coach-workspace #coach-filter button{font-size:12px;padding-inline:9px}
+ .coach-workspace #capture-change{font-size:12px;padding-inline:10px}
+ .coach-workspace .capture-fields{grid-template-columns:minmax(0,1fr)}
+ .coach-workspace .capture-actions .button{flex:1 1 100%}
+ .coach-workspace #capture-options{max-height:45dvh}
+ .coach-workspace .capture-option span{max-width:35%;flex-shrink:1}
 }
-@container(max-width:480px){
- .coach-workspace .capture-card .capture-fields{grid-template-columns:minmax(0,1fr)}
- .coach-workspace .capture-card .capture-footer{grid-template-columns:minmax(0,1fr)}
- .coach-workspace .capture-card .capture-actions{max-width:none;width:100%}
- .coach-workspace .capture-card .capture-actions .button{width:100%}
- .coach-workspace .capture-card .capture-identity{gap:6px 8px}
- .coach-workspace #coach-filter button{padding-inline:9px;font-size:12px}
-}
-
-@container(max-width:850px){.coach-workspace[data-view]:not([data-view="search"])>.page-heading,.coach-workspace[data-view]:not([data-view="search"])>.capture-stage{max-width:640px}}
