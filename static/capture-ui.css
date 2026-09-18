@@ -199,3 +199,14 @@
 #capture-options .capture-option span{font-size:11px;padding:3px 8px;border-radius:20px;background:var(--panel-2);color:var(--muted)}
 #capture-options .capture-option[data-status="done"] span{color:var(--gold)}
 #capture-options .capture-option[aria-pressed="true"]{background:#f2ed000b;box-shadow:inset 3px 0 var(--gold)}
+
+/* Keep search and its reset action together, without stretching across the page. */
+.coach-workspace .capture-search-row{display:flex;align-items:center;gap:10px;width:100%;max-width:550px}
+.coach-workspace .capture-search-row .search-box{flex:1;min-width:0;max-width:360px;margin:0}
+.coach-workspace .capture-search-row #capture-change{flex:none;margin:0;min-height:48px;padding:10px 12px}
+.coach-workspace .capture-search-row .search-box input{margin:0;min-width:0}
+@media(max-width:600px){
+ .coach-workspace .capture-search-row{gap:8px}
+ .coach-workspace .capture-search-row .search-box{flex-basis:0}
+ .coach-workspace .capture-search-row #capture-change{font-size:12px;padding-inline:10px}
+}

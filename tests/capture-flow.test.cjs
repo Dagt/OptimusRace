@@ -181,3 +181,15 @@ test('changing stations never reloads a coach with unsaved input',async()=>{
  assert.equal(f.state.navigation,undefined);assert.equal(f.form.elements.value.value,'45');
  assert.equal(f.q('[data-save-mark]',f.form).disabled,true);
 });
+
+test('changing tabs clears the selected card and search but preserves a recoverable draft',async()=>{
+ const f=setup(3);await flush();f.filters[1].onclick();f.q('#capture-options').children[0].onclick();f.edit('55');
+ f.filters[4].onclick();
+ assert.ok(f.forms.every(x=>x.hidden));assert.equal(f.q('#capture-picker').hidden,true);
+ assert.equal(f.q('#coach-search').value,'');assert.equal(f.q('#capture-change').hidden,true);
+ assert.equal(f.form.elements.value.value,'55');
+ await f.poll();assert.ok(f.forms.every(x=>x.hidden));
+ f.filters[3].onclick();f.q('#capture-options').children[0].onclick();assert.equal(f.form.elements.value.value,'55');
+ f.filters[0].onclick();assert.ok(f.forms.every(x=>x.hidden));
+ assert.equal(f.q('#capture-options').children.length,3);
+});

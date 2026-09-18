@@ -24,7 +24,6 @@ if(q('#capture-list')){
   q('#capture-change').hidden=!selected;
   q('#capture-list-actions').hidden=filter==='search';
   qa('button',q('#coach-filter')).forEach(b=>{b.hidden=b.dataset.filter==='drafts'&&!dirty.size;b.setAttribute('aria-pressed',String(b.dataset.filter===filter))});
-  q('#capture-page').textContent=`${matches.length} participantes en esta lista`;
   q('#capture-next-pending').disabled=!forms.some(f=>!resolved(f)&&f.dataset.enabled==='1');
   const complete=forms.filter(f=>f.dataset.done==='1').length,reviewed=forms.filter(resolved).length;
   q('#capture-empty').hidden=matches.length>0||(filter==='search'&&(!term||!!selected));q('#capture-complete').textContent=reviewed;q('#pending-count').textContent=forms.length-reviewed;
@@ -54,7 +53,7 @@ if(q('#capture-list')){
  q('#coach-search').onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();const options=q('#capture-options').children;if(options.length===1)options[0].onclick()}};
  q('#capture-change').onclick=()=>{selected=null;filter='search';q('#coach-search').value='';qa('button',q('#coach-filter')).forEach(b=>b.classList.toggle('selected',b.dataset.filter===filter));render();q('#coach-search').focus()};
  q('#capture-next-pending').onclick=()=>{const candidates=forms.filter(f=>!resolved(f)&&f.dataset.enabled==='1');if(!candidates.length)return;selected=candidates[(candidates.indexOf(selected)+1)%candidates.length];render();q('.capture-identity',selected).scrollIntoView?.({block:'nearest',behavior:'smooth'})};
- qa('button',q('#coach-filter')).forEach(b=>b.onclick=()=>{filter=b.dataset.filter;q('#coach-search').value='';qa('button',q('#coach-filter')).forEach(x=>x.classList.toggle('selected',x===b));render()});
+ qa('button',q('#coach-filter')).forEach(b=>b.onclick=()=>{if(filter!==b.dataset.filter)selected=null;filter=b.dataset.filter;q('#coach-search').value='';qa('button',q('#coach-filter')).forEach(x=>x.classList.toggle('selected',x===b));render()});
  forms.forEach(f=>{
   f.reset();f.elements.test.value=list.dataset.test;preview(f);
   f.addEventListener('input',()=>{dirty.add(f);feedback(f,'Cambios sin guardar');preview(f);render()});
