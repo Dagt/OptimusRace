@@ -138,3 +138,27 @@ class ConfigurationTests(TestCase):
         self.event.refresh_from_db()
         self.assertEqual(self.event.rules['tests'][0]['parameters']['duration_seconds'],60)
         with self.assertRaises(ValidationError):configure(self.event.pk,self.admin,{'rules':self.rules})
+
+    def test_judge_scale_can_be_entered_and_published_from_event_editor(self):
+        import json
+        rules=deepcopy(self.rules)
+        rules['tests'][0]['scoring']='judge'
+        rules.pop('judging_standard',None)
+        response=self.client.get('/events/new/')
+        self.assertContains(response,'name="judging_standard"')
+        scale='Técnica: 0 a 40; ejecución: 0 a 60. Máximo 100.'
+        data={'name':'Evento con jueces','location':'Sede','date':self.now+timedelta(days=20),
+              'registration_end':self.now+timedelta(days=19),'price':'250','capacity':'10',
+              'minimum_age':'16','rules':json.dumps(rules),'judging_standard':scale,'intent':'publish'}
+        response=self.client.post('/events/new/',data)
+        self.assertEqual(response.status_code,302)
+        event=Event.objects.get(name='Evento con jueces')
+        self.assertEqual(event.status,'open')
+        self.assertEqual(event.rules['judging_standard'],scale)
+        self.assertContains(self.client.get(f'/events/{event.pk}/configure/'),scale)
+
+    def test_missing_judge_scale_still_prevents_publication(self):
+        rules=deepcopy(self.rules);rules['tests'][0]['scoring']='judge';rules['judging_standard']=' '
+        validate_rules(rules,False)
+        with self.assertRaisesMessage(ValidationError,'Describe la escala'):
+            validate_rules(rules)

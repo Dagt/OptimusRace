@@ -8,6 +8,7 @@ class PolicyForm(forms.Form):
     registration_start=forms.DateTimeField(label='Apertura de inscripciones',required=False)
     event_end=forms.DateTimeField(label='Fin del evento',required=False)
     ordered_stations=forms.BooleanField(label='Exigir el orden de estaciones',required=False)
+    judging_standard=forms.CharField(label='Escala acordada con los jueces',required=False,widget=forms.Textarea(attrs={'rows':3,'placeholder':'Ej. Técnica: 0 a 5 puntos; ejecución: 0 a 5 puntos. Máximo: 10 puntos.'}))
     regulations=forms.CharField(label='Reglamento',required=False,widget=forms.Textarea(attrs={'rows':4}))
     benefits=forms.CharField(label='La inscripción incluye',required=False,widget=forms.Textarea(attrs={'rows':3}))
     def __init__(self,*args,rules=None,**kwargs):
@@ -17,7 +18,7 @@ class PolicyForm(forms.Form):
             if initial.get(key):initial[key]=timezone.localtime(instant(initial[key]))
         if args and args[0] is not None:
             data=args[0].copy()
-            for key in ['regulations','benefits']:
+            for key in ['regulations','benefits','judging_standard']:
                 if key not in data:data[key]=rules.get(key,'')
             args=(data,*args[1:])
         super().__init__(*args,initial=initial,**kwargs)
