@@ -99,6 +99,8 @@ class CatalogForm(forms.ModelForm):
             self.initial.setdefault('load_mode','none');self.initial.setdefault('round_mode','none')
             self.initial['measurement']=next((key for key,(_,unit,_) in self.measurement_defaults.items() if unit==self.instance.unit),'custom') if self.instance.pk else 'repetitions'
             if not self.instance.pk:self.initial.update(unit='reps',higher=True)
+        measurement=self.data.get('measurement') if self.is_bound else self.initial.get('measurement')
+        if measurement in self.measurement_defaults:self.fields['unit'].widget.attrs['readonly']=True
     def sections(self):
         groups=[('La prueba', 'Elige qué medirá el juez. La unidad se obtiene del resultado seleccionado.', ['name','capacity','measurement','unit','higher']),
                 ('Condiciones del ejercicio · opcionales', 'Deja vacío lo que no aplique. Duración y recorrido describen el ejercicio; no son la marca que se calificará.', ['duration_seconds','distance_meters','laps','load_mode','load_value','instructions'])]

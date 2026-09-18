@@ -72,7 +72,7 @@ qa('[data-catalog-form] input,[data-catalog-form] select,[data-catalog-form] tex
 if(q('[data-catalog-form]')){
  const measurement=q('#id_measurement'),unit=q('#id_unit'),higher=q('#id_higher'),load=q('#id_load_mode'),amount=q('#id_load_value'),summary=q('#measurement-summary');
  function describe(){summary.textContent=`El juez registra ${unit.value||'la unidad elegida'}. ${higher.value==='True'?'Mayor':'Menor'} marca es mejor. El evento calcula los puntos.`}
- function syncMeasurement(changed){const preset={repetitions:['reps','True'],time:['seg','False'],distance_cm:['cm','True'],distance_m:['m','True'],weight:['kg','True']}[measurement.value];unit.readOnly=!!preset;if(preset){unit.value=preset[0];if(changed)higher.value=preset[1]}describe()}
+ function syncMeasurement(changed){const preset={repetitions:['reps','True'],time:['seg','False'],distance_cm:['cm','True'],distance_m:['m','True'],weight:['kg','True']}[measurement.value];unit.readOnly=!!preset;unit.closest('[data-exercise-field]').hidden=!!preset;if(preset){unit.value=preset[0];if(changed)higher.value=preset[1]}describe()}
  function syncLoad(){amount.disabled=load.value==='none';amount.required=!amount.disabled;amount.closest('label').firstChild.textContent=load.value==='body_percent'?'Porcentaje del peso corporal':load.value==='fixed'?'Carga total · kg':'Carga · no aplica'}
  measurement.onchange=()=>syncMeasurement(true);higher.onchange=unit.oninput=describe;load.onchange=syncLoad;syncMeasurement(false);syncLoad();
 }

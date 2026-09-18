@@ -65,3 +65,6 @@
 .photo-widget[data-native-picker="true"] .photo-source-actions{grid-template-columns:minmax(0,1fr)}
 .photo-source-actions>.button[hidden],.photo-dialog-footer[hidden]{display:none!important}
 .photo-status:empty{display:none}
+
+.catalog-editor-workspace{width:100%;max-width:960px;margin-inline:auto;min-width:0}
+.catalog-editor-workspace .compact-editor{width:100%;max-width:none;box-sizing:border-box}
