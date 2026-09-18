@@ -1,5 +1,24 @@
 /* Day-first dates: type or paste digits; separators are inserted automatically. */
 (()=>{
+ function button(text,action){const b=document.createElement('button');b.type='button';b.textContent=text;b.onclick=action;return b}
+ function popup(title){const dialog=document.createElement('dialog');dialog.className='datetime-popup';dialog.setAttribute('aria-label',title);const header=document.createElement('div');header.className='datetime-popup-header';const heading=document.createElement('strong');heading.textContent=title;header.append(heading,button('Cerrar',()=>dialog.close()));dialog.append(header);document.body.append(dialog);return dialog}
+ function calendarPopup(picker,title){
+  const dialog=popup(title),nav=document.createElement('div'),caption=document.createElement('strong'),grid=document.createElement('div');nav.className='datetime-month';grid.className='datetime-days';let month,year;
+  function render(){caption.textContent=new Intl.DateTimeFormat('es-MX',{month:'long',year:'numeric'}).format(new Date(year,month,1));grid.replaceChildren();
+   for(const name of ['L','M','X','J','V','S','D']){const day=document.createElement('span');day.textContent=name;grid.append(day)}
+   const offset=(new Date(year,month,1).getDay()+6)%7;for(let i=0;i<offset;i++)grid.append(document.createElement('span'));
+   for(let i=1;i<=new Date(year,month+1,0).getDate();i++){const value=`${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;const day=button(String(i),()=>{picker.value=value;picker.dispatchEvent(new Event('change'));dialog.close()});day.setAttribute('aria-label',`${i}/${month+1}/${year}`);day.setAttribute('aria-pressed',String(value===picker.value));grid.append(day)}
+  }
+  function move(delta){const next=new Date(year,month+delta,1);year=next.getFullYear();month=next.getMonth();render()}
+  nav.append(button('‹',()=>move(-1)),caption,button('›',()=>move(1)));dialog.append(nav,grid);
+  return ()=>{const saved=picker.value?new Date(picker.value+'T12:00:00'):new Date();year=saved.getFullYear();month=saved.getMonth();render();dialog.showModal()};
+ }
+ function timePopup(time,title){const dialog=popup(title),fields=document.createElement('div');fields.className='datetime-time-options';
+  function select(caption,count){const label=document.createElement('label');label.textContent=caption;const field=document.createElement('select');for(let i=0;i<count;i++){const o=document.createElement('option');o.value=o.textContent=String(i).padStart(2,'0');field.append(o)}label.append(field);fields.append(label);return field}
+  const hour=select('Hora',24),minute=select('Minutos',60);const apply=button('Usar hora',()=>{time.value=hour.value+':'+minute.value;time.dispatchEvent(new Event('change'));dialog.close()});apply.className='button';dialog.append(fields,apply);
+  return ()=>{const valid=/^([01]\d|2[0-3]):[0-5]\d$/.test(time.value);hour.value=valid?time.value.slice(0,2):'09';minute.value=valid?time.value.slice(3):'00';dialog.showModal()};
+ }
+
  function setupTime(input){
   const required=input.required,disabled=input.disabled,initial=input.value;
   const group=document.createElement('span');group.className='datetime-picker';
@@ -8,8 +27,8 @@
   const time=document.createElement('input');time.type='text';time.placeholder='HH:MM';time.inputMode='numeric';time.maxLength=5;time.setAttribute('aria-label',title+' · hora de 24 horas');
   const picker=document.createElement('input');picker.type='date';picker.setAttribute('aria-label','Abrir calendario · '+title);picker.disabled=disabled;
   const calendar=document.createElement('span');calendar.className='datetime-date';
-  const trigger=document.createElement('span');trigger.className='datetime-calendar';const icon=document.createElement('span');icon.textContent='▦';icon.setAttribute('aria-hidden','true');trigger.append(icon,picker);calendar.append(date,trigger);
-  const clock=document.createElement('span');clock.className='datetime-clock';clock.append(time);group.append(calendar,clock);
+  const trigger=button('▦',calendarPopup(picker,title+' · calendario'));trigger.className='datetime-calendar';trigger.setAttribute('aria-label','Elegir fecha · '+title);trigger.disabled=disabled;picker.hidden=true;calendar.append(date,trigger);
+  const clock=document.createElement('span');clock.className='datetime-clock';const chooseTime=button('◷',timePopup(time,title+' · hora'));chooseTime.className='datetime-calendar';chooseTime.setAttribute('aria-label','Elegir hora · '+title);chooseTime.disabled=disabled;clock.append(time,chooseTime);group.append(calendar,clock);
   let clear=null;if(!required){clear=document.createElement('button');clear.type='button';clear.className='text-button datetime-clear';clear.textContent='Limpiar';clear.setAttribute('aria-label','Limpiar '+title);group.append(clear)}
   input.type='hidden';input.required=false;input.after(group);
   function sync(notify=true){const any=!!(date.value||time.value);for(const field of [date,time]){field.required=required||any;field.disabled=disabled}if(clear){clear.disabled=disabled;clear.hidden=!any}
