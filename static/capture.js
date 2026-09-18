@@ -27,7 +27,7 @@ if(q('#capture-list')){
   q('#capture-console').dataset.view=filter;
   q('.coach-workspace').dataset.view=filter;
   q('#capture-console').dataset.selected=selected?'1':'0';
-  q('#capture-list-actions').hidden=!selected;
+  q('#capture-list-actions').hidden=!selected||filter==='pending';
   if(selected)q('.capture-actions',selected).prepend(q('#capture-list-actions'));
   qa('button',q('#coach-filter')).forEach(b=>{b.hidden=b.dataset.filter==='drafts'&&!dirty.size;b.setAttribute('aria-pressed',String(b.dataset.filter===filter))});
   q('#capture-next-pending').disabled=!forms.some(f=>!resolved(f)&&f.dataset.enabled==='1');

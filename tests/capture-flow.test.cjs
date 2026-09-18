@@ -219,8 +219,15 @@ test('every tab uses the same detail-only screen with next action inside the car
   f.filters[tab].onclick();f.q('#capture-options').children[0].onclick();
   assert.equal(f.q('#capture-picker').hidden,true);
   assert.equal(f.q('.capture-actions',f.form).prepended,f.q('#capture-list-actions'));
-  assert.equal(f.q('#capture-list-actions').hidden,false);
+  assert.equal(f.q('#capture-list-actions').hidden,tab===1);
   f.q('#capture-change').onclick();assert.equal(f.q('#capture-picker').hidden,false);
   assert.equal(f.q('#capture-list-actions').hidden,true);
  }
+});
+
+test('pending tab hides next action while other tabs retain it',async()=>{
+ const f=setup(2);await flush();f.filters[1].onclick();f.q('#capture-options').children[0].onclick();
+ assert.equal(f.q('#capture-list-actions').hidden,true);
+ f.filters[0].onclick();f.q('#capture-options').children[0].onclick();
+ assert.equal(f.q('#capture-list-actions').hidden,false);
 });
