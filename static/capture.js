@@ -25,6 +25,7 @@ if(q('#capture-list')){
   q('#capture-change').textContent=filter==='search'?'Otro competidor':'Volver a lista';
   q('#capture-change').setAttribute('aria-label',filter==='search'?'Buscar otro competidor':'Volver a la lista');
   q('#capture-console').dataset.view=filter;
+  q('.coach-workspace').dataset.view=filter;
   q('#capture-console').dataset.selected=selected?'1':'0';
   q('#capture-list-actions').hidden=filter==='search';
   qa('button',q('#coach-filter')).forEach(b=>{b.hidden=b.dataset.filter==='drafts'&&!dirty.size;b.setAttribute('aria-pressed',String(b.dataset.filter===filter))});
@@ -43,7 +44,7 @@ if(q('#capture-list')){
  }
  function applyMark(f,mark){
   f.elements.revision.value=mark.revision;
-  f.elements.value.value=mark.value??'';if(f.elements.load)f.elements.load.value=mark.load??'';
+  f.elements.value.value=mark.value??'';if(f.elements.load)f.elements.load.value=mark.load??f.dataset.suggestedLoad??'';
   if(f.elements.judged_points)f.elements.judged_points.value=mark.points??'';
   f.elements.status.value=mark.revision?mark.status:'done';f.elements.reason.value='';
   f.dataset.status=mark.status;f.dataset.done=mark.status==='done'?'1':'0';f.dataset.conflict='0';

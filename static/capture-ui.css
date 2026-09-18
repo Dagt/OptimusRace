@@ -269,3 +269,26 @@
  .coach-workspace .capture-card .capture-actions{width:100%;max-width:none}
  .coach-workspace .capture-card .capture-actions .button{width:100%}
 }
+
+/* Size the split view by available content width, including the sidebar. */
+.coach-workspace{container-type:inline-size}
+.coach-workspace[data-view]:not([data-view="search"])>.page-heading,
+.coach-workspace[data-view]:not([data-view="search"])>.capture-stage,
+.coach-workspace[data-view]:not([data-view="search"]) .capture-console{max-width:960px}
+.coach-workspace .capture-fields>label:last-of-type{grid-column:1/-1}
+@container(max-width:850px){
+ .coach-workspace .capture-console[data-selected="1"]:not([data-view="search"]) .capture-workbench{grid-template-columns:minmax(0,1fr)}
+ .coach-workspace .capture-console[data-selected="1"] #capture-picker{display:none}
+ .coach-workspace .capture-console,.coach-workspace .capture-console[data-selected="1"]:not([data-view="search"]){max-width:640px}
+ .coach-workspace>.page-heading,.coach-workspace>.capture-stage{max-width:640px}
+}
+@container(max-width:480px){
+ .coach-workspace .capture-card .capture-fields{grid-template-columns:minmax(0,1fr)}
+ .coach-workspace .capture-card .capture-footer{grid-template-columns:minmax(0,1fr)}
+ .coach-workspace .capture-card .capture-actions{max-width:none;width:100%}
+ .coach-workspace .capture-card .capture-actions .button{width:100%}
+ .coach-workspace .capture-card .capture-identity{gap:6px 8px}
+ .coach-workspace #coach-filter button{padding-inline:9px;font-size:12px}
+}
+
+@container(max-width:850px){.coach-workspace[data-view]:not([data-view="search"])>.page-heading,.coach-workspace[data-view]:not([data-view="search"])>.capture-stage{max-width:640px}}

@@ -68,3 +68,5 @@ La pantalla sigue consultando el estado mientras una estación está cerrada. Si
 El control de estaciones mantiene selector, estado y acciones visibles. Los participantes pendientes se actualizan automáticamente en una lista compacta. El cierre consulta las marcas actuales, aunque el contador visible aún no se haya actualizado.
 
 La captura usa una lista junto a la ficha en escritorio. Hasta 900 px, seleccionar un participante sustituye la lista por la ficha; «Volver a lista» conserva la pestaña activa. Buscar sigue mostrando únicamente las coincidencias o la ficha seleccionada.
+
+La carga utilizada se precarga desde las reglas y el peso del participante; respeta barra, incremento y redondeo configurados. Las correcciones conservan la carga registrada y la sincronización no sobrescribe una carga que el coach está editando. La distribución se adapta también al ancho útil del contenido, descontando el menú lateral.

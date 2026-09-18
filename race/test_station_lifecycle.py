@@ -98,3 +98,15 @@ class StationLifecycleTests(TestCase):
         self.event.refresh_from_db()
         self.assertTrue(self.event.station_capture_closed)
         self.assertEqual(response.context['station_pending_count'],0)
+
+    def test_capture_prefills_rule_load_but_keeps_saved_load(self):
+        from django.urls import reverse
+        self.event.rules['tests'][0]['parameters']={'load_mode':'body_percent','load_value':75,'round_mode':'down','load_step':2.5,'bar_weight':20}
+        self.event.save()
+        self.client.force_login(self.scoring_coach)
+        url=reverse('coach',args=[self.event.pk])
+        response=self.client.get(url)
+        self.assertEqual(response.context['rows'][0]['suggested'],47.5)
+        self.assertContains(response,'value="47.5" placeholder')
+        capture(self.entry.pk,self.scoring_coach,0,42,50,'done',0,'')
+        self.assertContains(self.client.get(url),'value="50.0" placeholder')

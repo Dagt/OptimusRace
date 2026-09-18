@@ -202,3 +202,12 @@ test('list selection exposes detail layout and return keeps the current tab',asy
  assert.equal(f.q('#capture-console').dataset.selected,'0');assert.equal(f.q('#capture-console').dataset.view,'pending');
  assert.equal(f.q('#capture-options').children.length,3);
 });
+
+test('calculated load is prefilled and polling preserves drafts and saved loads',async()=>{
+ const f=setup();await flush();f.form.elements.load={value:'',disabled:false};f.form.dataset.suggestedLoad='56.775';
+ await f.poll();assert.equal(f.form.elements.load.value,'56.775');
+ f.form.elements.load.value='57.5';f.edit('15');await f.poll();assert.equal(f.form.elements.load.value,'57.5');
+ Object.assign(f.mark,{revision:1,status:'done',value:15,load:60});await f.poll();
+ f.q('[data-load-saved]',f.form).onclick();assert.equal(f.form.elements.load.value,60);
+ await f.poll();assert.equal(f.form.elements.load.value,60);
+});
