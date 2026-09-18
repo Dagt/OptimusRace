@@ -38,7 +38,8 @@
  .capture-actions .button{flex:1}.correction-reason{padding-inline:16px}
 }
 /* Allocate the board actual remaining screen height; pagination uses that height. */
-.tv-mode main{height:100dvh;box-sizing:border-box;padding:20px 28px;overflow:hidden}
+body.tv-mode .workspace{margin:0;width:100%;max-width:none}
+body.tv-mode main{width:100%;max-width:none;margin:0;height:100dvh;box-sizing:border-box;padding:20px 28px;overflow:hidden}
 #tv{--tv-row-height:88px;display:flex;flex-direction:column;height:100%;min-height:0;box-sizing:border-box}
 #tv .tv-heading,#tv .tv-stage,#tv .tv-column-head,#tv .tv-bottom{flex-shrink:0}
 #tv .tv-heading{margin-bottom:16px}.tv-heading h1{overflow-wrap:anywhere}
@@ -50,7 +51,7 @@
 #tv .tv-bottom{padding:12px 0 0;flex-wrap:wrap;font-size:10px}
 @media(min-width:1600px) and (min-height:900px){#tv{--tv-row-height:114px}#tv .tv-athlete strong{font-size:24px}#tv .tv-category{font-size:17px}}
 @media(max-width:900px){
- .tv-mode main{padding:14px}.tv-heading{flex-wrap:wrap;gap:12px}.tv-heading h1{font-size:26px}.tv-brand{font-size:34px}
+ body.tv-mode main{padding:14px}.tv-heading{flex-wrap:wrap;gap:12px}.tv-heading h1{font-size:26px}.tv-brand{font-size:34px}
  #tv .tv-stage{gap:12px;padding:12px;flex-wrap:wrap}#tv .tv-stage>div{padding-right:12px}
  #tv .tv-stage strong{font-size:22px}#tv .tv-category-control select{font-size:14px;min-height:40px}
  #tv .tv-column-head,#tv .tv-row{grid-template-columns:35px minmax(0,1fr) 95px 55px 75px;gap:10px}
