@@ -6,25 +6,27 @@ function setup(value='',required=false){
  const input=new E();input.value=value;input.required=required;input.placeholder='dd/mm/aaaa HH:MM';input.form=new E();
  const context={document:{createElement:()=>new E(),querySelectorAll:()=>[input],body:{}},MutationObserver:class{observe(){}},Event:class{},setTimeout:f=>f()};
  vm.runInNewContext(fs.readFileSync('static/date-fields.js','utf8'),context);
- const [day,clock,clear]=input.group.children;const [hour,,minute]=clock.children;
- return {input,date:day.children[0],hour,minute,clear,change:()=>hour.listeners.change()};
+ const [day,clock,clear]=input.group.children;const time=clock.children[0],picker=day.children[1].children[1];
+ return {input,date:day.children[0],time,picker,clear,change:()=>time.listeners.change()};
 }
-test('stored day-first dates retain exact local hours without timezone conversion',()=>{
+test('display stays day-first and keeps local 24-hour time',()=>{
  const f=setup('18/09/2026 00:05',true);
- assert.equal(f.date.value,'2026-09-18');assert.equal(f.hour.value,'00');assert.equal(f.minute.value,'05');
- assert.equal(f.hour.children.length,25);assert.equal(f.minute.children.length,61);
- f.hour.value='23';f.change();assert.equal(f.input.value,'18/09/2026 23:05');
+ assert.equal(f.date.value,'18/09/2026');assert.equal(f.date.type,'text');assert.equal(f.time.value,'00:05');
+ f.time.value='2330';f.time.listeners.input();assert.equal(f.time.value,'23:30');assert.equal(f.input.value,'18/09/2026 23:30');
+ f.picker.value='2026-12-03';f.picker.listeners.change();assert.equal(f.date.value,'03/12/2026');assert.equal(f.input.value,'03/12/2026 23:30');
 });
-test('optional dates allow blank but partial entries require all parts',()=>{
+test('optional dates allow blank but partial entries require both fields',()=>{
  const f=setup();assert.equal(f.date.required,false);assert.equal(f.clear.hidden,true);
- f.date.value='2026-09-18';f.change();assert.equal(f.hour.required,true);assert.equal(f.minute.required,true);assert.equal(f.input.value,'');
- f.hour.value='12';f.minute.value='30';f.change();assert.equal(f.input.value,'18/09/2026 12:30');
+ f.date.value='18/09/2026';f.change();assert.equal(f.time.required,true);assert.equal(f.input.value,'');
+ f.time.value='12:30';f.change();assert.equal(f.input.value,'18/09/2026 12:30');
  f.clear.onclick();assert.equal(f.date.required,false);assert.equal(f.input.value,'');
 });
 test('ISO dates initialize and form reset restores original values',()=>{
  const f=setup('2026-10-01T15:45');assert.equal(f.input.value,'01/10/2026 15:45');
  f.clear.onclick();f.input.form.listeners.reset();assert.equal(f.input.value,'01/10/2026 15:45');
 });
-test('invalid existing value cannot silently become an empty optional field',()=>{
- const f=setup('invalid');assert.ok(f.date.error);assert.equal(f.input.value,'invalid');
+test('invalid times and impossible dates block submission',()=>{
+ const f=setup('18/09/2026 09:30');f.time.value='25:70';f.change();assert.ok(f.time.error);
+ f.time.value='12:00';f.date.value='31/02/2026';f.change();assert.ok(f.date.error);
+ const invalid=setup('invalid');assert.ok(invalid.date.error);assert.equal(invalid.input.value,'invalid');
 });

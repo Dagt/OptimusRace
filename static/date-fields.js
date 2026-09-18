@@ -4,23 +4,30 @@
   const required=input.required,disabled=input.disabled,initial=input.value;
   const group=document.createElement('span');group.className='datetime-picker';
   const title=input.closest('label')?.firstChild?.textContent?.trim()||'Fecha y hora';
-  const date=document.createElement('input');date.type='date';date.min='1900-01-01';date.max='9999-12-31';date.setAttribute('aria-label',title+' · fecha');
-  const hour=document.createElement('select'),minute=document.createElement('select');
-  function options(select,count,caption){select.setAttribute('aria-label',title+' · '+caption);const blank=document.createElement('option');blank.value='';blank.textContent=caption;select.append(blank);for(let i=0;i<count;i++){const option=document.createElement('option');option.value=String(i).padStart(2,'0');option.textContent=option.value;select.append(option)}}
-  options(hour,24,'Hora');options(minute,60,'Minutos');
-  const calendar=document.createElement('span');calendar.className='datetime-date';calendar.append(date);
-  const clock=document.createElement('span');clock.className='datetime-clock';const separator=document.createElement('span');separator.textContent=':';separator.setAttribute('aria-hidden','true');clock.append(hour,separator,minute);
-  group.append(calendar,clock);
+  const date=document.createElement('input');date.type='text';date.placeholder='dd/mm/aaaa';date.setAttribute('aria-label',title+' · día/mes/año');setup(date);
+  const time=document.createElement('input');time.type='text';time.placeholder='HH:MM';time.inputMode='numeric';time.maxLength=5;time.setAttribute('aria-label',title+' · hora de 24 horas');
+  const picker=document.createElement('input');picker.type='date';picker.setAttribute('aria-label','Abrir calendario · '+title);picker.disabled=disabled;
+  const calendar=document.createElement('span');calendar.className='datetime-date';
+  const trigger=document.createElement('span');trigger.className='datetime-calendar';const icon=document.createElement('span');icon.textContent='▦';icon.setAttribute('aria-hidden','true');trigger.append(icon,picker);calendar.append(date,trigger);
+  const clock=document.createElement('span');clock.className='datetime-clock';clock.append(time);group.append(calendar,clock);
   let clear=null;if(!required){clear=document.createElement('button');clear.type='button';clear.className='text-button datetime-clear';clear.textContent='Limpiar';clear.setAttribute('aria-label','Limpiar '+title);group.append(clear)}
   input.type='hidden';input.required=false;input.after(group);
-  function sync(notify=true){const any=!!(date.value||hour.value||minute.value);for(const field of [date,hour,minute]){field.required=required||any;field.disabled=disabled}if(clear){clear.disabled=disabled;clear.hidden=!any}
-   date.setCustomValidity('');
-   if(date.value&&hour.value!==''&&minute.value!==''){const [y,m,d]=date.value.split('-');input.value=`${d}/${m}/${y} ${hour.value}:${minute.value}`}else input.value='';
+  function sync(notify=true){const any=!!(date.value||time.value);for(const field of [date,time]){field.required=required||any;field.disabled=disabled}if(clear){clear.disabled=disabled;clear.hidden=!any}
+   const m=date.value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/),d=m?new Date(Date.UTC(+m[3],+m[2]-1,+m[1])):null;
+   const validDate=m&&d.getUTCDate()===+m[1]&&d.getUTCMonth()===+m[2]-1&&d.getUTCFullYear()===+m[3];
+   const validTime=/^([01]\d|2[0-3]):[0-5]\d$/.test(time.value);
+   date.setCustomValidity(!date.value||validDate?'':'Usa una fecha válida: día/mes/año.');
+   time.setCustomValidity(!time.value||validTime?'':'Usa una hora de 00:00 a 23:59.');
+   picker.value=validDate?`${m[3]}-${m[2]}-${m[1]}`:'';
+   input.value=validDate&&validTime?`${date.value} ${time.value}`:'';
    if(notify)input.dispatchEvent(new Event('input',{bubbles:true}));
   }
-  function load(value){const match=value.match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})$/),iso=value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);date.value=match?`${match[3]}-${match[2]}-${match[1]}`:iso?`${iso[1]}-${iso[2]}-${iso[3]}`:'';hour.value=match?match[4]:iso?iso[4]:'';minute.value=match?match[5]:iso?iso[5]:'';sync(false);if(value&&!input.value){date.setCustomValidity('Selecciona una fecha y una hora válidas.');input.value=value}}
-  for(const field of [date,hour,minute])field.addEventListener('change',()=>sync());
-  if(clear)clear.onclick=()=>{date.value=hour.value=minute.value='';sync()};
+  function load(value){const match=value.match(/^(\d{2}\/\d{2}\/\d{4}) (\d{2}:\d{2})$/),iso=value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}:\d{2})/);date.value=match?match[1]:iso?`${iso[3]}/${iso[2]}/${iso[1]}`:'';time.value=match?match[2]:iso?iso[4]:'';sync(false);if(value&&!input.value){date.setCustomValidity('Selecciona una fecha y una hora válidas.');input.value=value}}
+  date.addEventListener('input',()=>sync());date.addEventListener('change',()=>sync());
+  time.addEventListener('input',()=>{const digits=time.value.replace(/\D/g,'').slice(0,4);time.value=digits.slice(0,2)+(digits.length>2?':'+digits.slice(2):'');sync()});
+  time.addEventListener('change',()=>sync());
+  picker.addEventListener('change',()=>{const [y,m,d]=picker.value.split('-');date.value=y&&m&&d?`${d}/${m}/${y}`:'';sync()});
+  if(clear)clear.onclick=()=>{date.value=time.value='';sync()};
   input.form?.addEventListener('reset',()=>setTimeout(()=>load(initial),0));load(initial);
  }
  function setup(input){if(input.dataset.dateReady)return;input.dataset.dateReady='1';const timed=input.placeholder.includes('HH:MM');if(timed){setupTime(input);return}input.inputMode='numeric';input.maxLength=timed?16:10;
