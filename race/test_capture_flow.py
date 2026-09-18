@@ -123,7 +123,7 @@ class CaptureFlowTests(TestCase):
     def test_capture_workspace_starts_with_hidden_cards_and_bounded_selector(self):
         response=self.client.get(self.path)
         self.assertContains(response,'id="capture-options"')
-        self.assertContains(response,'id="capture-next"')
+        self.assertContains(response,'id="capture-next-pending"')
         self.assertContains(response,'data-filter="drafts"')
         self.assertContains(response,'<form class="capture-card" hidden')
 

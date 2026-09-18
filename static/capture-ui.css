@@ -118,3 +118,13 @@
 @media(max-width:600px){.tie-order{grid-template-columns:1fr}.tie-list summary{align-items:flex-start;flex-direction:column;gap:8px}.tie-list .tiebreak-entry{padding:16px}}
 
 .ranking-table .category-heading th{text-align:left;color:var(--gold);font-size:14px;letter-spacing:0;text-transform:none;background:var(--panel-2);padding:14px 20px}
+
+/* A bounded review queue, not pages of participant cards. */
+#capture-options{display:flex;flex-direction:column;gap:0;max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:12px;overscroll-behavior:contain}
+#capture-options:empty{border:0}
+#capture-options .capture-option{flex-direction:row;align-items:center;justify-content:space-between;gap:16px;min-height:52px;border:0;border-bottom:1px solid var(--border);border-radius:0;flex-shrink:0}
+#capture-options .capture-option span{flex-shrink:0;text-align:right}
+.capture-picker{max-width:900px;margin-inline:auto}
+@media(max-width:600px){#capture-options{max-height:190px}#capture-options .capture-option{min-height:58px}#capture-options .capture-option span{max-width:42%;flex-shrink:1}}
+
+.station-review{padding:16px 0;border-block:1px solid var(--border);margin-bottom:20px}.station-review form{margin-top:12px}.station-pending-list{max-height:180px;overflow:auto}.station-pending-list p{margin:8px 0}

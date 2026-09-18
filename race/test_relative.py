@@ -4,7 +4,7 @@ from django.contrib.auth.models import User,Group
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from .models import Event,Profile,Registration,Result,TieBreak
-from .services import board,capture,change_phase,validate_rules,check_in,discipline
+from .services import board,capture,change_phase,validate_rules,check_in,discipline,close_station
 from .relative_scoring import relative_points,tie_groups,resolve_tie
 from .progress import comparison_key
 
@@ -143,6 +143,7 @@ class RelativeScoringTests(TestCase):
         second=deepcopy(first);second['name']='Otra prueba';second['capacity']='Fuerza'
         self.event.rules['tests'].append(second);self.event.save()
         woman=self.entry('Mujer',10,category='F')
+        close_station(self.event.pk,self.admin,0)
         change_phase(self.event.pk,self.admin,'live',1)
         for entry,value in [(self.a,50),(self.b,40),(self.c,0)]:
             capture(entry.pk,self.scoring_coach,1,value,None,'done',0,'')

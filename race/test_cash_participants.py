@@ -31,7 +31,7 @@ class CashParticipantTests(TestCase):
         old=Registration.objects.create(event=self.event,participant=person,name=person.name,sex='M',bib=1,state='expired')
         entry=register_person_cash(self.event.pk,person,self.admin,65)
         self.assertEqual(entry.pk,old.pk);self.assertEqual(entry.state,'confirmed')
-        self.assertEqual(entry.attendance,'present');self.assertEqual(entry.amount,45000)
+        self.assertEqual(entry.attendance,'pending');self.assertEqual(entry.amount,45000)
         self.assertIsNotNone(entry.paid_at);self.assertEqual(Registration.objects.count(),1)
 
     def data(self,**changes):
@@ -42,7 +42,7 @@ class CashParticipantTests(TestCase):
         response=self.client.post(self.url,data);self.assertEqual(response.status_code,302)
         entry=Registration.objects.get();person=entry.participant
         self.assertIsNone(entry.user_id);self.assertEqual(User.objects.count(),count)
-        self.assertEqual((entry.weight,entry.category,entry.state,entry.method,entry.attendance),(70,'60–70','confirmed','cash','present'))
+        self.assertEqual((entry.weight,entry.category,entry.state,entry.method,entry.attendance),(70,'60–70','confirmed','cash','pending'))
         self.assertTrue(person.photo);self.assertTrue(person.original_photo)
         self.assertEqual(entry.paid_by,self.admin)
         self.assertEqual(self.client.post(self.url,{'request_token':data['request_token']}).status_code,302)

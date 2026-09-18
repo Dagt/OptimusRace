@@ -15,7 +15,7 @@ function setup(count=1){
  const localMaps=new Map([[form,locals]]);
  const q=(key,root)=>element(localMaps.get(root)||globals,key);
  form.elements={};for(const [key,value] of Object.entries({registration:'1',test:'0',revision:'0',value:'',status:'done',reason:''})){form.elements[key]=new Element();form.elements[key].value=value}
- form.dataset={enabled:'1',done:'0',bib:'1',search:'Ana 1'};
+ form.dataset={enabled:'1',done:'0',status:'pending',attendance:'pending',bib:'1',search:'Ana 1'};
  const forms=[form];for(let i=2;i<=count;i++){const f=new Element();f.dataset={...form.dataset,bib:String(i),search:'Atleta '+i};f.elements={};for(const [k,v] of Object.entries(form.elements)){f.elements[k]=new Element();f.elements[k].value=k==='registration'?String(i):v.value}forms.push(f);localMaps.set(f,new Map())}
  const filters=['all','pending','done','drafts'].map(filter=>{const b=new Element();b.dataset.filter=filter;return b});
  const list=q('#capture-list');list.dataset={liveUrl:'/live/',test:'0'};
@@ -82,13 +82,12 @@ test('new registration prompts roster refresh without blocking current captures'
 });
 
 
-test('large roster has six selectors per page and one explicitly selected form',async()=>{
+test('review queue has no pagination and preserves drafts when selecting another athlete',async()=>{
  const f=setup(20);await flush();
- assert.equal(f.q('#capture-options').children.length,6);assert.ok(f.forms.every(x=>x.hidden));
+ assert.equal(f.q('#capture-options').children.length,20);assert.ok(f.forms.every(x=>x.hidden));
  f.q('#capture-options').children[0].onclick();assert.equal(f.forms.filter(x=>!x.hidden).length,1);
- f.edit('55');f.q('#capture-next').onclick();
- assert.equal(f.q('#capture-options').children[0].dataset.registration,'7');
- f.q('#capture-options').children[0].onclick();assert.equal(f.forms[6].hidden,false);assert.equal(f.form.hidden,true);
+ f.edit('55');f.q('#capture-next-pending').onclick();
+ assert.equal(f.forms[1].hidden,false);assert.equal(f.form.hidden,true);
  assert.equal(f.form.elements.value.value,'55');assert.equal(f.q('#draft-count').textContent,1);
  f.filters[3].onclick();assert.equal(f.q('#capture-options').children.length,1);
  f.q('#capture-options').children[0].onclick();assert.equal(f.form.elements.value.value,'55');
@@ -99,9 +98,20 @@ test('large roster has six selectors per page and one explicitly selected form',
 test('remote save updates selector and filters without changing the selected athlete',async()=>{
  const f=setup(8);await flush();f.q('#capture-options').children[0].onclick();
  Object.assign(f.mark,{revision:1,value:42,points:100,status:'done'});await f.poll();
- assert.match(f.q('#capture-options').children[0].textContent,/Realizada/);
+ assert.equal(f.q('#capture-options').children[0].dataset.registration,'2');
  f.filters[1].onclick();assert.equal(f.q('#capture-options').children[0].dataset.registration,'2');
  assert.equal(f.form.hidden,false);assert.equal(f.form.elements.value.value,42);
  f.filters[2].onclick();assert.equal(f.q('#capture-options').children.length,1);
  assert.equal(f.q('#capture-options').children[0].dataset.registration,'1');
+});
+
+test('absence is resolved for this station, without claiming event attendance',async()=>{
+ const f=setup(2);await flush();Object.assign(f.mark,{revision:1,status:'absent'});await f.poll();
+ assert.equal(f.q('#pending-count').textContent,1);assert.equal(f.q('#capture-options').children[0].dataset.registration,'2');
+ assert.equal(f.q('#capture-complete').textContent,1);
+});
+test('administrator closing a station blocks coach saves and preserves drafts',async()=>{
+ const f=setup();await flush();f.edit('45');f.state.feed.station_closed=true;await f.poll();
+ assert.equal(f.q('[data-save-mark]',f.form).disabled,true);assert.equal(f.form.elements.value.value,'45');
+ await f.form.listeners.submit({preventDefault(){}});assert.equal(f.state.posts.length,0);
 });

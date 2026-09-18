@@ -193,6 +193,7 @@ class RaceTests(TestCase):
 
     def test_admin_cannot_correct_prior_test_even_with_reason_and_revision(self):
         r=self.live();capture(r.id,self.coach,0,45,60,'done',0,'')
+        close_station(self.event.id,self.admin,0)
         change_phase(self.event.id,self.admin,'live',2,2)
         with self.assertRaises(ValidationError):capture(r.id,self.coach,0,46,60,'done',1,'Error',True)
         with self.assertRaises(ValidationError):capture(r.id,self.admin,0,46,60,'done',1,'',True)

@@ -210,6 +210,8 @@ def operations(request,pk):
                     messages.success(request,'La estación ya está activa. Las marcas se conservan.' if e.status=='live' and selected_test==e.active_test else f'{prefix} Los coaches pueden capturar: {e.rules["tests"][selected_test]["name"]}. Si tenían la captura abierta, deben actualizarla.')
                 elif request.POST['phase']=='closed':messages.success(request,'Evento finalizado. Los resultados quedaron fijados y la captura está cerrada.')
                 else:messages.success(request,'Evento publicado. Cuando estén listos los coaches, inicia la competencia desde Resumen.')
+            elif action in ['close_station','reopen_station']:
+                close_station(pk,request.user,int(request.POST['test']),reopen=action=='reopen_station')
             elif action=='cash':
                 raise ValidationError('Usa Inscribir en mostrador para registrar participante, foto, peso y efectivo juntos.')
             elif action=='reception':
@@ -263,7 +265,7 @@ def operations(request,pk):
     active_station=next((t for i,t in enumerate(e.rules['tests']) if i==e.active_test),None)
     station_done=sum(any(m.test==e.active_test and m.status=='done' for m in r.result_set.all()) for r in confirmed)
     seats=availability(e)
-    return render(request,'operations.html',{'event':e,'station_options':station_options,'active_station':active_station,'station_done':station_done,'seats':seats,'registration_notice':'Cupo agotado' if seats['full'] else e.registration_label,'publish_issues':publish_issues,'can_cash':seats['registration_open'] and not seats['full'],'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'pending_ties':pending_ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
+    return render(request,'operations.html',{'event':e,'station_options':station_options,'active_station':active_station,'station_done':station_done,'station_pending_count':station_pending(e).count(),'station_pending_entries':station_pending(e).order_by('bib'),'seats':seats,'registration_notice':'Cupo agotado' if seats['full'] else e.registration_label,'publish_issues':publish_issues,'can_cash':seats['registration_open'] and not seats['full'],'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'pending_ties':pending_ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
 
 @coach_only
 def coach(request,pk):
@@ -283,8 +285,8 @@ def coach(request,pk):
         computed={item['id']:item for item in board(e)}
         for row in rows:
             if row['mark']:row['mark'].points=computed[row['entry'].pk]['marks'][e.active_test]['points']
-    complete=sum(1 for row in rows if row['mark'] and row['mark'].status=='done')
-    return render(request,'coach.html',{'event':e,'test':e.rules['tests'][e.active_test],'requires_load':needs_load(e.rules['tests'][e.active_test]),'rows':rows,'complete':complete,'pending':len(rows)-complete})
+    complete=sum(1 for row in rows if (row['mark'] and row['mark'].status in ['done','absent','withdrawn']) or row['entry'].attendance in ['withdrawn','disqualified'])
+    return render(request,'coach.html',{'event':e,'test':e.rules['tests'][e.active_test],'requires_load':needs_load(e.rules['tests'][e.active_test]),'rows':rows,'complete':complete,'performed':sum(1 for row in rows if row['mark'] and row['mark'].status=='done'),'pending':len(rows)-complete})
 
 def tv(request,pk):
     e=get_object_or_404(Event,pk=pk)
@@ -301,7 +303,7 @@ def live_data(request,pk):
         return response
     standings=board(e)
     pending_ties=sum(any(row.get('tie_pending') for row in group['members']) for group in all_ties(standings)) if e.status=='live' else 0
-    response=JsonResponse({'pending_ties':pending_ties,'status':e.phase_label,'phase':e.status,'test':e.rules.get('tests',[])[e.active_test]['name'] if 0<=e.active_test<len(e.rules.get('tests',[])) else 'Sin estación activa','test_index':e.active_test,'relative_scoring':is_relative(e),'batch':e.active_batch,'board':standings,'updated':timezone.now().isoformat()})
+    response=JsonResponse({'station_closed':e.station_capture_closed,'station_pending':station_pending(e).count(),'pending_ties':pending_ties,'status':e.phase_label,'phase':e.status,'test':e.rules.get('tests',[])[e.active_test]['name'] if 0<=e.active_test<len(e.rules.get('tests',[])) else 'Sin estación activa','test_index':e.active_test,'relative_scoring':is_relative(e),'batch':e.active_batch,'board':standings,'updated':timezone.now().isoformat()})
     response['Cache-Control']='no-store'
     return response
 

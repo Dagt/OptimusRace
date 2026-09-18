@@ -44,6 +44,7 @@ class Event(models.Model):
     rules = models.JSONField(default=dict)
     version = models.PositiveIntegerField(default=1)
     active_test = models.PositiveIntegerField(default=0)
+    station_capture_closed = models.BooleanField(default=False)
     active_batch = models.PositiveIntegerField(default=1)
     final_board = models.JSONField(default=list,blank=True)
     closed_at = models.DateTimeField(null=True,blank=True)
