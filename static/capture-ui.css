@@ -229,3 +229,17 @@
 .coach-workspace[data-view="pending"] .capture-actions{justify-content:center}
 .coach-workspace[data-view="pending"] .capture-actions [data-save-mark]{flex:0 1 240px;width:240px;max-width:100%}
 @media(max-width:480px){.event-day-controls .station-pending-list{grid-template-columns:minmax(0,1fr)}}
+
+/* Global highlights follow the complete athlete rotation. */
+#tv[data-view="highlights"] .tv-heads{display:none}
+#tv-highlight-heading{display:flex;align-items:baseline;gap:20px;padding:0 12px 10px}
+#tv-highlight-heading[hidden]{display:none}
+#tv-highlight-heading strong{font-size:22px}
+#tv-highlight-heading span{font-size:12px;color:var(--muted,#b7bdb9)}
+#tv .tv-highlight-row{display:grid;grid-template-columns:minmax(140px,1fr) minmax(0,1.4fr) 110px;align-items:center;gap:18px;padding:8px 16px;border:1px solid #ffffff20;border-radius:12px;background:#ffffff06;min-width:0;overflow:hidden;box-sizing:border-box}
+#tv .tv-highlight-row strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:17px;line-height:1.15}
+#tv .tv-highlight-row small{display:block;font-size:11px;color:#b7bdb9;line-height:1.3}
+#tv .tv-highlight-station small{font-size:9px;letter-spacing:.08em}
+#tv .tv-highlight-value{text-align:right;font-size:29px;font-weight:700;line-height:1}
+#tv .tv-highlight-overall{border-color:#dfcc6555;background:#dfcc650a}
+@media(max-width:600px){#tv-highlight-heading{display:block}#tv-highlight-heading span{font-size:10px}#tv .tv-highlight-row{grid-template-columns:minmax(80px,.9fr) minmax(0,1.2fr) 64px;gap:8px;padding:8px}#tv .tv-highlight-row strong{font-size:13px}#tv .tv-highlight-row small{font-size:9px}#tv .tv-highlight-value{font-size:24px}}

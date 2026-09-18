@@ -53,3 +53,16 @@ test('wide TV fills two columns and rotates through every athlete',async()=>{
 test('tall display is not capped at twelve rows',async()=>{
  const f=setup(1000,1600,30);await flush();assert.equal(f.q('#tv-board').children.length,16);
 });
+
+test('global highlights follow every athlete page, preserve ties and return to athletes',async()=>{
+ const f=setup();await flush();
+ f.state.feed.highlights=[1,2,3].map(bib=>({title:'Carrera',unit:'seg',value:10,name:'Atleta '+bib,bib,category:'A',kind:'station'}));
+ await f.poll();const rotate=f.state.intervals.find(x=>x.ms===10000).fn;
+ rotate();assert.equal(f.q('#tv').dataset.view,'athletes');
+ rotate();assert.equal(f.q('#tv').dataset.view,'highlights');
+ assert.equal(f.q('#tv-board').children.length,2);
+ assert.match(f.q('#tv-page').textContent,/03 \/ 04/);
+ rotate();assert.equal(f.q('#tv-board').children.length,1);
+ rotate();assert.equal(f.q('#tv').dataset.view,'athletes');
+ assert.equal(f.q('#tv-highlight-heading').hidden,true);
+});
