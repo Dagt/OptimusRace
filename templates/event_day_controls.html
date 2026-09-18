@@ -20,12 +20,12 @@
 <span data-station-progress data-test="{{ event.active_test }}" data-source="{% url 'live_data' event.pk %}">{{ station_done }} / {{ summary.registered }} pruebas realizadas</span>
 <span><strong data-station-pending>{{ station_pending_count }}</strong> por revisar</span>
 </div>
-<details class="station-pending-disclosure" data-station-pending-details {% if not station_pending_count %}hidden{% endif %}><summary>Ver pendientes</summary><div class="station-pending-list">{% for entry in station_pending_entries %}<p>#{{ entry.bib }} · {{ entry.name }}</p>{% empty %}<p>Actualiza la lista para consultar los pendientes.</p>{% endfor %}</div><a href="?tab=overview">Actualizar lista</a></details>
+<div class="station-pending-disclosure"><div class="station-pending-list" data-station-pending-list>{% for entry in station_pending_entries %}<p>#{{ entry.bib }} · {{ entry.name }}</p>{% empty %}<p>Sin pendientes. Puedes cerrar la captura.</p>{% endfor %}</div></div>
 <div class="station-control-actions">
-<form method="post" data-close-station {% if event.station_capture_closed %}hidden{% endif %} data-confirm="¿Cerrar la captura de esta estación? Los coaches ya no podrán guardar marcas hasta que se reabra.">{% csrf_token %}<input type="hidden" name="action" value="close_station"><input type="hidden" name="test" value="{{ event.active_test }}"><button class="button" data-close-station-button {% if station_pending_count %}disabled{% endif %}>Cerrar captura</button></form>
-<form method="post" data-reopen-station {% if not event.station_capture_closed %}hidden{% endif %}>{% csrf_token %}<input type="hidden" name="action" value="reopen_station"><input type="hidden" name="test" value="{{ event.active_test }}"><button class="button secondary">Reabrir captura</button></form>
+<form method="post" data-close-station data-confirm="¿Cerrar la captura de esta estación? Los coaches ya no podrán guardar marcas hasta que se reabra.">{% csrf_token %}<input type="hidden" name="action" value="close_station"><input type="hidden" name="test" value="{{ event.active_test }}"><button class="button" data-close-station-button {% if event.station_capture_closed %}disabled{% endif %}>Cerrar captura</button></form>
+<form method="post" data-reopen-station>{% csrf_token %}<input type="hidden" name="action" value="reopen_station"><input type="hidden" name="test" value="{{ event.active_test }}"><button class="button secondary" data-reopen-station-button {% if not event.station_capture_closed %}disabled{% endif %}>Reabrir captura</button></form>
 </div>
-<details class="station-switch-disclosure"><summary>Cambiar de estación {% icon 'arrow' %}</summary>
+<div class="station-switch-disclosure">
 {% endif %}
 <form method="post" {% if event.status == 'live' %}data-station-switch data-capture-closed="{% if event.station_capture_closed %}1{% else %}0{% endif %}" data-current="{{ event.active_test }}"{% else %}data-busy-form{% endif %}>
 {% csrf_token %}<input type="hidden" name="action" value="phase"><input type="hidden" name="phase" value="live">
@@ -34,7 +34,7 @@
 {% if event.rules.ordered_stations %}<p class="field-help">Orden fijo: comienza en la primera estación y avanza a la siguiente.</p>{% endif %}
 <div class="action-group"><button class="button" {% if event.status == 'live' %}data-station-submit disabled{% endif %}>{% if event.status == 'open' %}Iniciar competencia{% else %}Estación activa{% endif %} {% icon 'arrow' %}</button></div>
 </form>
-{% if event.status == 'live' %}</details>{% endif %}
+{% if event.status == 'live' %}</div>{% endif %}
 {% endif %}
 
 </article>

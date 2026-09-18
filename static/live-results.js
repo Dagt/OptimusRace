@@ -42,13 +42,13 @@ qa('[data-station-progress]').forEach(label=>{
   try{
    const data=await jsonFetch(label.dataset.source,{cache:'no-store'});
    qa('[data-tie-count]').forEach(n=>n.textContent=data.pending_ties??0);qa('[data-tie-alert]').forEach(n=>n.hidden=!data.pending_ties);
-   if(data.phase!=='live'||String(data.test_index)!==label.dataset.test){label.textContent='El estado o la estación cambiaron en otra pantalla. Actualiza este resumen.';qa('[data-station-switch]').forEach(f=>{f.dataset.stale='1';q('[data-station-submit]',f).disabled=true});return}
+   if(data.phase!=='live'||String(data.test_index)!==label.dataset.test){label.textContent='El estado o la estación cambiaron en otra pantalla. Actualiza este resumen.';qa('[data-station-switch]').forEach(f=>{f.dataset.stale='1';q('[data-station-submit]',f).disabled=true});qa('[data-close-station-button],[data-reopen-station-button]').forEach(b=>b.disabled=true);return}
    qa('[data-station-pending]').forEach(n=>n.textContent=data.station_pending??0);
-   qa('[data-station-pending-details]').forEach(n=>n.hidden=!data.station_pending);
+   const unresolved=data.board.filter(row=>!['withdrawn','disqualified'].includes(row.attendance)&&!['done','absent','withdrawn'].includes(row.marks[Number(label.dataset.test)]?.status)).sort((a,b)=>a.bib-b.bib);
+   qa('[data-station-pending-list]').forEach(n=>n.replaceChildren(...(unresolved.length?unresolved.map(row=>node('p',`#${row.bib} · ${row.name}`)):[node('p',data.station_closed?'Captura terminada.':'Sin pendientes. Puedes cerrar la captura.')])));
    qa('[data-station-state]').forEach(n=>n.textContent=data.station_closed?'Captura cerrada':'Captura abierta');
-   qa('[data-close-station]').forEach(n=>n.hidden=!!data.station_closed);
-   qa('[data-reopen-station]').forEach(n=>n.hidden=!data.station_closed);
-   qa('[data-close-station-button]').forEach(n=>n.disabled=!!data.station_pending);
+   qa('[data-close-station-button]').forEach(n=>n.disabled=!!data.station_closed);
+   qa('[data-reopen-station-button]').forEach(n=>n.disabled=!data.station_closed);
    qa('[data-station-switch]').forEach(f=>{f.dataset.captureClosed=data.station_closed&&!data.station_pending?'1':'0';q('select[name="test"]',f).dispatchEvent(new Event('change'))});
    const done=data.board.filter(row=>row.marks[Number(label.dataset.test)]?.status==='done').length;
    label.textContent=`${done} / ${data.board.length} pruebas realizadas`;

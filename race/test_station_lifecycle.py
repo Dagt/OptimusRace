@@ -85,3 +85,16 @@ class StationLifecycleTests(TestCase):
         self.assertIsNone(response.context['rows'][0]['mark'])
         self.assertContains(response,'name="test" value="1"')
         self.assertEqual(Result.objects.get(test=0).value,42)
+
+    def test_closure_uses_current_marks_after_admin_opened_pending_screen(self):
+        from django.urls import reverse
+        self.client.force_login(self.admin)
+        url=reverse('operations',args=[self.event.pk])
+        response=self.client.get(url)
+        self.assertEqual(response.context['station_pending_count'],1)
+        self.assertContains(response,'data-close-station-button >')
+        self.mark('done',42)
+        response=self.client.post(url,{'action':'close_station','test':0},follow=True)
+        self.event.refresh_from_db()
+        self.assertTrue(self.event.station_capture_closed)
+        self.assertEqual(response.context['station_pending_count'],0)

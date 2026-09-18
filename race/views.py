@@ -197,6 +197,7 @@ def default_rules():
         tests.extend([t for t in preferred+remaining if t['capacity']==capacity][:2])
     return {'tests':tests,'categories':[{'name':'Hombres · abierta','sex':'M','min':0,'max':None},{'name':'Mujeres · abierta','sex':'F','min':0,'max':None}],'bar':0,'rounding':0,'round_mode':'none'}
 
+@never_cache
 @administrator
 def operations(request,pk):
     e=get_object_or_404(Event,pk=pk)

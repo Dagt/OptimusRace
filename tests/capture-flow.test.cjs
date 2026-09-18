@@ -24,7 +24,7 @@ function setup(count=1,restoredValue=null){
  q('#capture-test').textContent=JSON.stringify({scoring:'relative',max_points:100});
  const mark={revision:0,value:null,load:null,points:null,status:'pending'};
  const state={feed:{phase:'live',test_index:0,board:forms.map((f,i)=>({id:i+1,attendance:'present',marks:[i?{...mark}:mark]}))},posts:[],intervals:[]};
- const context={q,qa:(key,root)=>key==='.capture-card'?forms:root===q('#coach-filter')?filters:[],
+ const context={q,toast:text=>{state.toast=text},qa:(key,root)=>key==='.capture-card'?forms:root===q('#coach-filter')?filters:[],
   node:(tag,text)=>({textContent:text}),fmt:String,stateNames:{pending:'Faltante',done:'Realizada',absent:'Ausente'},
   document:Object.assign(new Element(),{hidden:false,createElement:()=>new Element(),createTextNode:text=>({textContent:text})}),
   window:new Element(),navigator:{onLine:true},location:{pathname:'/coach/',replace:url=>{state.navigation=url}},confirm:()=>true,
@@ -143,8 +143,8 @@ test('confirmed save closes selected card and leaves a visible confirmation',asy
  const save=f.form.listeners.submit({preventDefault(){}});
  assert.equal(f.form.hidden,false);
  f.state.posts[0].resolve({revision:1,status:'done',points:100});await save;
- assert.ok(f.forms.every(x=>x.hidden));assert.equal(f.q('#capture-saved').hidden,false);
- assert.match(f.q('#capture-saved').textContent,/#001/);
+ assert.ok(f.forms.every(x=>x.hidden));assert.ok(f.state.toast);
+ assert.match(f.state.toast,/#001/);
 });
 test('failed save keeps selected card and its input visible',async()=>{
  const f=setup();await flush();f.filters[0].onclick();f.q('#capture-options').children[0].onclick();f.edit('45');

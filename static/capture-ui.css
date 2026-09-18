@@ -189,3 +189,13 @@
 @media(max-width:600px){.event-day-controls .station-control-heading{align-items:flex-start;flex-wrap:wrap;gap:10px}.station-control-heading h2{font-size:26px}.station-control-progress{font-size:12px}.station-control-actions form,.station-control-actions .button{width:100%}.station-switch-disclosure .button{width:100%;white-space:normal}}
 
 #operations-content .operations-grid>.event-day-controls{align-self:start}
+
+.event-day-controls .station-control-actions{flex-wrap:wrap}
+.event-day-controls .station-switch-disclosure{padding-top:16px}
+.event-day-controls .station-pending-list{max-height:96px;font-size:12px}
+.event-day-controls .station-pending-list p{margin:4px 0}
+#capture-options .capture-option{padding:12px 14px;gap:12px}
+#capture-options .capture-option strong{font-size:14px;text-align:left;overflow-wrap:anywhere}
+#capture-options .capture-option span{font-size:11px;padding:3px 8px;border-radius:20px;background:var(--panel-2);color:var(--muted)}
+#capture-options .capture-option[data-status="done"] span{color:var(--gold)}
+#capture-options .capture-option[aria-pressed="true"]{background:#f2ed000b;box-shadow:inset 3px 0 var(--gold)}
