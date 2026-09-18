@@ -167,3 +167,25 @@
  .coach-workspace .capture-identity>div{min-width:110px}
  .coach-workspace #capture-options{max-height:200px}
 }
+
+/* Compact station administration with secondary controls on demand. */
+.event-day-controls .station-control-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 18px}
+.station-control-heading>div{min-width:0}.station-control-heading h2{margin:4px 0 0;font-size:30px;overflow-wrap:anywhere}
+.station-step{font-size:11px;color:var(--muted);letter-spacing:.08em}
+.station-status{flex-shrink:0;border:1px solid var(--border);border-radius:30px;padding:6px 12px;font-size:12px;color:var(--gold)}
+.station-control-progress{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:13px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.station-control-progress strong{color:var(--ink)}
+.event-day-controls .station-control-actions{display:flex;gap:10px;margin-top:16px}
+.event-day-controls .station-control-actions form{margin:0}
+.event-day-controls .station-control-actions .button{min-height:46px}
+.station-pending-disclosure{margin-top:12px;font-size:13px}
+.station-pending-disclosure summary{cursor:pointer;color:var(--ink);padding:8px 0}
+.station-switch-disclosure{margin-top:14px;border-top:1px solid var(--border);padding-top:6px}
+.station-switch-disclosure>summary{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:12px 0;color:var(--ink);font-size:13px;font-weight:600;list-style:none}
+.station-switch-disclosure>summary::-webkit-details-marker{display:none}
+.station-switch-disclosure[open]>summary .icon{transform:rotate(90deg)}
+.event-day-controls .station-switch-disclosure form{margin:8px 0 0}
+.station-switch-disclosure label{margin-bottom:12px}
+@media(max-width:600px){.event-day-controls .station-control-heading{align-items:flex-start;flex-wrap:wrap;gap:10px}.station-control-heading h2{font-size:26px}.station-control-progress{font-size:12px}.station-control-actions form,.station-control-actions .button{width:100%}.station-switch-disclosure .button{width:100%;white-space:normal}}
+
+#operations-content .operations-grid>.event-day-controls{align-self:start}
