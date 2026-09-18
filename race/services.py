@@ -10,6 +10,7 @@ import stripe
 from .event_policy import current_price, validate_eligibility,validate_policies,quote_price,registration_open,instant
 from .exercise_parameters import validate_parameters,validate_mark,needs_load,load_for
 from .relative_scoring import relative_points,is_relative,apply_tiebreaks
+from .time_marks import supports_time_input,time_seconds
 from .models import Event, Registration, Result, Audit, Payment, Webhook
 
 CAPACITIES = ['Fuerza','Resistencia','Velocidad','Potencia']
@@ -277,7 +278,7 @@ def check_in(reg_id,actor,weight,batch,attendance,reason='',revision=None):
     audit(e,actor,'weight_correction' if changed_weight and r.result_set.exists() else 'reception',{'registration':r.id,'before':old,'after':{'weight':r.weight,'category':r.category,'batch':r.batch,'attendance':r.attendance},'reason':reason})
 
 @transaction.atomic
-def capture(reg_id,actor,test,value,load,status,revision,reason,administrative=False,judged_points=None):
+def capture(reg_id,actor,test,value,load,status,revision,reason,administrative=False,judged_points=None,time_format='seconds'):
     if not actor.is_active or actor.is_superuser or not actor.groups.filter(name='Coach').exists():
         raise ValidationError('Solo los coaches pueden capturar o corregir marcas.')
     r=Registration.objects.select_for_update().select_related('event').get(pk=reg_id)
@@ -295,7 +296,8 @@ def capture(reg_id,actor,test,value,load,status,revision,reason,administrative=F
     if existing and not reason.strip(): raise ValidationError('Escribe el motivo de la corrección.')
     before={'value':existing.value,'points':existing.points,'load':existing.load,'status':existing.status,'revision':existing.revision} if existing else None
     t=e.rules['tests'][test]
-    v=number(value) if status=='done' else None
+    if time_format!='seconds' and not supports_time_input(t):raise ValidationError('Esta prueba no admite formatos de tiempo.')
+    v=(time_seconds(value,time_format) if supports_time_input(t) else number(value)) if status=='done' else None
     if status=='done':validate_mark(v,t)
     if status=='done' and t['unit']=='reps' and not v.is_integer(): raise ValidationError('Las repeticiones deben ser enteras.')
     if status=='done' and not t['higher'] and v<=0: raise ValidationError('El tiempo debe ser mayor a cero.')

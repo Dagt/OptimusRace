@@ -231,3 +231,20 @@ test('pending tab hides next action while other tabs retain it',async()=>{
  f.filters[0].onclick();f.q('#capture-options').children[0].onclick();
  assert.equal(f.q('#capture-list-actions').hidden,false);
 });
+
+test('time format controls keep server seconds when saving and reloading',async()=>{
+ const f=setup();await flush();
+ f.form.elements.time_format={value:'minutes',disabled:false};
+ f.edit('5.365');
+ assert.equal(f.q('[data-mark-unit]',f.form).textContent,'min');
+ const save=f.form.listeners.submit({preventDefault(){}});
+ assert.equal(f.state.posts[0].body.get('time_format'),'minutes');
+ assert.equal(f.form.elements.time_format.disabled,true);
+ f.state.posts[0].resolve({revision:1,status:'done',points:100,value:321.9});
+ await save;
+ assert.equal(f.form.elements.value.value,321.9);
+ assert.equal(f.form.elements.time_format.value,'seconds');
+ f.form.elements.time_format.value='minutes_seconds';f.edit('5:36.5');
+ assert.equal(f.form.elements.value.type,'text');
+ assert.equal(f.q('[data-mark-unit]',f.form).textContent,'min:seg');
+});

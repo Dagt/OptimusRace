@@ -275,12 +275,13 @@ def operations(request,pk):
 @never_cache
 @coach_only
 def coach(request,pk):
+    from .time_marks import supports_time_input
     e=get_object_or_404(Event,pk=pk)
     if request.method=='POST':
         try:
             reg=get_object_or_404(Registration,pk=request.POST['registration'],event=e)
-            m=capture(reg.id,request.user,int(request.POST['test']),request.POST.get('value'),request.POST.get('load'),request.POST['status'],int(request.POST['revision']),request.POST.get('reason',''),judged_points=request.POST.get('judged_points'))
-            return JsonResponse({'ok':True,'points':m.points,'revision':m.revision,'status':m.status,'provisional':e.rules['tests'][int(request.POST['test'])].get('scoring')=='relative'})
+            m=capture(reg.id,request.user,int(request.POST['test']),request.POST.get('value'),request.POST.get('load'),request.POST['status'],int(request.POST['revision']),request.POST.get('reason',''),judged_points=request.POST.get('judged_points'),time_format=request.POST.get('time_format','seconds'))
+            return JsonResponse({'ok':True,'value':m.value,'points':m.points,'revision':m.revision,'status':m.status,'provisional':e.rules['tests'][int(request.POST['test'])].get('scoring')=='relative'})
         except (ValidationError,ValueError,KeyError) as exc: return JsonResponse({'ok':False,'error':' '.join(exc.messages) if isinstance(exc,ValidationError) else 'Datos inválidos.'},status=400)
     if not e.rules.get('tests'):
         messages.info(request,'Agrega estaciones antes de abrir la captura.');return redirect('home')
@@ -292,7 +293,7 @@ def coach(request,pk):
         for row in rows:
             if row['mark']:row['mark'].points=computed[row['entry'].pk]['marks'][e.active_test]['points']
     complete=sum(1 for row in rows if (row['mark'] and row['mark'].status in ['done','absent','withdrawn']) or row['entry'].attendance in ['withdrawn','disqualified'])
-    return render(request,'coach.html',{'event':e,'test':e.rules['tests'][e.active_test],'requires_load':needs_load(e.rules['tests'][e.active_test]),'rows':rows,'complete':complete,'performed':sum(1 for row in rows if row['mark'] and row['mark'].status=='done'),'pending':len(rows)-complete})
+    return render(request,'coach.html',{'event':e,'test':e.rules['tests'][e.active_test],'time_input':supports_time_input(e.rules['tests'][e.active_test]),'requires_load':needs_load(e.rules['tests'][e.active_test]),'rows':rows,'complete':complete,'performed':sum(1 for row in rows if row['mark'] and row['mark'].status=='done'),'pending':len(rows)-complete})
 
 def tv(request,pk):
     e=get_object_or_404(Event,pk=pk)

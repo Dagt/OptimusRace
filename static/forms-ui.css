@@ -68,3 +68,5 @@
 
 .catalog-editor-workspace{width:100%;max-width:960px;margin-inline:auto;min-width:0}
 .catalog-editor-workspace .compact-editor{width:100%;max-width:none;box-sizing:border-box}
+
+.capture-fields select[name="time_format"]{margin-top:8px;font-size:13px;min-height:44px;width:100%}

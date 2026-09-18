@@ -57,7 +57,7 @@ class TeamForm(forms.Form):
         return value
 
 class CatalogForm(forms.ModelForm):
-    measurement=forms.ChoiceField(label='Resultado que registra el juez',required=False,choices=[('repetitions','Repeticiones'),('time','Tiempo en segundos'),('distance_cm','Distancia o altura en centímetros'),('distance_m','Distancia en metros'),('weight','Peso levantado en kg'),('custom','Otra medida')])
+    measurement=forms.ChoiceField(label='Resultado que registra el juez',required=False,choices=[('repetitions','Repeticiones'),('time','Tiempo · segundos / minutos'),('distance_cm','Distancia o altura en centímetros'),('distance_m','Distancia en metros'),('weight','Peso levantado en kg'),('custom','Otra medida')])
     measurement_defaults={'repetitions':('repetitions','reps',True),'time':('time','seg',False),'distance_cm':('distance','cm',True),'distance_m':('distance','m',True),'weight':('weight','kg',True)}
     metric=forms.ChoiceField(label='Tipo de resultado',choices=[('time','Tiempo'),('repetitions','Repeticiones'),('distance','Distancia / altura'),('weight','Peso levantado'),('custom','Otro (unidad libre)')])
     duration_seconds=forms.FloatField(label='Duración del esfuerzo · segundos',required=False,min_value=.01,help_text='Opcional. Ejemplo: 60 para un minuto de burpees.')

@@ -36,15 +36,18 @@ if(q('#capture-list')){
   q('#done-count').textContent=complete;q('#draft-count').textContent=dirty.size;
   q('#capture-progress').style.width=`${forms.length?reviewed/forms.length*100:0}%`;
  }
+ function timeFormat(f){if(!f.elements.time_format)return;const mode=f.elements.time_format.value;f.elements.value.type=mode==='minutes_seconds'?'text':'number';f.elements.value.inputMode=mode==='minutes_seconds'?'text':'decimal';f.elements.value.placeholder=mode==='minutes_seconds'?'5:36.5':mode==='minutes'?'5.365':'15.25';q('[data-mark-unit]',f).textContent=mode==='minutes_seconds'?'min:seg':mode==='minutes'?'min':'seg'}
  function preview(f){
+  timeFormat(f);
   const done=f.elements.status.value==='done',locked=saving.has(f)||stale||f.dataset.enabled!=='1';
-  for(const name of ['value','load','judged_points'])if(f.elements[name]){f.elements[name].disabled=locked||!done;f.elements[name].required=done}
+  for(const name of ['value','load','judged_points','time_format'])if(f.elements[name]){f.elements[name].disabled=locked||!done;f.elements[name].required=done}
   f.elements.status.disabled=locked;f.elements.reason.disabled=locked;
   saveButton(f).disabled=locked||f.dataset.conflict==='1';
 
  }
  function applyMark(f,mark){
-  f.elements.revision.value=mark.revision;
+  if(f.elements.time_format)f.elements.time_format.value='seconds';
+  timeFormat(f);f.elements.revision.value=mark.revision;
   f.elements.value.value=mark.value??'';if(f.elements.load)f.elements.load.value=mark.load??f.dataset.suggestedLoad??'';
   if(f.elements.judged_points)f.elements.judged_points.value=mark.points??'';
   f.elements.status.value=mark.revision?mark.status:'done';f.elements.reason.value='';
@@ -73,7 +76,7 @@ if(q('#capture-list')){
    const body=new FormData(f);saving.add(f);dirty.add(f);preview(f);render();saveButton(f).setAttribute('aria-busy','true');feedback(f,'Guardando…');
    try{
     const data=await jsonFetch(location.pathname,{method:'POST',body,headers:{'X-Requested-With':'XMLHttpRequest'}});
-    dirty.delete(f);applyMark(f,{revision:data.revision,status:data.status,points:data.points,provisional:data.provisional,value:data.status==='done'?body.get('value'):null,load:data.status==='done'?body.get('load'):null});
+    dirty.delete(f);applyMark(f,{revision:data.revision,status:data.status,points:data.points,provisional:data.provisional,value:data.status==='done'?(data.value??body.get('value')):null,load:data.status==='done'?body.get('load'):null});
     feedback(f,'Guardado confirmado · '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}));q('.save-feedback',f).classList.add('success');
     toast(`Guardado · #${String(f.dataset.bib).padStart(3,'0')}`);
     if(selected===f){selected=null;render();if(filter==='search')q('#coach-search').focus();else q('#capture-next-pending').focus()}

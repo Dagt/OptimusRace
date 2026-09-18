@@ -158,3 +158,21 @@ class CaptureFlowTests(TestCase):
         self.assertEqual(Audit.objects.filter(action='phase').count(),before)
         self.assertEqual(Result.objects.get().value,42)
         with self.assertRaises(ValidationError):change_phase(self.event.pk,self.admin,'live',0,expected_test=99)
+
+    def test_time_formats_persist_normalized_marks_in_response_and_live_feed(self):
+        station=self.event.rules['tests'][0]
+        station.update(unit='seg',higher=False)
+        station['parameters']['metric']='time'
+        self.event.save(update_fields=['rules'])
+        self.assertContains(self.client.get(self.path),'name="time_format"')
+        response=self.client.post(self.path,self.payload(value='5.365',time_format='minutes'))
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.json()['value'],321.9)
+        self.assertEqual(Result.objects.get().value,321.9)
+        self.assertEqual(self.client.get(self.feed).json()['board'][0]['marks'][0]['value'],321.9)
+        response=self.client.post(self.path,self.payload(value='5:36.5',time_format='minutes_seconds',revision=1,reason='Correccion'))
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(Result.objects.get().value,336.5)
+        response=self.client.post(self.path,self.payload(value='5:70',time_format='minutes_seconds',revision=2,reason='Correccion'))
+        self.assertEqual(response.status_code,400)
+        self.assertEqual(Result.objects.get().value,336.5)
