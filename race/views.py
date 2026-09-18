@@ -280,7 +280,7 @@ def coach(request,pk):
     if request.method=='POST':
         try:
             reg=get_object_or_404(Registration,pk=request.POST['registration'],event=e)
-            m=capture(reg.id,request.user,int(request.POST['test']),request.POST.get('value'),request.POST.get('load'),request.POST['status'],int(request.POST['revision']),request.POST.get('reason',''),judged_points=request.POST.get('judged_points'),time_format=request.POST.get('time_format','seconds'))
+            m=capture(reg.id,request.user,int(request.POST['test']),request.POST.get('value'),request.POST.get('load'),request.POST['status'],int(request.POST['revision']),request.POST.get('reason',''),judged_points=request.POST.get('judged_points'),time_format=request.POST.get('time_format'))
             return JsonResponse({'ok':True,'value':m.value,'points':m.points,'revision':m.revision,'status':m.status,'provisional':e.rules['tests'][int(request.POST['test'])].get('scoring')=='relative'})
         except (ValidationError,ValueError,KeyError) as exc: return JsonResponse({'ok':False,'error':' '.join(exc.messages) if isinstance(exc,ValidationError) else 'Datos inválidos.'},status=400)
     if not e.rules.get('tests'):

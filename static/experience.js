@@ -71,7 +71,7 @@ qa('[data-catalog-form] input,[data-catalog-form] select,[data-catalog-form] tex
 // Measurement and load are visible; irrelevant values are disabled, not hidden.
 if(q('[data-catalog-form]')){
  const measurement=q('#id_measurement'),unit=q('#id_unit'),higher=q('#id_higher'),load=q('#id_load_mode'),amount=q('#id_load_value');
- function syncMeasurement(changed){const preset={repetitions:['reps','True'],time:['seg','False'],distance_cm:['cm','True'],distance_m:['m','True'],weight:['kg','True']}[measurement.value];unit.readOnly=!!preset;unit.closest('[data-exercise-field]').hidden=!!preset;if(preset){unit.value=preset[0];if(changed)higher.value=preset[1]}}
+ function syncMeasurement(changed){const preset={repetitions:['reps','True'],time:['seg','False'],time_minutes:['seg','False'],distance_cm:['cm','True'],distance_m:['m','True'],weight:['kg','True']}[measurement.value];unit.readOnly=!!preset;unit.closest('[data-exercise-field]').hidden=!!preset;if(preset){unit.value=preset[0];if(changed)higher.value=preset[1]}}
  function syncLoad(){amount.disabled=load.value==='none';amount.required=!amount.disabled;amount.closest('label').firstChild.textContent=load.value==='body_percent'?'Porcentaje del peso corporal':load.value==='fixed'?'Carga total · kg':'Carga · no aplica'}
  measurement.onchange=()=>syncMeasurement(true);load.onchange=syncLoad;syncMeasurement(false);syncLoad();
 }

@@ -16,3 +16,11 @@ def money_input(value):return f'{value/100:.2f}'
 @register.filter
 def state_label(value):
     return {'disqualified':'Descalificado','confirmed':'Confirmada','reserved':'Reservada · pago pendiente','expired':'Histórico sin inscripción','pending':'Pendiente','present':'Presente','absent':'Ausente','withdrawn':'Retirado','done':'Realizada','creating':'Creando Checkout','paid':'Pagado'}.get(value,value)
+
+@register.filter
+def capture_value(value,test):
+    if value is None:return ''
+    if test.get('parameters',{}).get('time_entry')=='minutes_seconds_dot':
+        minutes,seconds=divmod(int(value),60)
+        return f'{minutes}.{seconds:02d}'
+    return str(value)

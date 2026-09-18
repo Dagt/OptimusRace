@@ -17,3 +17,10 @@ class TimeMarksTests(SimpleTestCase):
                 ('1','unknown'), ('5:36:5','minutes_seconds')]:
             with self.subTest(value=value,mode=mode):
                 with self.assertRaises(ValidationError):time_seconds(value,mode)
+
+    def test_dot_minutes_and_decimal_seconds_have_distinct_meanings(self):
+        self.assertEqual(time_seconds('25.15','minutes_seconds_dot'),1515)
+        self.assertEqual(time_seconds('25.15','seconds'),25.15)
+        self.assertEqual(time_seconds('25.015','seconds'),25.015)
+        for value in ['25.60','25.99','25.1']:
+            with self.assertRaises(ValidationError):time_seconds(value,'minutes_seconds_dot')

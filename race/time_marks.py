@@ -11,7 +11,12 @@ def supports_time_input(test):
 def time_seconds(value, time_format='seconds'):
     text = str(value).strip().replace(',', '.')
     decimal = r'[0-9]+(?:\.[0-9]+)?'
-    if time_format == 'minutes_seconds':
+    if time_format == 'minutes_seconds_dot':
+        match = re.fullmatch(r'([0-9]+)(?:[.]([0-9]{2}))?', text)
+        if not match or int(match[2] or 0) >= 60:
+            raise ValidationError('Usa minutos.segundos, por ejemplo 25.15. Los segundos deben estar entre 00 y 59.')
+        result = Decimal(match[1]) * 60 + Decimal(match[2] or 0)
+    elif time_format == 'minutes_seconds':
         match = re.fullmatch(r'([0-9]+):(' + decimal + r')', text)
         if not match or Decimal(match[2]) >= 60:
             raise ValidationError('Usa minutos:segundos, por ejemplo 5:36.5. Los segundos deben ser menores a 60.')

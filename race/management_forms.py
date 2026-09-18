@@ -57,8 +57,8 @@ class TeamForm(forms.Form):
         return value
 
 class CatalogForm(forms.ModelForm):
-    measurement=forms.ChoiceField(label='Resultado que registra el juez',required=False,choices=[('repetitions','Repeticiones'),('time','Tiempo · segundos / minutos'),('distance_cm','Distancia o altura en centímetros'),('distance_m','Distancia en metros'),('weight','Peso levantado en kg'),('custom','Otra medida')])
-    measurement_defaults={'repetitions':('repetitions','reps',True),'time':('time','seg',False),'distance_cm':('distance','cm',True),'distance_m':('distance','m',True),'weight':('weight','kg',True)}
+    measurement=forms.ChoiceField(label='Resultado que registra el juez',required=False,choices=[('repetitions','Repeticiones'),('time','Tiempo · Segundos'),('time_minutes','Tiempo · Minutos'),('distance_cm','Distancia o altura en centímetros'),('distance_m','Distancia en metros'),('weight','Peso levantado en kg'),('custom','Otra medida')])
+    measurement_defaults={'repetitions':('repetitions','reps',True),'time':('time','seg',False),'time_minutes':('time','seg',False),'distance_cm':('distance','cm',True),'distance_m':('distance','m',True),'weight':('weight','kg',True)}
     metric=forms.ChoiceField(label='Tipo de resultado',choices=[('time','Tiempo'),('repetitions','Repeticiones'),('distance','Distancia / altura'),('weight','Peso levantado'),('custom','Otro (unidad libre)')])
     duration_seconds=forms.FloatField(label='Duración del esfuerzo · segundos',required=False,min_value=.01,help_text='Opcional. Ejemplo: 60 para un minuto de burpees.')
     distance_meters=forms.FloatField(label='Distancia por recorrido · metros',required=False,min_value=.01)
@@ -98,6 +98,7 @@ class CatalogForm(forms.ModelForm):
             self.initial.update(self.instance.parameters or {})
             self.initial.setdefault('load_mode','none');self.initial.setdefault('round_mode','none')
             self.initial['measurement']=next((key for key,(_,unit,_) in self.measurement_defaults.items() if unit==self.instance.unit),'custom') if self.instance.pk else 'repetitions'
+            if self.instance.parameters.get('time_entry')=='minutes_seconds_dot':self.initial['measurement']='time_minutes'
             if not self.instance.pk:self.initial.update(unit='reps',higher=True)
         measurement=self.data.get('measurement') if self.is_bound else self.initial.get('measurement')
         if measurement in self.measurement_defaults:self.fields['unit'].widget.attrs['readonly']=True
@@ -109,6 +110,9 @@ class CatalogForm(forms.ModelForm):
     def save(self,commit=True):
         instance=super().save(commit=False)
         instance.parameters={**(instance.parameters or {}),**{key:self.cleaned_data.get(key) for key in self.parameter_fields}}
+        if self.cleaned_data.get('measurement') in ['time','time_minutes']:
+            instance.parameters['time_entry']='minutes_seconds_dot' if self.cleaned_data['measurement']=='time_minutes' else 'seconds'
+        else:instance.parameters.pop('time_entry',None)
         if commit:instance.save()
         return instance
 

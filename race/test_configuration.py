@@ -162,3 +162,12 @@ class ConfigurationTests(TestCase):
         validate_rules(rules,False)
         with self.assertRaisesMessage(ValidationError,'Describe la escala'):
             validate_rules(rules)
+
+    def test_catalog_time_choice_survives_save_and_edit(self):
+        data={'name':'Tiempo configurable','capacity':'Velocidad','measurement':'time_minutes','load_mode':'none'}
+        form=CatalogForm(data);self.assertTrue(form.is_valid(),form.errors)
+        exercise=form.save();self.assertEqual(exercise.unit,'seg')
+        self.assertEqual(exercise.parameters['time_entry'],'minutes_seconds_dot')
+        self.assertEqual(CatalogForm(instance=exercise).initial['measurement'],'time_minutes')
+        form=CatalogForm({**data,'measurement':'time'},instance=exercise);self.assertTrue(form.is_valid(),form.errors)
+        self.assertEqual(form.save().parameters['time_entry'],'seconds')

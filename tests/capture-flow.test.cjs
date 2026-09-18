@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm');
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 
-function setup(count=1,restoredValue=null){
+function setup(count=1,restoredValue=null,parameters={}){
  class Element{
   constructor(){this.value='';this.dataset={};this.hidden=false;this.disabled=false;this.style={};this.listeners={};this.classList={add(){},toggle(){}}}
   prepend(child){this.prepended=child}
@@ -22,7 +22,7 @@ function setup(count=1,restoredValue=null){
  if(restoredValue!==null)form.elements.value.value=restoredValue;
  const filters=['all','pending','done','drafts','search'].map(filter=>{const b=new Element();b.dataset.filter=filter;return b});
  const list=q('#capture-list');list.dataset={liveUrl:'/live/',test:'0'};
- q('#capture-test').textContent=JSON.stringify({scoring:'relative',max_points:100});
+ q('#capture-test').textContent=JSON.stringify({scoring:'relative',max_points:100,parameters});
  const mark={revision:0,value:null,load:null,points:null,status:'pending'};
  const state={feed:{phase:'live',test_index:0,board:forms.map((f,i)=>({id:i+1,attendance:'present',marks:[i?{...mark}:mark]}))},posts:[],intervals:[]};
  const context={q,toast:text=>{state.toast=text},qa:(key,root)=>key==='.capture-card'?forms:root===q('#coach-filter')?filters:[],
@@ -232,19 +232,14 @@ test('pending tab hides next action while other tabs retain it',async()=>{
  assert.equal(f.q('#capture-list-actions').hidden,false);
 });
 
-test('time format controls keep server seconds when saving and reloading',async()=>{
- const f=setup();await flush();
- f.form.elements.time_format={value:'minutes',disabled:false};
- f.edit('5.365');
- assert.equal(f.q('[data-mark-unit]',f.form).textContent,'min');
+test('catalog-defined minutes display consistently without a format selector',async()=>{
+ const f=setup(1,null,{time_entry:'minutes_seconds_dot'});await flush();
+ f.edit('25.15');assert.equal(f.form.elements.value.type,'text');
+ assert.equal(f.q('[data-mark-unit]',f.form).textContent,'min.seg');
  const save=f.form.listeners.submit({preventDefault(){}});
- assert.equal(f.state.posts[0].body.get('time_format'),'minutes');
- assert.equal(f.form.elements.time_format.disabled,true);
- f.state.posts[0].resolve({revision:1,status:'done',points:100,value:321.9});
- await save;
- assert.equal(f.form.elements.value.value,321.9);
- assert.equal(f.form.elements.time_format.value,'seconds');
- f.form.elements.time_format.value='minutes_seconds';f.edit('5:36.5');
- assert.equal(f.form.elements.value.type,'text');
- assert.equal(f.q('[data-mark-unit]',f.form).textContent,'min:seg');
+ assert.equal(f.state.posts[0].body.get('time_format'),undefined);
+ f.state.posts[0].resolve({revision:1,status:'done',points:100,value:1515});await save;await flush();
+ assert.equal(f.form.elements.value.value,'25.15');
+ Object.assign(f.mark,{revision:2,value:1530,points:100,status:'done'});await f.poll();
+ assert.equal(f.form.elements.value.value,'25.30');
 });

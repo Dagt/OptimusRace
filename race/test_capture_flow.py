@@ -164,7 +164,7 @@ class CaptureFlowTests(TestCase):
         station.update(unit='seg',higher=False)
         station['parameters']['metric']='time'
         self.event.save(update_fields=['rules'])
-        self.assertContains(self.client.get(self.path),'name="time_format"')
+        self.assertNotContains(self.client.get(self.path),'name="time_format"')
         response=self.client.post(self.path,self.payload(value='5.365',time_format='minutes'))
         self.assertEqual(response.status_code,200)
         self.assertEqual(response.json()['value'],321.9)
@@ -176,3 +176,15 @@ class CaptureFlowTests(TestCase):
         response=self.client.post(self.path,self.payload(value='5:70',time_format='minutes_seconds',revision=2,reason='Correccion'))
         self.assertEqual(response.status_code,400)
         self.assertEqual(Result.objects.get().value,336.5)
+
+    def test_catalog_minutes_are_used_without_coach_format_choice(self):
+        station=self.event.rules['tests'][0];station.update(unit='seg',higher=False)
+        station['parameters'].update(metric='time',time_entry='minutes_seconds_dot')
+        self.event.save(update_fields=['rules'])
+        response=self.client.post(self.path,self.payload(value='25.15'))
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(Result.objects.get().value,1515)
+        self.assertContains(self.client.get(self.path),'value="25.15"')
+        response=self.client.post(self.path,self.payload(value='25.70',revision=1,reason='Correccion'))
+        self.assertEqual(response.status_code,400)
+        self.assertEqual(Result.objects.get().value,1515)

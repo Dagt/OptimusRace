@@ -278,7 +278,7 @@ def check_in(reg_id,actor,weight,batch,attendance,reason='',revision=None):
     audit(e,actor,'weight_correction' if changed_weight and r.result_set.exists() else 'reception',{'registration':r.id,'before':old,'after':{'weight':r.weight,'category':r.category,'batch':r.batch,'attendance':r.attendance},'reason':reason})
 
 @transaction.atomic
-def capture(reg_id,actor,test,value,load,status,revision,reason,administrative=False,judged_points=None,time_format='seconds'):
+def capture(reg_id,actor,test,value,load,status,revision,reason,administrative=False,judged_points=None,time_format=None):
     if not actor.is_active or actor.is_superuser or not actor.groups.filter(name='Coach').exists():
         raise ValidationError('Solo los coaches pueden capturar o corregir marcas.')
     r=Registration.objects.select_for_update().select_related('event').get(pk=reg_id)
@@ -296,6 +296,9 @@ def capture(reg_id,actor,test,value,load,status,revision,reason,administrative=F
     if existing and not reason.strip(): raise ValidationError('Escribe el motivo de la corrección.')
     before={'value':existing.value,'points':existing.points,'load':existing.load,'status':existing.status,'revision':existing.revision} if existing else None
     t=e.rules['tests'][test]
+    configured_format=t.get('parameters',{}).get('time_entry')
+    if configured_format and time_format and time_format!=configured_format:raise ValidationError('El formato de captura está definido por la prueba.')
+    time_format=configured_format or time_format or 'seconds'
     if time_format!='seconds' and not supports_time_input(t):raise ValidationError('Esta prueba no admite formatos de tiempo.')
     v=(time_seconds(value,time_format) if supports_time_input(t) else number(value)) if status=='done' else None
     if status=='done':validate_mark(v,t)
