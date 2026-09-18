@@ -60,3 +60,8 @@
 .event-day-controls .active-station-summary{display:grid;gap:7px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:#cfd4700a;margin:0 0 16px}
 .active-station-summary>strong{font-size:19px;color:var(--gold)}.active-station-summary>span{font-size:12px;color:var(--muted)}
 .event-day-controls form>label{font-size:13px}.event-day-controls select{font-size:16px;min-height:48px}
+
+/* On HTTP, use the phone's single native photo menu (camera or gallery). */
+.photo-widget[data-native-picker="true"] .photo-source-actions{grid-template-columns:minmax(0,1fr)}
+.photo-source-actions>.button[hidden],.photo-dialog-footer[hidden]{display:none!important}
+.photo-status:empty{display:none}

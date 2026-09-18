@@ -7,7 +7,7 @@ qa('[data-photo-widget]').forEach(widget=>{
  let state='choose',stream=null,generation=0,cameraGeneration=0,controller=null,raw=null,draftUrl=null;
  let savedFile=null,savedOriginal=null,savedPreview=preview.innerHTML,savedUrl=null;
  function attach(field,file){const transfer=new DataTransfer();if(file)transfer.items.add(file);field.files=transfer.files}
- function show(next,message){state=next;widget.dataset.captureState=next;stage.hidden=next!=='camera';sources.hidden=!['choose','error'].includes(next);modalPreview.hidden=next!=='review';capture.hidden=back.hidden=next!=='camera';use.hidden=next!=='review';use.disabled=next!=='review';retry.hidden=next!=='error'||!raw;discard.hidden=!['review','error'].includes(next);status.textContent=message}
+ function show(next,message){const nativePicker=!navigator.mediaDevices?.getUserMedia;widget.dataset.nativePicker=String(nativePicker);open.hidden=nativePicker;find('[data-photo-picker-label]').textContent=nativePicker?'Tomar o elegir foto':'Elegir archivo';find('.photo-dialog-footer').hidden=next==='choose'||next==='processing'||(next==='error'&&!raw);state=next;widget.dataset.captureState=next;stage.hidden=next!=='camera';sources.hidden=!['choose','error'].includes(next);modalPreview.hidden=next!=='review';capture.hidden=back.hidden=next!=='camera';use.hidden=next!=='review';use.disabled=next!=='review';retry.hidden=next!=='error'||!raw;discard.hidden=!['review','error'].includes(next)||!raw;status.textContent=nativePicker&&next==='choose'?'':message}
  function stopCamera(){cameraGeneration++;stream?.getTracks().forEach(track=>track.stop());stream=null;video.srcObject=null}
  function cancelRequest(){generation++;controller?.abort();controller=null}
  function releaseDraft(){if(draftUrl&&draftUrl!==savedUrl)URL.revokeObjectURL(draftUrl);draftUrl=null}
@@ -23,7 +23,7 @@ qa('[data-photo-widget]').forEach(widget=>{
   catch(error){if(current===generation&&error.name!=='AbortError')show('error',error.message)}
  }
  input.addEventListener('change',()=>{if(input.files[0])process(input.files[0])});retry.onclick=()=>{if(raw)process(raw)};discard.onclick=restore;
- open.onclick=async()=>{if(!navigator.mediaDevices?.getUserMedia){show('error','La cámara requiere HTTPS o localhost. Puedes elegir un archivo.');return}cancelRequest();stopCamera();const current=++cameraGeneration;show('processing','Abriendo cámara…');
+ open.onclick=async()=>{if(!navigator.mediaDevices?.getUserMedia){input.click();return}cancelRequest();stopCamera();const current=++cameraGeneration;show('processing','Abriendo cámara…');
   try{const acquired=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:1280}},audio:false});if(current!==cameraGeneration){acquired.getTracks().forEach(track=>track.stop());return}stream=acquired;video.srcObject=stream;await video.play();if(current!==cameraGeneration)return;show('camera','Centra rostro y hombros. Pulsa Capturar foto cuando esté listo.')}
   catch{if(current!==cameraGeneration)return;stopCamera();show('error','No se pudo abrir la cámara. Revisa el permiso o elige un archivo.')}
  };

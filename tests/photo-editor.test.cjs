@@ -7,6 +7,7 @@ const fs=require('node:fs');
 function fixture(){
   class Element {
     constructor(){this.hidden=false;this.disabled=false;this.innerHTML='';this.files=[];this.dataset={};this.listeners={}}
+    click(){this.clicked=true}
     addEventListener(type,fn){this.listeners[type]=fn}
     replaceChildren(...children){this.innerHTML=children.length?'portrait-preview':''}
     showModal(){this.open=true}
@@ -88,4 +89,27 @@ test('processing errors allow retry but never accept an unprocessed image',async
   assert.equal(f.get('[data-photo-retry]').hidden,false);
   f.get('[data-photo-retry]').onclick();await f.complete();
   assert.equal(f.widget.dataset.captureState,'review');
+});
+
+
+test('HTTP uses one native photo selector without an error or empty footer',async()=>{
+ const f=fixture();f.context.navigator.mediaDevices=undefined;
+ f.get('[data-photo-open]').onclick();
+ assert.equal(f.get('[data-camera-open]').hidden,true);
+ assert.equal(f.get('[data-photo-picker-label]').textContent,'Tomar o elegir foto');
+ assert.equal(f.get('[data-photo-status]').textContent,'');
+ assert.equal(f.get('.photo-dialog-footer').hidden,true);
+ await f.upload();await f.complete();
+ assert.equal(f.widget.dataset.captureState,'review');
+ assert.equal(f.get('.photo-dialog-footer').hidden,false);
+ f.get('[data-photo-use]').onclick();
+ assert.equal(f.get('input[name="photo"]').files[0],f.photo);
+});
+
+test('cancelling native selection preserves the accepted photo',async()=>{
+ const f=fixture();await f.upload();await f.complete();f.get('[data-photo-use]').onclick();
+ f.context.navigator.mediaDevices=undefined;f.get('[data-photo-open]').onclick();
+ f.get('[data-photo-cancel]').onclick();
+ assert.equal(f.widget.dataset.captureState,'choose');
+ assert.equal(f.get('input[name="photo"]').files[0],f.photo);
 });
