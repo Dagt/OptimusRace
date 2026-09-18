@@ -244,3 +244,28 @@
 }
 
 .coach-workspace>.page-heading,.coach-workspace>.capture-stage{max-width:640px;margin-inline:auto}
+
+/* Athlete form: consistent field rhythm and a compact save row. */
+.coach-workspace .capture-card{overflow:hidden;border-radius:12px}
+.coach-workspace .capture-card .capture-identity{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:center;gap:6px 12px;padding:16px}
+.coach-workspace .capture-card .capture-identity>div{min-width:0}
+.coach-workspace .capture-card .capture-identity h3{font-size:16px;line-height:1.35;margin:0 0 4px;overflow-wrap:anywhere}
+.coach-workspace .capture-card .capture-identity small{font-size:11px;line-height:1.4}
+.coach-workspace .capture-card .capture-state{grid-column:1/-1;justify-self:start;margin:4px 0 0;font-size:11px;line-height:1.4}
+.coach-workspace .capture-card .capture-identity:not(:has(.capture-photo)){grid-template-columns:auto minmax(0,1fr)}
+.coach-workspace .capture-card .capture-fields{align-items:start;padding:16px;gap:16px}
+.coach-workspace .capture-card .capture-fields label{font-size:12px;line-height:18px;margin:0}
+.coach-workspace .capture-card .capture-fields input,.coach-workspace .capture-card .capture-fields select{height:52px;min-height:52px;margin:6px 0 0;padding:10px 12px;font-size:16px;line-height:normal}
+.coach-workspace .capture-card .numeric-wrap{margin-top:6px}
+.coach-workspace .capture-card .numeric-wrap>input{margin:0;padding-right:52px;font-size:24px}
+.coach-workspace .capture-card .numeric-wrap>span{top:50%;transform:translateY(-50%);right:14px;font-size:12px;pointer-events:none}
+.coach-workspace .capture-card .correction-reason{padding:0 16px;margin:0 0 16px}
+.coach-workspace .capture-card .capture-footer{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 16px}
+.coach-workspace .capture-card .save-feedback{min-height:0;font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.coach-workspace .capture-card .capture-actions{margin:0;gap:8px;max-width:260px}
+.coach-workspace .capture-card .capture-actions .button{min-height:46px;margin:0}
+@media(max-width:600px){
+ .coach-workspace .capture-card .capture-footer{grid-template-columns:minmax(0,1fr);gap:10px}
+ .coach-workspace .capture-card .capture-actions{width:100%;max-width:none}
+ .coach-workspace .capture-card .capture-actions .button{width:100%}
+}
