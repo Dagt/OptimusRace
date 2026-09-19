@@ -81,3 +81,26 @@ class ParallelStationTests(TestCase):
         switch_station(self.event.pk,self.admin,1,False,1)
         change_phase(self.event.pk,self.admin,'closed')
         self.event.refresh_from_db();self.assertEqual(self.event.status,'closed')
+
+    def test_async_controls_return_state_and_conflicts_without_redirect(self):
+        self.client.force_login(self.admin)
+        url=f'/events/{self.event.pk}/operations/'
+        headers={'HTTP_X_REQUESTED_WITH':'XMLHttpRequest'}
+        response=self.client.post(url,{'action':'station_toggle','test':1,'revision':1,'enabled':'0'},**headers)
+        self.assertEqual(response.status_code,200);self.assertTrue(response.json()['ok'])
+        self.assertFalse(response.json()['stations'][1]['open'])
+        response=self.client.post(url,{'action':'station_toggle','test':1,'revision':1,'enabled':'1'},**headers)
+        self.assertEqual(response.status_code,409);self.assertFalse(response.json()['ok'])
+        self.assertFalse(self.event.stations.get(test=1).is_open)
+        response=self.client.post(url,{'action':'assign_coach','coach':self.other.pk,'revision':1,'test':0},**headers)
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(next(a for a in response.json()['assignments'] if a['coach']==self.other.pk)['test'],0)
+    def test_separate_stations_tab_and_closure_review(self):
+        self.client.force_login(self.admin)
+        response=self.client.get(f'/events/{self.event.pk}/operations/')
+        self.assertContains(response,'data-tab="stations"')
+        self.assertContains(response,'data-pane="stations"')
+        self.assertContains(response,'data-review-finish')
+        self.assertContains(response,'id="capacity-inline" hidden')
+        self.assertFalse(response.context['closure']['ready'])
+        self.assertEqual(response.context['closure']['open'],2)

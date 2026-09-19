@@ -71,3 +71,10 @@ def station_rows(event):
         station.label='Abierta' if station.is_open else 'Sin abrir' if not station.opened else 'Pausada' if station.pending else 'Cerrada'
         rows.append(station)
     return rows
+
+
+def controls_payload(event):
+    stations=station_rows(event)
+    assigned=list(CoachAssignment.objects.filter(event=event).select_related('station','coach'))
+    return {'phase':event.status,'stations':[{'test':s.test,'open':s.is_open,'revision':s.revision,'pending':s.pending,'label':s.label,'done':s.done} for s in stations],
+            'assignments':[{'coach':a.coach_id,'name':a.coach.get_full_name() or a.coach.username,'test':a.station.test if a.station else None,'station_name':event.rules['tests'][a.station.test]['name'] if a.station else '', 'revision':a.revision} for a in assigned]}

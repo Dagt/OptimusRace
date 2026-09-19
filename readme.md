@@ -121,7 +121,7 @@ Recepción toma la foto o elige un archivo. El acabado deportivo y encuadre se a
 
 ## Estaciones simultáneas y TV
 
-En el resumen del evento, **Estaciones** muestra una lista con búsqueda, filtro, interruptores, coaches y avance. Se pueden abrir varias estaciones a la vez. Apagar una con pendientes pausa su captura y conserva las marcas; no registra ausencias automáticamente.
+La pestaña **Estaciones** muestra una lista con búsqueda, filtro, interruptores, coaches y avance. Se pueden abrir varias estaciones a la vez. Los interruptores y las asignaciones se guardan sin recargar la página. Apagar una con pendientes pausa su captura y conserva las marcas; no registra ausencias automáticamente.
 
 El botón **+** permite asignar varios coaches a una estación. Cada coach tiene una estación actual por evento: **Mover aquí** cambia su asignación y **Retirar** la elimina. El coach recibe la nueva estación automáticamente si no tiene cambios pendientes. Si tiene una captura sin guardar, se conserva en pantalla y se bloquea su envío hasta actualizar. Las correcciones simultáneas conservan el control de versiones existente.
 
@@ -130,3 +130,5 @@ Para resolver desempates finales o finalizar el evento, todas las estaciones deb
 La TV ofrece **Auto / 1 columna / 2 columnas**. La selección se guarda por navegador. Auto utiliza dos columnas desde 1100 píxeles de ancho disponible para el tablero (incluye 1280 × 720); el control manual permite ajustar pantallas LED con resoluciones diferentes.
 
 La migración 0018 conserva las estaciones y marcas existentes. En eventos en curso asigna los coaches activos a la antigua estación actual; administración puede redistribuirlos. Antes de migrar, respalda base de datos y fotos. Las ramas de Git protegen el código, no los datos locales.
+
+En **Resumen**, el cupo y las inscripciones se gestionan en un bloque compacto. **Revisar cierre** consulta el estado actual de estaciones, capturas y desempates; la confirmación de cierre se habilita cuando todo está revisado. El servidor vuelve a validar las condiciones al finalizar.

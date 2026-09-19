@@ -252,8 +252,17 @@ def operations(request,pk):
                 clone=Event.objects.create(name=e.name+' · nueva edición',date=e.date,registration_end=e.registration_end,location=e.location,price=e.price,capacity=e.capacity,demo=e.demo,rules=deepcopy(e.rules),description=e.description,allow_onsite=e.allow_onsite)
                 return redirect('configure',pk=clone.id)
             else: raise ValidationError('Acción desconocida.')
+            if request.headers.get('X-Requested-With')=='XMLHttpRequest' and action in ['station_toggle','assign_coach']:
+                from .stations import controls_payload
+                e.refresh_from_db()
+                return JsonResponse({'ok':True,**controls_payload(e)})
             if action!='phase':messages.success(request,'Cambios guardados.')
-        except (ValidationError,ValueError,InvalidOperation,IntegrityError,KeyError) as exc: error(request,exc)
+        except (ValidationError,ValueError,InvalidOperation,IntegrityError,KeyError) as exc:
+            if request.headers.get('X-Requested-With')=='XMLHttpRequest':
+                from .stations import controls_payload
+                e.refresh_from_db()
+                return JsonResponse({'ok':False,'error':' '.join(exc.messages) if isinstance(exc,ValidationError) else 'No se pudo guardar. Revisa los datos e intenta de nuevo.',**controls_payload(e)},status=409)
+            error(request,exc)
         return redirect(f'/events/{pk}/operations/?tab='+request.POST.get('tab','overview'))
     entries=list(Registration.objects.filter(event=e,state='confirmed').select_related('user','user__profile','participant').prefetch_related('result_set').order_by('bib'))
     for r in entries:
@@ -283,6 +292,8 @@ def operations(request,pk):
     station_done=sum(any(m.test==e.active_test and m.status=='done' for m in r.result_set.all()) for r in confirmed)
     seats=availability(e)
     station_list=station_rows(e)
+    closure={'open':sum(s.is_open for s in station_list),'unopened':sum(not s.opened for s in station_list),'pending':sum(s.pending for s in station_list),'ties':pending_ties}
+    closure['ready']=e.status=='live' and not any(closure.values())
     coach_list=list(User.objects.filter(is_active=True,is_superuser=False,groups__name='Coach').distinct())
     assignments={a.coach_id:a for a in CoachAssignment.objects.filter(event=e).select_related('station')}
     for coach_user in coach_list:
@@ -290,7 +301,7 @@ def operations(request,pk):
         coach_user.assignment_revision=current.revision if current else 0
         coach_user.station_index=current.station.test if current and current.station else None
         coach_user.station_name=e.rules['tests'][current.station.test]['name'] if current and current.station and current.station.test<len(e.rules['tests']) else ''
-    return render(request,'operations.html',{'event':e,'station_list':station_list,'coach_list':coach_list,'station_options':station_options,'active_station':active_station,'station_done':station_done,'station_pending_count':station_pending(e).count(),'station_pending_entries':station_pending(e).order_by('bib'),'seats':seats,'registration_notice':'Cupo agotado' if seats['full'] else e.registration_label,'publish_issues':publish_issues,'can_cash':seats['registration_open'] and not seats['full'],'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'tie_exercises':Exercise.objects.order_by('name'),'pending_ties':pending_ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
+    return render(request,'operations.html',{'event':e,'closure':closure,'station_list':station_list,'coach_list':coach_list,'station_options':station_options,'active_station':active_station,'station_done':station_done,'station_pending_count':station_pending(e).count(),'station_pending_entries':station_pending(e).order_by('bib'),'seats':seats,'registration_notice':'Cupo agotado' if seats['full'] else e.registration_label,'publish_issues':publish_issues,'can_cash':seats['registration_open'] and not seats['full'],'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'tie_exercises':Exercise.objects.order_by('name'),'pending_ties':pending_ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
 
 @never_cache
 @coach_only
