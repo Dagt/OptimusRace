@@ -2,3 +2,5 @@
 
 /* Clamp the JPEG near-black background to black before screen compositing. */
 .appex-logo img,.apx-logo img{filter:contrast(1.35)}
+
+.tv-heading{position:relative}.tv-heading .apx-logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}.tv-heading>div:nth-child(2){max-width:calc(50% - 190px)}.tv-heading h1{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media(max-width:650px){.tv-heading>div:nth-child(2){max-width:calc(50% - 82px)}.tv-heading .tv-live{margin-left:auto}}

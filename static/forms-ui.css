@@ -102,3 +102,8 @@
 .datetime-popup-header button{font-size:12px}.datetime-month strong{text-transform:capitalize;font-size:16px}.datetime-month button{width:40px}
 .datetime-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;text-align:center}.datetime-days>span{font-size:12px;padding:6px 0}.datetime-days button{padding:4px;font-size:14px}.datetime-days button[aria-pressed="true"]{background:var(--gold);color:#111}
 .datetime-time-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}.datetime-time-options select{width:100%;min-height:48px}.datetime-popup>.button{display:block;margin-inline:auto;background:var(--gold);color:#111;min-width:140px}
+
+/* Keep the optional clear action out of the date/time grid. */
+.datetime-picker{position:relative;padding-bottom:24px}.datetime-picker .datetime-clear{position:absolute;right:0;bottom:0;height:20px;line-height:20px;min-height:0;padding:0;margin:0}.policy-row{align-items:start}
+
+.policy-row input:not([type=hidden]),.policy-row select{min-height:46px;box-sizing:border-box}
