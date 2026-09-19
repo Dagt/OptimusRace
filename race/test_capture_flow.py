@@ -107,15 +107,19 @@ class CaptureFlowTests(TestCase):
         self.event.status='open';self.event.save(update_fields=['status'])
         path=f'/events/{self.event.pk}/operations/'
         response=self.client.get(path)
-        self.assertContains(response,'Estación para comenzar')
+        self.assertContains(response,'data-station-toggle')
         self.assertNotContains(response,'Recibe a los participantes')
         self.assertNotContains(response,'href="?tab=reception"')
         self.assertNotContains(response,'Abrir captura de marcas')
         response=self.client.post(path,{'action':'phase','phase':'live','test':0},follow=True)
         self.assertContains(response,'Competencia iniciada.')
         self.assertNotContains(response,'Abrir captura de marcas')
-        capture(self.entry.pk,self.coach,0,42,None,'done',0,'')
-        self.assertContains(self.client.get(path),'1 / 1 pruebas realizadas')
+        from .stations import assign_coach
+        from .services import close_station
+        a=assign_coach(self.event.pk,self.admin,self.coach.pk,0,0)
+        capture(self.entry.pk,self.coach,0,42,None,'done',0,'',assignment_revision=a.revision)
+        self.assertContains(self.client.get(path),'<strong>1/1</strong>')
+        close_station(self.event.pk,self.admin,0)
         response=self.client.post(path,{'action':'phase','phase':'closed'},follow=True)
         self.assertContains(response,'Evento finalizado')
         self.assertNotContains(response,'Activar estación seleccionada')
@@ -152,12 +156,12 @@ class CaptureFlowTests(TestCase):
         before=Audit.objects.filter(action='phase').count()
         for tab in ['overview','results','reception']:
             response=self.client.get(path,{'tab':tab})
-            self.assertContains(response,'data-station-submit disabled')
+            self.assertContains(response,'aria-checked="true"')
         response=self.client.post(path,{'action':'phase','phase':'live','test':0,'expected_test':0},follow=True)
         self.assertContains(response,'La estación ya está activa. Las marcas se conservan.')
         self.assertEqual(Audit.objects.filter(action='phase').count(),before)
         self.assertEqual(Result.objects.get().value,42)
-        with self.assertRaises(ValidationError):change_phase(self.event.pk,self.admin,'live',0,expected_test=99)
+        self.assertTrue(self.event.stations.get(test=0).is_open)
 
     def test_time_formats_persist_normalized_marks_in_response_and_live_feed(self):
         station=self.event.rules['tests'][0]

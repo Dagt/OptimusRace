@@ -1,40 +1,17 @@
-{% load race_labels %}
-<article class="panel event-day-controls">
-<p class="eyebrow">CONTROL DE ESTACIONES</p>
+{% load race_labels static %}<link rel="stylesheet" href="{% static 'stations.css' %}?v=1"><article class="panel station-manager">
 {% if event.status == 'draft' %}
 <h2>Publicar el evento</h2><p>Completa la configuración y publica. El inicio de la competencia se realiza después, desde aquí.</p>
 {% for issue in publish_issues %}<p class="inline-error">{{ issue }}</p>{% endfor %}
 <a class="button secondary" href="{% url 'configure' event.id %}">Revisar configuración</a>
 <form method="post" data-confirm="Publicar bloqueará las reglas de esta edición. ¿Está todo revisado?">{% csrf_token %}<input type="hidden" name="action" value="phase"><input type="hidden" name="phase" value="open"><button class="button">Publicar evento</button></form>
-{% elif event.status == 'closed' %}
-<h2>Evento finalizado</h2><p>Cerrado el {{ event.closed_at|date:'d M Y · H:i' }}. La captura está bloqueada y los resultados son finales.</p>
-{% else %}
-{% if event.status == 'open' %}
-<h2>Iniciar competencia</h2>
-{% else %}
-<header class="station-control-heading">
-<div><span class="station-step">ESTACIÓN {{ event.active_test|add:1 }} / {{ event.rules.tests|length }}</span><h2>{{ active_station.name }}</h2></div>
-<span class="station-status" data-station-state>{% if event.station_capture_closed %}Captura cerrada{% else %}Captura abierta{% endif %}</span>
-</header>
-<div class="station-control-progress">
-<span data-station-progress data-test="{{ event.active_test }}" data-source="{% url 'live_data' event.pk %}">{{ station_done }} / {{ summary.registered }} pruebas realizadas</span>
-<span><strong data-station-pending>{{ station_pending_count }}</strong> por revisar</span>
-</div>
-<div class="station-pending-disclosure"><div class="station-pending-list" data-station-pending-list>{% for entry in station_pending_entries %}<p>#{{ entry.bib }} · {{ entry.name }}</p>{% empty %}<p>Sin pendientes. Puedes cerrar la captura.</p>{% endfor %}</div></div>
-<div class="station-control-actions">
-<form method="post" data-close-station data-confirm="¿Cerrar la captura de esta estación? Los coaches ya no podrán guardar marcas hasta que se reabra.">{% csrf_token %}<input type="hidden" name="action" value="close_station"><input type="hidden" name="test" value="{{ event.active_test }}"><button class="button" data-close-station-button {% if event.station_capture_closed %}disabled{% endif %}>Cerrar captura</button></form>
-<form method="post" data-reopen-station>{% csrf_token %}<input type="hidden" name="action" value="reopen_station"><input type="hidden" name="test" value="{{ event.active_test }}"><button class="button secondary" data-reopen-station-button {% if not event.station_capture_closed %}disabled{% endif %}>Reabrir captura</button></form>
-</div>
-<div class="station-switch-disclosure">
-{% endif %}
-<form method="post" {% if event.status == 'live' %}data-station-switch data-capture-closed="{% if event.station_capture_closed %}1{% else %}0{% endif %}" data-current="{{ event.active_test }}"{% else %}data-busy-form{% endif %}>
-{% csrf_token %}<input type="hidden" name="action" value="phase"><input type="hidden" name="phase" value="live">
-{% if event.status == 'live' %}<input type="hidden" name="expected_test" value="{{ event.active_test }}">{% endif %}
-<label>{% if event.status == 'open' %}Estación para comenzar{% else %}Seleccionar estación{% endif %}<select name="test">{% for option in station_options %}<option value="{{ option.index }}"{% if option.index == event.active_test %} selected{% endif %}{% if not option.allowed %} disabled{% endif %}>{{ option.index|add:1 }} · {{ option.name }}</option>{% endfor %}</select></label>
-{% if event.rules.ordered_stations %}<p class="field-help">Orden fijo: comienza en la primera estación y avanza a la siguiente.</p>{% endif %}
-<div class="action-group"><button class="button" {% if event.status == 'live' %}data-station-submit disabled{% endif %}>{% if event.status == 'open' %}Iniciar competencia{% else %}Estación activa{% endif %} {% icon 'arrow' %}</button></div>
-</form>
-{% if event.status == 'live' %}</div>{% endif %}
-{% endif %}
-
-</article>
+{% else %}<div class="section-heading"><h2>Estaciones</h2><span class="pill">{{ station_list|length }} pruebas</span></div>
+<div class="station-tools"><input type="search" id="station-search" placeholder="Buscar estación" aria-label="Buscar estación"><select id="station-filter" aria-label="Filtrar estaciones"><option value="all">Todas</option><option value="open">Abiertas</option><option value="closed">Cerradas / pausadas</option></select></div>
+<div class="station-table"><div class="station-table-head"><span>Estación</span><span>Captura</span><span>Coaches</span><span>Avance</span></div>
+{% for station in station_list %}<div class="station-row" data-station-name="{{ station.name }}" data-station-open="{% if station.is_open %}1{% else %}0{% endif %}">
+<div class="station-row-name"><span>{{ station.test|add:1|stringformat:'02d' }}</span><strong>{{ station.name }}</strong></div>
+<form method="post" data-station-toggle data-pending="{{ station.pending }}">{% csrf_token %}<input type="hidden" name="action" value="station_toggle"><input type="hidden" name="test" value="{{ station.test }}"><input type="hidden" name="revision" value="{{ station.revision }}"><input type="hidden" name="enabled" value="{% if station.is_open %}0{% else %}1{% endif %}"><button class="station-toggle" type="submit" role="switch" aria-checked="{% if station.is_open %}true{% else %}false{% endif %}" aria-label="Captura de {{ station.name }}" {% if event.status == 'closed' %}disabled{% endif %}><span></span></button><small>{{ station.label }}</small></form>
+<div class="station-coaches">{% for assigned in station.assignments.all %}<span class="station-coach-chip">{{ assigned.coach.get_full_name|default:assigned.coach.username }}</span>{% endfor %}<button type="button" class="button secondary small" data-assign-station="{{ station.test }}" data-name="{{ station.name }}" {% if event.status == 'closed' %}disabled{% endif %} aria-label="Asignar coaches a {{ station.name }}">+</button></div>
+<div class="station-count"><strong>{{ station.done }}/{{ summary.registered }}</strong><small>{{ station.pending }} pendientes</small></div></div>{% endfor %}</div>
+<p id="station-empty" hidden>Sin estaciones para este filtro.</p>
+<dialog id="station-team" class="station-team"><header><h3 id="station-team-title">Coaches</h3><button type="button" class="icon-button" data-close-team aria-label="Cerrar">×</button></header><input type="search" id="coach-search-assignment" placeholder="Buscar coach" aria-label="Buscar coach"><div class="station-team-list">{% for coach in coach_list %}<form method="post" data-assignment-coach="{{ coach.get_full_name|default:coach.username }}" data-current="{{ coach.station_index|default_if_none:'' }}">{% csrf_token %}<input type="hidden" name="action" value="assign_coach"><input type="hidden" name="coach" value="{{ coach.pk }}"><input type="hidden" name="revision" value="{{ coach.assignment_revision }}"><input type="hidden" name="test" value=""><div><strong>{{ coach.get_full_name|default:coach.username }}</strong><small>{{ coach.station_name|default:'Sin estación asignada' }}</small></div><button class="button secondary small">Asignar</button></form>{% empty %}<p>No hay coaches activos. Agrégalos desde Equipo.</p>{% endfor %}</div></dialog>
+{% endif %}</article><script src="{% static 'stations.js' %}?v=2" defer></script>

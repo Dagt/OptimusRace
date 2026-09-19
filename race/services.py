@@ -175,6 +175,12 @@ def configure(event_id, actor, data):
 @transaction.atomic
 def change_phase(event_id, actor, phase, test=0,batch=1,expected_test=None):
     e=Event.objects.select_for_update().get(pk=event_id)
+    if e.stations.exists() and phase=='live':
+        from .stations import switch_station
+        station=e.stations.filter(test=test).first()
+        if station is None:raise ValidationError("Estación inválida.")
+        switch_station(event_id,actor,test,True,station.revision)
+        e.refresh_from_db();return e
     if expected_test is not None and (e.status!='live' or e.active_test!=expected_test):raise ValidationError('La estación cambió en otra pantalla. Actualiza antes de cambiarla.')
     if phase=='live' and e.status=='live' and test==e.active_test:return e
     allowed={'draft':['open'],'open':['live'],'live':['live','closed'],'closed':[]}
@@ -189,6 +195,7 @@ def change_phase(event_id, actor, phase, test=0,batch=1,expected_test=None):
         if not 0<=test<len(e.rules['tests']) or batch<1: raise ValidationError('Prueba o lote inválido.')
         e.active_test=test; e.active_batch=batch; e.station_capture_closed=False
     if phase=='closed':
+        if e.stations.exists() and any(s.is_open or not s.opened or station_pending(e,s.test).exists() for s in e.stations.filter(test__lt=len(e.rules['tests']))):raise ValidationError('Revisa los pendientes y cierra todas las estaciones antes de finalizar el evento.')
         frozen=board(e)
         if any(r['tie_pending'] and r['rank']==1 for r in frozen if r['rank'] is not None):raise ValidationError('Resuelve los empates por el primer lugar de cada categoría antes de cerrar el evento.')
         for row in frozen:
@@ -279,7 +286,7 @@ def check_in(reg_id,actor,weight,batch,attendance,reason='',revision=None):
     audit(e,actor,'weight_correction' if changed_weight and r.result_set.exists() else 'reception',{'registration':r.id,'before':old,'after':{'weight':r.weight,'category':r.category,'batch':r.batch,'attendance':r.attendance},'reason':reason})
 
 @transaction.atomic
-def capture(reg_id,actor,test,value,load,status,revision,reason,administrative=False,judged_points=None,time_format=None):
+def capture(reg_id,actor,test,value,load,status,revision,reason,administrative=False,judged_points=None,time_format=None,assignment_revision=None):
     if not actor.is_active or actor.is_superuser or not actor.groups.filter(name='Coach').exists():
         raise ValidationError('Solo los coaches pueden capturar o corregir marcas.')
     r=Registration.objects.select_for_update().select_related('event').get(pk=reg_id)
@@ -287,8 +294,14 @@ def capture(reg_id,actor,test,value,load,status,revision,reason,administrative=F
     if r.attendance=='disqualified':raise ValidationError('El participante está descalificado.')
     if administrative:raise ValidationError('La corrección administrativa de marcas no está permitida.')
     if not 0<=test<len(e.rules['tests']): raise ValidationError('Prueba inválida.')
-    if e.status!='live' or test!=e.active_test: raise ValidationError('La prueba activa cambió. Actualiza la pantalla.')
-    if e.station_capture_closed:raise ValidationError('Administración cerró la captura de esta estación.')
+    if e.stations.exists():
+        from .stations import assignment
+        assigned=assignment(e,actor)
+        if not assigned or assigned.station.test!=test or assigned.revision!=assignment_revision:raise ValidationError('Tu asignación cambió. Conserva tus datos pendientes y actualiza la pantalla.')
+        if e.status!='live' or not assigned.station.is_open:raise ValidationError('Administración cerró la captura de esta estación.')
+    else:
+        if e.status!='live' or test!=e.active_test:raise ValidationError('La prueba activa cambió. Actualiza la pantalla.')
+        if e.station_capture_closed:raise ValidationError('Administración cerró la captura de esta estación.')
     if r.state!='confirmed':raise ValidationError('La inscripción debe estar confirmada.')
     if r.attendance=='withdrawn':raise ValidationError('El participante se retiró del evento. Administración debe reactivarlo antes de capturar.')
     if status not in ['done','absent','withdrawn','pending']: raise ValidationError('Estado inválido.')
@@ -372,9 +385,9 @@ def register_person_cash(event_id,person,actor,weight,discount_code='',request_k
     return entry
 
 
-def station_pending(event):
+def station_pending(event,test=None):
     entries=Registration.objects.filter(event=event,state='confirmed').exclude(attendance__in=['withdrawn','disqualified'])
-    resolved=Result.objects.filter(registration__event=event,test=event.active_test,status__in=['done','absent','withdrawn']).values('registration_id')
+    resolved=Result.objects.filter(registration__event=event,test=event.active_test if test is None else test,status__in=['done','absent','withdrawn']).values('registration_id')
     return entries.exclude(pk__in=resolved)
 
 
@@ -382,6 +395,11 @@ def station_pending(event):
 def close_station(event_id,actor,test,reopen=False):
     event=Event.objects.select_for_update().get(pk=event_id)
     if not actor.is_superuser:raise ValidationError('Solo administración puede cerrar o reabrir estaciones.')
+    if event.stations.exists():
+        from .stations import switch_station
+        station=event.stations.filter(test=test).first()
+        if station is None:raise ValidationError("Estación inválida.")
+        return switch_station(event_id,actor,test,reopen,station.revision)
     if event.status!='live' or event.active_test!=test:raise ValidationError('La estación cambió. Actualiza el evento.')
     if not reopen:
         pending=station_pending(event).count()

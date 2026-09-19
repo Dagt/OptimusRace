@@ -82,3 +82,11 @@ test('playoffs rotate, refresh scores without switching slide, and respect categ
  f.q('#tv-category').value='Femenil';f.q('#tv-category').onchange();
  assert.match(f.q('#tv-page').textContent,/01 \/ 01/);
 });
+
+test('720p supports two columns with a manual single-column override',async()=>{
+ const f=setup(1224,450,20);await flush();
+ assert.equal(f.q('#tv').dataset.columns,'2');
+ f.q('#tv-columns').value='1';f.q('#tv-columns').onchange();assert.equal(f.q('#tv').dataset.columns,'1');
+ f.q('#tv-columns').value='2';f.q('#tv-columns').onchange();assert.equal(f.q('#tv').dataset.columns,'2');
+ f.state.feed.active_stations=[{name:'Salto'},{name:'Sentadilla'}];await f.poll();assert.equal(f.q('#tv-test').textContent,'Salto · Sentadilla');
+});

@@ -34,7 +34,7 @@ class ConfigurationTests(TestCase):
         self.assertEqual(response.status_code,200)
         self.assertEqual(response.context['rules']['tests'],[])
         self.assertEqual(response.context['rules']['categories'],[])
-        self.assertNotContains(response,'APPEX')
+        self.assertEqual(response.context['form'].initial.get('name',''),'')
         self.assertContains(response,'config-editor.js')
     def test_exercise_parameters_roundtrip_and_invalid_values(self):
         data={'name':'Prueba por tiempo','unit':'reps','capacity':'Resistencia','higher':'True','metric':'repetitions','duration_seconds':60,'load_mode':'body_percent','load_value':75,'round_mode':'nearest','load_step':2.5,'precision':0}
