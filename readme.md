@@ -127,7 +127,7 @@ El botón **+** permite asignar varios coaches a una estación. Cada coach tiene
 
 Para resolver desempates finales o finalizar el evento, todas las estaciones deben haberse abierto, quedar cerradas y tener sus participantes revisados. El cierre del evento también requiere resolver los empates por primer lugar.
 
-La TV ofrece **Auto / 1 columna / 2 columnas**. La selección se guarda por navegador. Auto utiliza dos columnas desde 1100 píxeles de ancho disponible para el tablero (incluye 1280 × 720); el control manual permite ajustar pantallas LED con resoluciones diferentes.
+La TV muestra siempre dos columnas y calcula las filas según la altura disponible. La franja de estaciones y categoría mantiene una altura fija, independientemente de cuántas estaciones estén abiertas.
 
 La migración 0018 conserva las estaciones y marcas existentes. En eventos en curso asigna los coaches activos a la antigua estación actual; administración puede redistribuirlos. Antes de migrar, respalda base de datos y fotos. Las ramas de Git protegen el código, no los datos locales.
 

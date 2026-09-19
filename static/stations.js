@@ -20,16 +20,15 @@ if(manager){
    form.querySelector('button').setAttribute('aria-checked',String(station.open));form.querySelector('small').textContent=station.label;
    row.querySelector('.station-count strong').textContent=station.done+'/'+row.querySelector('.station-count strong').textContent.split('/')[1];
    row.querySelector('.station-count small').textContent=station.pending+' pendientes';
-   const coaches=row.querySelector('.station-coaches');coaches.querySelectorAll('.station-coach-chip').forEach(c=>c.remove());
-   for(const assigned of (data.assignments||[]).filter(a=>a.test===station.test)){const chip=document.createElement('span');chip.className='station-coach-chip';chip.textContent=assigned.name;coaches.insertBefore(chip,coaches.querySelector('button'))}
+   const assigned=(data.assignments||[]).filter(a=>a.test===station.test),summary=row.querySelector('.station-coach-summary');
+   summary.textContent=assigned.length===1?assigned[0].name:assigned.length?assigned.length+' coaches':'Sin asignar';summary.title=assigned.map(a=>a.name).join(', ');
   }
   for(const form of forms){const a=(data.assignments||[]).find(a=>String(a.coach)===form.dataset.coachId);form.dataset.current=a?.test==null?'':String(a.test);form.elements.revision.value=a?.revision||0;form.querySelector('small').textContent=a?.station_name||'Sin estación asignada'}
-  updateButtons();render();
+  updateButtons();
   const badge=document.querySelector('.page-heading .badge');if(badge&&data.phase==='live'){badge.textContent='En competencia';badge.className='badge live'}
  }
  manager.querySelectorAll('[data-station-toggle],[data-assignment-coach]').forEach(form=>form.addEventListener('submit',async event=>{
   event.preventDefault();if(busy)return;
-  if(form.hasAttribute('data-station-toggle')&&form.elements.enabled.value==='0'&&Number(form.dataset.pending)>0&&!confirm(`Quedan ${form.dataset.pending} participantes pendientes. ¿Pausar la captura? Las marcas se conservan.`))return;
   busy=true;const button=form.querySelector('button');button.disabled=true;button.setAttribute('aria-busy','true');feedback.textContent='';dialog?.querySelector('[data-team-status]')?.remove();
   try{
    const response=await fetch(location.pathname,{method:'POST',body:new FormData(form),headers:{'X-Requested-With':'XMLHttpRequest'},cache:'no-store'});
