@@ -326,7 +326,7 @@ class CleanInstallTests(TestCase):
         self.assertEqual(Group.objects.filter(name='Coach').count(),1)
         self.assertEqual(Exercise.objects.count(),0)
         self.assertNotIn('seed_demo',get_commands())
-        self.assertContains(self.client.get('/'),'Los eventos estarán aquí cuando se publiquen.')
+        self.assertContains(self.client.get('/'),'Las próximas fechas aparecerán aquí cuando se publiquen.')
 
     def test_empty_account_has_no_synthetic_chart_or_photo(self):
         user=User.objects.create_user('fresh@example.test',password='new-test-only-password',first_name='Nuevo')

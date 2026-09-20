@@ -36,7 +36,7 @@ class ReceptionUXTests(TestCase):
     def test_event_fields_benefits_visible_and_dates_day_first(self):
         response=self.client.get('/events/new/')
         self.assertContains(response,'name="benefits"')
-        self.assertNotContains(response,'name="judging_standard"')
+        self.assertContains(response,'name="judging_standard"')
         self.assertNotContains(response,'name="registration_channels"')
         self.assertContains(response,'dd/mm/aaaa HH:MM')
         self.assertNotContains(response,'type="datetime-local"')
@@ -79,7 +79,7 @@ class ReceptionUXTests(TestCase):
         self.client.logout()
         path=f'/results/participants/{entry.participant_id}/'
         response=self.client.get('/')
-        self.assertContains(response,'Primeros de cada categoría');self.assertContains(response,path)
+        self.assertContains(response,'Marcas que ponen el ritmo.');self.assertContains(response,path)
         self.assertContains(self.client.get('/results/'),entry.participant.full_name)
         self.assertContains(self.client.get(f'/events/{self.event.pk}/'),path)
         row=self.client.get(f'/events/{self.event.pk}/live/').json()['board'][0]

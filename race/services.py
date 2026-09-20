@@ -271,8 +271,9 @@ def fulfill(payload):
 
 @transaction.atomic
 def check_in(reg_id,actor,weight,batch,attendance,reason='',revision=None):
-    r=Registration.objects.select_for_update().select_related('event').get(pk=reg_id)
-    e=Event.objects.select_for_update().get(pk=r.event_id)
+    event_id=Registration.objects.values_list('event_id',flat=True).get(pk=reg_id)
+    e=Event.objects.select_for_update().get(pk=event_id)
+    r=Registration.objects.select_for_update().get(pk=reg_id)
     if e.status=='closed' or r.state!='confirmed': raise ValidationError('La inscripción debe estar pagada y el evento abierto.')
     if r.attendance=='disqualified':raise ValidationError('Resuelve la descalificación antes de modificar la recepción.')
     if attendance not in ['pending','present','absent','withdrawn']: raise ValidationError('Asistencia inválida.')
@@ -289,8 +290,9 @@ def check_in(reg_id,actor,weight,batch,attendance,reason='',revision=None):
 def capture(reg_id,actor,test,value,load,status,revision,reason,administrative=False,judged_points=None,time_format=None,assignment_revision=None):
     if not actor.is_active or actor.is_superuser or not actor.groups.filter(name='Coach').exists():
         raise ValidationError('Solo los coaches pueden capturar o corregir marcas.')
-    r=Registration.objects.select_for_update().select_related('event').get(pk=reg_id)
-    e=Event.objects.select_for_update().get(pk=r.event_id)
+    event_id=Registration.objects.values_list('event_id',flat=True).get(pk=reg_id)
+    e=Event.objects.select_for_update().get(pk=event_id)
+    r=Registration.objects.select_for_update().get(pk=reg_id)
     if r.attendance=='disqualified':raise ValidationError('El participante está descalificado.')
     if administrative:raise ValidationError('La corrección administrativa de marcas no está permitida.')
     if not 0<=test<len(e.rules['tests']): raise ValidationError('Prueba inválida.')
@@ -348,8 +350,9 @@ def cancel_checkout(reg_id,actor):
 
 @transaction.atomic
 def discipline(reg_id, actor, disqualified, reason, revision):
-    r=Registration.objects.select_for_update().select_related('event').get(pk=reg_id)
-    e=Event.objects.select_for_update().get(pk=r.event_id)
+    event_id=Registration.objects.values_list('event_id',flat=True).get(pk=reg_id)
+    e=Event.objects.select_for_update().get(pk=event_id)
+    r=Registration.objects.select_for_update().get(pk=reg_id)
     if not actor.is_superuser or not reason.strip():raise ValidationError('La decisión requiere administrador y motivo.')
     if e.status not in ['open','live'] or r.state!='confirmed':raise ValidationError('Solo se puede resolver disciplina en eventos abiertos con inscripción confirmada.')
     if r.revision!=revision:raise ValidationError('La inscripción cambió. Recarga antes de continuar.')

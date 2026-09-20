@@ -27,3 +27,6 @@ urlpatterns += [path('results/',people.public_search,name='public_search'),path(
 urlpatterns += [path('events/<int:pk>/tiebreaks/',v.coach_tiebreaks,name='coach_tiebreaks')]
 
 urlpatterns += [path('events/<int:pk>/coach/feed/',v.coach_feed,name='coach_feed')]
+
+from optimus.health import health
+urlpatterns += [path("healthz/",health,name="health")]
