@@ -188,3 +188,21 @@ class TieBreakMatch(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['round','first','second'],name='one_playoff_pair')]
+
+
+class EventStation(models.Model):
+    event = models.ForeignKey(Event,on_delete=models.CASCADE,related_name='stations')
+    test = models.PositiveIntegerField()
+    is_open = models.BooleanField(default=False)
+    opened = models.BooleanField(default=False)
+    revision = models.PositiveIntegerField(default=0)
+    class Meta:
+        constraints=[models.UniqueConstraint(fields=['event','test'],name='one_event_station')]
+
+class CoachAssignment(models.Model):
+    event = models.ForeignKey(Event,on_delete=models.CASCADE)
+    coach = models.ForeignKey(User,on_delete=models.PROTECT)
+    station = models.ForeignKey(EventStation,null=True,on_delete=models.PROTECT,related_name='assignments')
+    revision = models.PositiveIntegerField(default=1)
+    class Meta:
+        constraints=[models.UniqueConstraint(fields=['event','coach'],name='one_coach_station')]

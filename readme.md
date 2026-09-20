@@ -41,7 +41,7 @@ También puedes usar `./run-local.ps1` para arrancar después de instalar depend
 2. **Evento → Administrar → Inscribir en mostrador**. Primero busca a la persona por nombre o número P para reutilizar su ficha; si es nueva, completa sus datos. No se crea usuario, contraseña ni acceso para participantes.
 3. En el mismo formulario toma/selecciona la **foto**, registra el **peso medido**, lote y **efectivo**. El sistema comprueba edad, horarios, cupo, tarifa/descuento y categoría. Confirma una vez; repetir el envío no duplica la inscripción.
 4. Entrega el número permanente **P123** y el dorsal de ese evento. Desde **Buscar participante**, cualquier visitante consulta foto, resultados, radar e historial sin login. El dorsal se busca indicando el evento para evitar confusiones; correo y fecha de nacimiento son privados.
-5. Inicia competencia y selecciona estación/lote. Los coaches capturan las marcas. No hace falta una recepción o un segundo pesaje; en **Participantes** se pueden corregir datos con los controles y auditoría existentes.
+5. Abre las estaciones desde sus interruptores y asigna coaches con el botón +. Los coaches capturan las marcas en su estación asignada. No hace falta una recepción o un segundo pesaje; en **Participantes** se pueden corregir datos con los controles y auditoría existentes.
 6. Administradores y coaches conservan sus cuentas y fotos. Crea sus accesos desde **Equipo**.
 
 En ediciones siguientes reutiliza la ficha de la persona y registra nuevamente su peso. Puede conservar su foto o tomar otra. Una edición marcada de pruebas no genera cobros electrónicos ni datos simulados; el efectivo capturado es un registro de prueba.
@@ -117,3 +117,18 @@ Las cuentas de administración y coach muestran Mi cuenta, sin datos deportivos 
 ### Fotos deportivas sin API de pago
 
 Recepción toma la foto o elige un archivo. El acabado deportivo y encuadre se aplican automáticamente, sin temporizador ni selector de fondo. El servidor valida el procesamiento antes de guardar; no acepta una foto nueva sin acabado. `run-local.ps1` prepara dependencias y modelo; al iniciar directamente con Django, el modelo se descarga al primer procesamiento si falta. Consulta [instalación y uso](docs/RETRATOS.md).
+
+
+## Estaciones simultáneas y TV
+
+La pestaña **Estaciones** muestra una lista con búsqueda, filtro, interruptores, coaches y avance. Se pueden abrir varias estaciones a la vez. Los interruptores y las asignaciones se guardan sin recargar la página. Apagar una con pendientes pausa su captura y conserva las marcas; no registra ausencias automáticamente.
+
+El botón **+** permite asignar varios coaches a una estación. Cada coach tiene una estación actual por evento: **Mover aquí** cambia su asignación y **Retirar** la elimina. El coach recibe la nueva estación automáticamente si no tiene cambios pendientes. Si tiene una captura sin guardar, se conserva en pantalla y se bloquea su envío hasta actualizar. Las correcciones simultáneas conservan el control de versiones existente.
+
+Para resolver desempates finales o finalizar el evento, todas las estaciones deben haberse abierto, quedar cerradas y tener sus participantes revisados. El cierre del evento también requiere resolver los empates por primer lugar.
+
+La TV muestra siempre dos columnas y calcula las filas según la altura disponible. La franja de estaciones y categoría mantiene una altura fija, independientemente de cuántas estaciones estén abiertas.
+
+La migración 0018 conserva las estaciones y marcas existentes. En eventos en curso asigna los coaches activos a la antigua estación actual; administración puede redistribuirlos. Antes de migrar, respalda base de datos y fotos. Las ramas de Git protegen el código, no los datos locales.
+
+En **Resumen**, el cupo y las inscripciones se gestionan en un bloque compacto. **Revisar cierre** consulta el estado actual de estaciones, capturas y desempates; la confirmación de cierre se habilita cuando todo está revisado. El servidor vuelve a validar las condiciones al finalizar.

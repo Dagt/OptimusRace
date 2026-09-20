@@ -243,3 +243,21 @@ test('catalog-defined minutes display consistently without a format selector',as
  Object.assign(f.mark,{revision:2,value:1530,points:100,status:'done'});await f.poll();
  assert.equal(f.form.elements.value.value,'25.30');
 });
+
+
+test('assignment revision change preserves draft even when returning to same station',async()=>{
+ const f=setup();await flush();f.q('#capture-list').dataset.assignment='1';f.edit('45');
+ f.state.feed.assignment_revision=3;await f.poll();
+ assert.equal(f.form.elements.value.value,'45');assert.equal(f.q('[data-save-mark]',f.form).disabled,true);
+ assert.equal(f.state.navigation,undefined);
+});
+test('clean assignment change navigates to assigned station automatically',async()=>{
+ const f=setup();await flush();f.q('#capture-list').dataset.assignment='1';
+ f.state.feed.assignment_revision=2;f.state.feed.test_index=1;await f.poll();
+ assert.equal(f.state.navigation,'/coach/?station=1');
+});
+test('removing assignment preserves pending input and blocks save',async()=>{
+ const f=setup();await flush();f.edit('45');f.state.feed.unassigned=true;await f.poll();
+ assert.equal(f.form.elements.value.value,'45');assert.equal(f.state.navigation,undefined);
+ await f.form.listeners.submit({preventDefault(){}});assert.equal(f.state.posts.length,0);
+});

@@ -178,6 +178,8 @@ def event_edit(request,pk=None):
             if e: e=configure(e.id,request.user,{**form.cleaned_data,'rules':rules})
             else:
                 e=form.save(commit=False); e.rules=rules; e.save(); audit(e,request.user,'created',{'rules':rules})
+            from .stations import ensure_stations
+            ensure_stations(e)
             if request.POST.get('intent')=='publish':
                 try:change_phase(e.id,request.user,'open')
                 except ValidationError as exc:
@@ -192,7 +194,7 @@ def event_edit(request,pk=None):
 
 def default_rules():
     names=['Sentadilla','Press banca','1000 m','Burpees 5 min','50 m','Shuttle 10x10','Salto horizontal','Salto vertical']
-    catalog={x['name']:x for x in Exercise.objects.values('name','unit','capacity','higher','base','elite')}
+    catalog={x['name']:x for x in Exercise.objects.order_by('pk').values('name','unit','capacity','higher','base','elite')}
     preferred=[catalog[n] for n in names if n in catalog]
     remaining=[t for name,t in catalog.items() if name not in names]
     tests=[]
@@ -203,11 +205,17 @@ def default_rules():
 @never_cache
 @administrator
 def operations(request,pk):
+    from .stations import ensure_stations,station_rows,assign_coach,switch_station
     e=get_object_or_404(Event,pk=pk)
+    ensure_stations(e)
     if request.method=='POST':
         try:
             action=request.POST['action']
-            if action=='phase':
+            if action=='station_toggle':
+                switch_station(pk,request.user,int(request.POST['test']),request.POST['enabled']=='1',int(request.POST['revision']))
+            elif action=='assign_coach':
+                assign_coach(pk,request.user,int(request.POST['coach']),int(request.POST['test']) if request.POST.get('test')!='' else None,int(request.POST['revision']))
+            elif action=='phase':
                 selected_test=int(request.POST.get('test',0))
                 change_phase(pk,request.user,request.POST['phase'],selected_test,1,expected_test=int(request.POST['expected_test']) if request.POST.get('expected_test') is not None else None)
                 if request.POST['phase']=='live':
@@ -244,8 +252,17 @@ def operations(request,pk):
                 clone=Event.objects.create(name=e.name+' · nueva edición',date=e.date,registration_end=e.registration_end,location=e.location,price=e.price,capacity=e.capacity,demo=e.demo,rules=deepcopy(e.rules),description=e.description,allow_onsite=e.allow_onsite)
                 return redirect('configure',pk=clone.id)
             else: raise ValidationError('Acción desconocida.')
+            if request.headers.get('X-Requested-With')=='XMLHttpRequest' and action in ['station_toggle','assign_coach']:
+                from .stations import controls_payload
+                e.refresh_from_db()
+                return JsonResponse({'ok':True,**controls_payload(e)})
             if action!='phase':messages.success(request,'Cambios guardados.')
-        except (ValidationError,ValueError,InvalidOperation,IntegrityError,KeyError) as exc: error(request,exc)
+        except (ValidationError,ValueError,InvalidOperation,IntegrityError,KeyError) as exc:
+            if request.headers.get('X-Requested-With')=='XMLHttpRequest':
+                from .stations import controls_payload
+                e.refresh_from_db()
+                return JsonResponse({'ok':False,'error':' '.join(exc.messages) if isinstance(exc,ValidationError) else 'No se pudo guardar. Revisa los datos e intenta de nuevo.',**controls_payload(e)},status=409)
+            error(request,exc)
         return redirect(f'/events/{pk}/operations/?tab='+request.POST.get('tab','overview'))
     entries=list(Registration.objects.filter(event=e,state='confirmed').select_related('user','user__profile','participant').prefetch_related('result_set').order_by('bib'))
     for r in entries:
@@ -274,7 +291,17 @@ def operations(request,pk):
     active_station=next((t for i,t in enumerate(e.rules['tests']) if i==e.active_test),None)
     station_done=sum(any(m.test==e.active_test and m.status=='done' for m in r.result_set.all()) for r in confirmed)
     seats=availability(e)
-    return render(request,'operations.html',{'event':e,'station_options':station_options,'active_station':active_station,'station_done':station_done,'station_pending_count':station_pending(e).count(),'station_pending_entries':station_pending(e).order_by('bib'),'seats':seats,'registration_notice':'Cupo agotado' if seats['full'] else e.registration_label,'publish_issues':publish_issues,'can_cash':seats['registration_open'] and not seats['full'],'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'tie_exercises':Exercise.objects.order_by('name'),'pending_ties':pending_ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
+    station_list=station_rows(e)
+    closure={'open':sum(s.is_open for s in station_list),'unopened':sum(not s.opened for s in station_list),'pending':sum(s.pending for s in station_list),'ties':pending_ties}
+    closure['ready']=e.status=='live' and not any(closure.values())
+    coach_list=list(User.objects.filter(is_active=True,is_superuser=False,groups__name='Coach').distinct())
+    assignments={a.coach_id:a for a in CoachAssignment.objects.filter(event=e).select_related('station')}
+    for coach_user in coach_list:
+        current=assignments.get(coach_user.pk)
+        coach_user.assignment_revision=current.revision if current else 0
+        coach_user.station_index=current.station.test if current and current.station else None
+        coach_user.station_name=e.rules['tests'][current.station.test]['name'] if current and current.station and current.station.test<len(e.rules['tests']) else ''
+    return render(request,'operations.html',{'event':e,'closure':closure,'station_list':station_list,'coach_list':coach_list,'station_options':station_options,'active_station':active_station,'station_done':station_done,'station_pending_count':station_pending(e).count(),'station_pending_entries':station_pending(e).order_by('bib'),'seats':seats,'registration_notice':'Cupo agotado' if seats['full'] else e.registration_label,'publish_issues':publish_issues,'can_cash':seats['registration_open'] and not seats['full'],'entries':entries,'summary':summary,'board':standings,'capacity_boards':capacity_boards(standings),'ties':ties,'tie_exercises':Exercise.objects.order_by('name'),'pending_ties':pending_ties,'relative_scoring':is_relative(e),'audits':Audit.objects.filter(event=e).select_related('actor').order_by('-created_at')[:100],'tests':list(enumerate(e.rules['tests'])),'payments':Payment.objects.filter(registration__event=e).select_related('registration')})
 
 @never_cache
 @coach_only
@@ -284,11 +311,15 @@ def coach(request,pk):
     if request.method=='POST':
         try:
             reg=get_object_or_404(Registration,pk=request.POST['registration'],event=e)
-            m=capture(reg.id,request.user,int(request.POST['test']),request.POST.get('value'),request.POST.get('load'),request.POST['status'],int(request.POST['revision']),request.POST.get('reason',''),judged_points=request.POST.get('judged_points'),time_format=request.POST.get('time_format'))
+            m=capture(reg.id,request.user,int(request.POST['test']),request.POST.get('value'),request.POST.get('load'),request.POST['status'],int(request.POST['revision']),request.POST.get('reason',''),judged_points=request.POST.get('judged_points'),time_format=request.POST.get('time_format'),assignment_revision=int(request.POST.get('assignment_revision',0)))
             return JsonResponse({'ok':True,'value':m.value,'points':m.points,'revision':m.revision,'status':m.status,'provisional':e.rules['tests'][int(request.POST['test'])].get('scoring')=='relative'})
         except (ValidationError,ValueError,KeyError) as exc: return JsonResponse({'ok':False,'error':' '.join(exc.messages) if isinstance(exc,ValidationError) else 'Datos inválidos.'},status=400)
     if not e.rules.get('tests'):
         messages.info(request,'Agrega estaciones antes de abrir la captura.');return redirect('home')
+    from .stations import assignment
+    assigned=assignment(e,request.user) if e.stations.exists() else None
+    if e.stations.exists() and not assigned:return render(request,'coach_waiting.html',{'event':e})
+    if assigned:e.active_test=assigned.station.test;e.station_capture_closed=not assigned.station.is_open
     rows=[]
     for r in Registration.objects.filter(event=e,state='confirmed').select_related('participant').prefetch_related('result_set').order_by('bib'):
         rows.append({'entry':r,'mark':next((mark for mark in r.result_set.all() if mark.test==e.active_test),None),'suggested':load_for(e.rules['tests'][e.active_test],r.weight) if e.rules.get('schema_version')==2 else suggested_load(e,r.weight)})
@@ -297,7 +328,7 @@ def coach(request,pk):
         for row in rows:
             if row['mark']:row['mark'].points=computed[row['entry'].pk]['marks'][e.active_test]['points']
     complete=sum(1 for row in rows if (row['mark'] and row['mark'].status in ['done','absent','withdrawn']) or row['entry'].attendance in ['withdrawn','disqualified'])
-    return render(request,'coach.html',{'event':e,'test':e.rules['tests'][e.active_test],'time_input':supports_time_input(e.rules['tests'][e.active_test]),'requires_load':needs_load(e.rules['tests'][e.active_test]),'rows':rows,'complete':complete,'performed':sum(1 for row in rows if row['mark'] and row['mark'].status=='done'),'pending':len(rows)-complete})
+    return render(request,'coach.html',{'event':e,'assignment_revision':assigned.revision if assigned else 0,'test':e.rules['tests'][e.active_test],'time_input':supports_time_input(e.rules['tests'][e.active_test]),'requires_load':needs_load(e.rules['tests'][e.active_test]),'rows':rows,'complete':complete,'performed':sum(1 for row in rows if row['mark'] and row['mark'].status=='done'),'pending':len(rows)-complete})
 
 def tv(request,pk):
     e=get_object_or_404(Event,pk=pk)
@@ -318,7 +349,8 @@ def live_data(request,pk):
     from .tiebreak_rounds import broadcast_playoffs
     playoffs=broadcast_playoffs(e,standings)
     pending_ties=sum(any(row.get('tie_pending') for row in group['members']) for group in all_ties(standings)) if e.status=='live' else 0
-    response=JsonResponse({'station_closed':e.station_capture_closed,'station_pending':station_pending(e).count(),'pending_ties':pending_ties,'status':e.phase_label,'phase':e.status,'test':e.rules.get('tests',[])[e.active_test]['name'] if 0<=e.active_test<len(e.rules.get('tests',[])) else 'Sin estación activa','test_index':e.active_test,'relative_scoring':is_relative(e),'batch':e.active_batch,'board':standings,'highlights':highlights,'playoffs':playoffs,'updated':timezone.now().isoformat()})
+    active_stations=[{'index':s.test,'name':e.rules['tests'][s.test]['name']} for s in e.stations.filter(is_open=True,test__lt=len(e.rules.get('tests',[]))).order_by('test')]
+    response=JsonResponse({'active_stations':active_stations,'station_closed':e.station_capture_closed,'station_pending':station_pending(e).count(),'pending_ties':pending_ties,'status':e.phase_label,'phase':e.status,'test':e.rules.get('tests',[])[e.active_test]['name'] if 0<=e.active_test<len(e.rules.get('tests',[])) else 'Sin estación activa','test_index':e.active_test,'relative_scoring':is_relative(e),'batch':e.active_batch,'board':standings,'highlights':highlights,'playoffs':playoffs,'updated':timezone.now().isoformat()})
     response['Cache-Control']='no-store'
     return response
 
@@ -432,3 +464,15 @@ def coach_tiebreaks(request,pk):
     rounds=rounds_for(event)
     rounds.sort(key=lambda rnd:(0 if rnd.editable else 1 if rnd.status=='tied' and not rnd.stale else 2,-rnd.pk))
     return render(request,'coach_tiebreaks.html',{'event':event,'rounds':rounds})
+
+
+@never_cache
+@coach_only
+def coach_feed(request,pk):
+    from .stations import assignment
+    event=get_object_or_404(Event,pk=pk)
+    assigned=assignment(event,request.user)
+    if not event.stations.exists():return live_data(request,pk)
+    response=JsonResponse({'phase':event.status,'assignment_revision':assigned.revision if assigned else 0,'test_index':assigned.station.test if assigned else -1,'station_closed':not assigned or not assigned.station.is_open,'unassigned':not assigned,'board':board(event)})
+    response['Cache-Control']='no-store'
+    return response

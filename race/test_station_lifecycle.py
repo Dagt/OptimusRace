@@ -92,8 +92,10 @@ class StationLifecycleTests(TestCase):
         url=reverse('operations',args=[self.event.pk])
         response=self.client.get(url)
         self.assertEqual(response.context['station_pending_count'],1)
-        self.assertContains(response,'data-close-station-button >')
-        self.mark('done',42)
+        self.assertContains(response,'data-station-toggle')
+        from .stations import assign_coach
+        a=assign_coach(self.event.pk,self.admin,self.scoring_coach.pk,0,0)
+        capture(self.entry.pk,self.scoring_coach,0,42,None,'done',0,'',assignment_revision=a.revision)
         response=self.client.post(url,{'action':'close_station','test':0},follow=True)
         self.event.refresh_from_db()
         self.assertTrue(self.event.station_capture_closed)

@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm');
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
-function setup(width=800,height=200,count=3){
+function setup(width=800,height=100,count=3){
  class Element{
   constructor(text=''){this.textContent=text;this.value='';this.children=[];this.style={};this.dataset={};this.clientHeight=height;this.clientWidth=width;this.classList={add(){}}}
   append(...items){this.children.push(...items)}
@@ -51,7 +51,7 @@ test('wide TV fills two columns and rotates through every athlete',async()=>{
 });
 
 test('tall display is not capped at twelve rows',async()=>{
- const f=setup(1000,1600,30);await flush();assert.equal(f.q('#tv-board').children.length,16);
+ const f=setup(1000,1600,30);await flush();assert.equal(f.q('#tv-board').children.length,30);
 });
 
 test('global highlights follow every athlete page, preserve ties and return to athletes',async()=>{
@@ -81,4 +81,9 @@ test('playoffs rotate, refresh scores without switching slide, and respect categ
  rotate();assert.equal(f.q('#tv').dataset.view,'athletes');
  f.q('#tv-category').value='Femenil';f.q('#tv-category').onchange();
  assert.match(f.q('#tv-page').textContent,/01 \/ 01/);
+});
+
+test('TV always uses two columns regardless of viewport width',async()=>{
+ for(const width of [720,1224,1800]){const f=setup(width,450,20);await flush();assert.equal(f.q('#tv').dataset.columns,'2');}
+ const f=setup();await flush();f.state.feed.active_stations=[{name:'Salto'},{name:'Sentadilla'}];await f.poll();assert.equal(f.q('#tv-test').textContent,'Salto · Sentadilla');
 });

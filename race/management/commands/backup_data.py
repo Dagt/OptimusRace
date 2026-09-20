@@ -10,6 +10,8 @@ class Command(BaseCommand):
     help='Copia coherente SQLite y fotos a un ZIP nuevo. No incluye secretos.'
     def add_arguments(self,parser):parser.add_argument('--output')
     def handle(self,*args,**options):
+        if settings.DATABASES['default']['ENGINE']!='django.db.backends.sqlite3' or getattr(settings,'MEDIA_STORAGE','local')!='local':
+            raise CommandError('Este comando respalda SQLite y fotos locales. En Railway usa backups de PostgreSQL y copia del bucket R2; consulta docs/PRODUCTION.md.')
         output=Path(options['output']) if options['output'] else settings.BACKUP_DIR/f'optimus-{timezone.now():%Y%m%d-%H%M%S}.zip'
         if output.exists():raise CommandError('El archivo destino ya existe. Usa otro nombre.')
         output.parent.mkdir(parents=True,exist_ok=True)

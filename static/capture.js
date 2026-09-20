@@ -89,10 +89,11 @@ if(q('#capture-list')){
   if(polling||document.hidden)return;polling=true;
   try{
    const data=await jsonFetch(list.dataset.liveUrl,{cache:'no-store'});connection('Sincronizado · '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),true);
-   if(data.station_closed||data.phase!=='live'||String(data.test_index)!==list.dataset.test){
-    stale=true;q('#stale-stage').hidden=false;q('#stale-message').textContent=data.station_closed?'Administración cerró esta estación. Las capturas guardadas se conservan. Actualiza si se reabre.':data.phase==='closed'?'El evento terminó. La captura está cerrada.':data.phase!=='live'?'La competencia aún no está en curso. Actualiza cuando administración la inicie.':'La estación activa cambió. Revisa tus datos pendientes antes de actualizar.';
+   const moved=data.assignment_revision!==undefined&&String(data.assignment_revision)!==list.dataset.assignment;
+   if(moved||data.unassigned||data.station_closed||data.phase!=='live'||String(data.test_index)!==list.dataset.test){
+    stale=true;q('#stale-stage').hidden=false;q('#stale-message').textContent=data.unassigned?'Administración retiró tu asignación. Tus datos pendientes siguen aquí.':moved?'Tu estación asignada cambió. Revisa tus datos pendientes antes de actualizar.':data.station_closed?'Administración cerró esta estación. Las capturas guardadas se conservan. Actualiza si se reabre.':data.phase==='closed'?'El evento terminó. La captura está cerrada.':data.phase!=='live'?'La competencia aún no está en curso. Actualiza cuando administración la inicie.':'La estación activa cambió. Revisa tus datos pendientes antes de actualizar.';
     forms.forEach(preview);
-    if(data.phase==='live'&&!data.station_closed&&String(data.test_index)!==list.dataset.test&&!dirty.size&&!saving.size){location.replace(location.pathname+'?station='+encodeURIComponent(data.test_index))}
+    if(data.phase==='live'&&(moved||data.unassigned||String(data.test_index)!==list.dataset.test)&&!dirty.size&&!saving.size){location.replace(location.pathname+'?station='+encodeURIComponent(data.test_index))}
     return;
    }
    stale=false;q('#stale-stage').hidden=true;

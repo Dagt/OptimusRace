@@ -28,6 +28,9 @@ def start_round(event_id, actor, category, fingerprint, exercise_id):
     if not actor.is_active or not actor.is_superuser:
         raise ValidationError('Solo administración puede elegir la prueba de desempate.')
     event = Event.objects.select_for_update().get(pk=event_id)
+    if event.stations.exists():
+        from .services import station_pending
+        if any(s.is_open or not s.opened or station_pending(event,s.test).exists() for s in event.stations.filter(test__lt=len(event.rules['tests']))):raise ValidationError('Cierra todas las estaciones y revisa sus pendientes antes de abrir los desempates.')
     group = current_group(event, category, fingerprint)
     previous = TieBreakRound.objects.filter(event=event, category=category, fingerprint=fingerprint).order_by('-pk').first()
     if previous and previous.status == 'open':

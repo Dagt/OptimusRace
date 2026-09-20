@@ -128,6 +128,8 @@ class RelativeScoringTests(TestCase):
         self.client.post(url,{'action':'phase','phase':'closed'})
         self.event.refresh_from_db();self.assertEqual(self.event.status,'live')
         from .models import Exercise,TieBreakRound
+        from .services import close_station
+        close_station(self.event.pk,self.admin,0)
         exercise=Exercise.objects.create(name='Sprint',unit='seg',capacity='Velocidad',higher=False,parameters={'metric':'time'})
         response=self.client.post(url,{'action':'start_tiebreak','tab':'ties','category':'M','fingerprint':group['fingerprint'],'exercise':exercise.pk})
         self.assertEqual(response.status_code,302)
@@ -179,6 +181,8 @@ class RelativeScoringTests(TestCase):
         with self.assertRaises(ValidationError):
             resolve_tie(self.event.pk,self.admin,'M',100,[self.c.pk,self.b.pk],groups[0]['fingerprint'],'Destreza','C gana','Juez',scope='Resistencia')
         self.decision([self.b.pk,self.c.pk])
+        from .services import close_station
+        close_station(self.event.pk,self.admin,0)
         change_phase(self.event.pk,self.admin,'closed');self.event.refresh_from_db()
         self.assertEqual([r['id'] for r in board(self.event) if r['champion']],[self.b.pk])
 
