@@ -25,6 +25,11 @@
 .landing-schedule-row h3{margin:0 0 5px;font-size:17px}.landing-schedule-row p{font-size:12px;margin:0}.landing-event-status{font-size:12px;color:#c0d0b9}
 .race-landing .landing-search{margin:40px 0;padding:24px;background:#20352c66}
 .race-landing .landing-search h2{font-size:25px}.race-landing .landing-search .button{background:transparent;color:var(--ink);border-color:#84968966}
+#optimus-profile{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) auto;scroll-margin-top:90px}
+#optimus-profile>div:first-child{grid-column:1/-1;display:block}
+#optimus-profile h2{max-width:none;font-size:32px}
+#optimus-profile>div:first-child>p:last-child{margin:10px 0 0;font-size:14px;color:var(--muted);max-width:650px}
+@media(max-width:750px){#optimus-profile{grid-template-columns:minmax(0,1fr)}#optimus-profile h2{font-size:27px}}
 .race-landing .competitor-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .race-landing .competitor-card{display:flex;align-items:center;gap:14px;min-width:0;padding:14px;background:#20312988;border:1px solid #94a49630;border-radius:12px;overflow:hidden}
 .race-landing .competitor-photo{width:70px;height:84px;min-height:0;aspect-ratio:auto;flex:none;border-radius:8px;overflow:hidden}
