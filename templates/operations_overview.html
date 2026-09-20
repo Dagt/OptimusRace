@@ -3,6 +3,7 @@
  <article class="panel overview-rules">
   <div class="section-heading"><div><p class="eyebrow">ESTA EDICIÓN</p><h2>Configuración del evento</h2></div><a class="button secondary small" href="{% url 'configure' event.id %}">Ver reglas</a></div>
   <dl class="overview-facts"><div><dt>Inscripción</dt><dd>${{ event.current_price|money }} <small>MXN</small></dd></div><div><dt>Cierre de inscripciones</dt><dd>{{ event.registration_end|date:'d M · H:i'|default:'Sin fecha' }}</dd></div><div><dt>Pruebas</dt><dd>{{ event.rules.tests|length }} <small>estaciones</small></dd></div></dl>
+  <div class="overview-row"><div><strong>Información pública</strong><small>Descripción, qué incluye y reglamento.</small></div><a class="button secondary small" href="{% url 'event_information' event.pk %}">Editar información</a></div>
   <div class="overview-row"><div><strong>Crear otra edición</strong><small>Reutiliza las reglas en un evento nuevo.</small></div><form method="post">{% csrf_token %}<input type="hidden" name="action" value="duplicate"><button class="button secondary small">Duplicar edición</button></form></div>
  </article>
  <article class="panel overview-access"><p class="eyebrow">ACCESO AL EVENTO</p><h2>Cupo e inscripciones</h2>

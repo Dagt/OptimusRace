@@ -2,6 +2,11 @@ from django import forms
 from django.utils import timezone
 from .event_policy import instant
 
+class EventInformationForm(forms.Form):
+    description=forms.CharField(label='Descripción del desafío',required=False,widget=forms.Textarea(attrs={'rows':4}))
+    benefits=forms.CharField(label='La inscripción incluye',required=False,widget=forms.Textarea(attrs={'rows':4}))
+    regulations=forms.CharField(label='Reglamento',required=False,widget=forms.Textarea(attrs={'rows':6}))
+
 class PolicyForm(forms.Form):
     minimum_age=forms.IntegerField(label='Edad mínima al día del evento',min_value=0,max_value=120,initial=0)
     maximum_age=forms.IntegerField(label='Edad máxima (vacío = sin límite)',min_value=0,max_value=120,required=False)

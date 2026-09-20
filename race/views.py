@@ -27,7 +27,7 @@ from .models import *
 from .forms import SignupForm,EventForm,PhotoForm
 from .services import *
 from .event_policy import blank_rules,validate_policies,registration_open,quote_price
-from .policy_forms import PolicyForm
+from .policy_forms import PolicyForm,EventInformationForm
 from .forms import BirthDateField,ParticipantPhotoForm
 from .photos import save_photo
 from .availability import availability,set_capacity
@@ -157,6 +157,24 @@ def webhook(request):
     except (ValueError,KeyError,ValidationError,stripe.SignatureVerificationError): return HttpResponse(status=400)
     except Payment.DoesNotExist: return HttpResponse(status=409)
     return JsonResponse({'received':True})
+
+@administrator
+def event_information(request,pk):
+    event=get_object_or_404(Event,pk=pk)
+    form=EventInformationForm(request.POST if request.method=='POST' else None,initial={
+        'description':event.description,'benefits':event.rules.get('benefits',''),
+        'regulations':event.rules.get('regulations','')})
+    if request.method=='POST' and form.is_valid():
+        with transaction.atomic():
+            event=Event.objects.select_for_update().get(pk=pk)
+            before={'description':event.description,**{key:event.rules.get(key,'') for key in ('benefits','regulations')}}
+            event.description=form.cleaned_data['description']
+            event.rules={**event.rules,**{key:form.cleaned_data[key] for key in ('benefits','regulations')}}
+            event.save(update_fields=['description','rules'])
+            audit(event,request.user,'information_updated',{'before':before,'after':form.cleaned_data})
+        messages.success(request,'Información pública actualizada.')
+        return redirect('operations',pk=pk)
+    return render(request,'event_information.html',{'event':event,'form':form})
 
 @administrator
 def event_edit(request,pk=None):

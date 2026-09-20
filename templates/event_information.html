@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
+<a class="back-link" href="{% url 'operations' event.pk %}">← Volver al evento</a>
+<div class="page-heading"><div><p class="eyebrow">{{ event.name }}</p><h1>Información <em>pública.</em></h1><p>Actualiza los textos que verán los participantes.</p></div></div>
+<form method="post" class="panel" style="max-width:900px;margin-inline:auto">{% csrf_token %}
+ {{ form.non_field_errors }}
+ {% for field in form %}<label for="{{ field.id_for_label }}">{{ field.label }}{{ field }}</label>{{ field.errors }}{% endfor %}
+ <div class="action-group"><a class="button secondary" href="{% url 'operations' event.pk %}">Cancelar</a><button class="button" type="submit">Guardar información</button></div>
+</form>
+{% endblock %}
