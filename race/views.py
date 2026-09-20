@@ -81,14 +81,16 @@ def home(request):
     events=list((Event.objects.all() if request.user.is_superuser else Event.objects.exclude(status='draft')).order_by('-date'))
     if not request.user.is_authenticated:
         live_events=sorted([e for e in events if e.status=='live'],key=lambda e:e.date)
-        future_events=sorted([e for e in events if e.status=='open' and e.date>timezone.now()],key=lambda e:e.date)
+        open_events=sorted([e for e in events if e.status=='open'],key=lambda e:e.date)
         past_events=[e for e in events if e.status=='closed']
-        competitive=live_events+past_events
-        selected=next((e for e in competitive if str(e.pk)==request.GET.get('event')),competitive[0] if competitive else None)
-        leaders=[row for row in board(selected) if row.get('rank')==1 and row.get('completed') and row.get('participant_id')] if selected else []
-        from .participant_views import search_people
-        for event in events:event.seats=availability(event)
-        return render(request,'public_home.html',{'events':events,'competitive_events':competitive,'selected_event':selected,'live_events':live_events,'future_events':future_events,'past_events':past_events[:4],'leaders':leaders[:6],'people':search_people('',True).order_by('-pk')[:4],'upcoming':next(iter(sorted([e for e in events if e.status=='open' and e.date>timezone.now()],key=lambda e:e.date)),None),'server_now':timezone.now().isoformat()})
+        upcoming=next((e for e in open_events if e.date>timezone.now()),None)
+        featured=next(iter(live_events),None) or upcoming or next(iter(open_events),None) or next(iter(past_events),None)
+        return render(request,'public_home.html',{
+            'featured':featured,'upcoming':upcoming,
+            'other_events':[e for e in live_events+open_events if e!=featured],
+            'past_events':[e for e in past_events if e!=featured][:4],
+            'server_now':timezone.now().isoformat()})
+
     own={r.event_id:r for r in Registration.objects.filter(user=request.user)} if request.user.is_authenticated else {}
     for e in events:
         e.seats=availability(e);e.taken=e.seats['occupied'];e.remaining=e.seats['remaining']

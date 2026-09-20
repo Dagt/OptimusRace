@@ -1,31 +1,39 @@
 from datetime import timedelta
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.utils import timezone
-from . import test_cash_participants as fixtures
 from .models import Event
 
-@override_settings(PASSWORD_HASHERS=['django.contrib.auth.hashers.MD5PasswordHasher'])
-class LandingTests(TestCase):
-    def setUp(self):
-        fixtures.CashParticipantTests.setUp(self)
-        self.client.logout()
+class LandingNavigationTests(TestCase):
+    def event(self,name,status,days):
+        return Event.objects.create(name=name,status=status,date=timezone.now()+timedelta(days=days),registration_end=timezone.now(),capacity=10,rules={})
 
-    def test_current_event_precedes_past_and_upcoming_is_chronological(self):
-        live=Event.objects.create(name='Competencia actual',date=timezone.now(),status='live',rules=self.event.rules,registration_end=self.event.registration_end,price=45000,capacity=100)
-        Event.objects.create(name='Edición cerrada',date=timezone.now()+timedelta(days=20),status='closed',rules=self.event.rules,registration_end=self.event.registration_end,price=45000,capacity=100)
-        sooner=Event.objects.create(name='Próxima salida',date=timezone.now()+timedelta(days=2),status='open',rules=self.event.rules,registration_end=self.event.registration_end,price=45000,capacity=100)
+    def test_live_event_has_priority_and_destinations_are_direct(self):
+        live=self.event('Live unique','live',0)
+        future=self.event('Future unique','open',10)
+        closed=self.event('Closed unique','closed',-10)
+        self.event('Private unique','draft',20)
         response=self.client.get('/')
-        self.assertEqual(response.status_code,200)
-        self.assertEqual(response.context['selected_event'].pk,live.pk)
-        self.assertEqual(response.context['upcoming'].pk,sooner.pk)
-        self.assertEqual([e.pk for e in response.context['future_events']],[sooner.pk,self.event.pk])
-        self.assertContains(response,'landing-countdown')
-        self.assertContains(response,'Competencia actual')
-        self.assertContains(response,'landing.css')
+        self.assertEqual(response.context['featured'],live)
+        self.assertContains(response,live.name,count=1)
+        self.assertContains(response,f'/events/{live.pk}/?tab=results')
+        self.assertContains(response,f'/events/{future.pk}/')
+        self.assertContains(response,f'/events/{closed.pk}/?tab=results')
+        self.assertNotContains(response,'Private unique')
+        self.assertNotContains(response,'href="#events"')
+        self.assertNotContains(response,'href="#optimus-profile"')
+        self.assertContains(response,'action="/results/"')
 
-    def test_unpublished_events_are_not_promoted(self):
-        self.event.status='draft';self.event.save()
+    def test_next_event_is_featured_once_with_countdown(self):
+        event=self.event('Next unique','open',1)
         response=self.client.get('/')
-        self.assertNotContains(response,self.event.name)
+        self.assertEqual(response.context['featured'],event)
+        self.assertContains(response,event.name,count=1)
+        self.assertContains(response,'data-countdown=')
+
+    def test_finished_event_links_to_final_results_and_profile_search_stays_available(self):
+        event=self.event('Finished unique','closed',-1)
+        response=self.client.get('/')
+        self.assertEqual(response.context['featured'],event)
+        self.assertContains(response,'Ver resultados finales')
+        self.assertContains(response,'id="profile-query"')
         self.assertNotContains(response,'data-countdown=')
-        self.assertEqual(response.status_code,200)

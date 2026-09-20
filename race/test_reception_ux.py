@@ -79,7 +79,7 @@ class ReceptionUXTests(TestCase):
         self.client.logout()
         path=f'/results/participants/{entry.participant_id}/'
         response=self.client.get('/')
-        self.assertContains(response,'Marcas que ponen el ritmo.');self.assertContains(response,path)
+        self.assertContains(response,'Ver resultados en vivo');self.assertContains(response,f'/events/{self.event.pk}/?tab=results')
         self.assertContains(self.client.get('/results/'),entry.participant.full_name)
         self.assertContains(self.client.get(f'/events/{self.event.pk}/'),path)
         row=self.client.get(f'/events/{self.event.pk}/live/').json()['board'][0]
