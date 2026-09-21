@@ -5,7 +5,7 @@
 <section class="landing-hero" aria-labelledby="landing-title">
  <img class="landing-athlete" src="{% static 'images/campaign.png' %}" alt="Atleta de campaña Optimus Race" fetchpriority="high">
  <div class="landing-hero-shade"></div>
- <div class="landing-hero-copy"><p class="eyebrow">OPTIMUS RACE · FUERZA Y ACTITUD</p><h1 id="landing-title">HAZ QUE<br><em>CUENTE.</em></h1>
+ <div class="landing-hero-copy"><h1 id="landing-title" class="official-hero-brand">{% include "brand_logo.html" %}</h1><p class="official-tagline">HAZ QUE CUENTE.</p>
  {% if featured %}<div class="hero-event">
  <span class="badge {{ featured.status }}">{% if featured.status == 'live' %}<span class="pulse-dot"></span> EN VIVO{% elif featured.status == 'closed' %}ÚLTIMA EDICIÓN · FINALIZADA{% else %}PRÓXIMA COMPETENCIA{% endif %}</span>
  <h2>{{ featured.name }}</h2><p>{{ featured.date|date:'d M Y · H:i' }}{% if featured.location %} · {{ featured.location }}{% endif %}</p>

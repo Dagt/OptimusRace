@@ -1,0 +1,14 @@
+/* Official event identity; preserve the artwork's proportions on every surface. */
+.official-logo{display:block;width:100%;height:auto;object-fit:contain}
+.topbar .brand{flex-shrink:0;width:100px}
+.sidebar>.brand{justify-content:center;padding:0;margin-bottom:24px}
+.sidebar .official-logo{width:156px}
+.footer-brand{display:block;width:100px;flex-shrink:0}
+.auth-official-brand{width:180px;margin:0 auto 24px}
+.landing-hub .landing-hero-copy{max-width:58%;padding:32px 40px}
+.landing-hub .landing-hero h1.official-hero-brand{width:min(100%,420px);margin:0 0 16px;line-height:1}
+.official-tagline{font:700 20px/1.2 'Barlow Condensed',sans-serif;letter-spacing:.2em;color:var(--ink);margin:0 0 24px}
+#tv .tv-brand{width:112px;flex-shrink:0;padding-right:16px;line-height:1}
+.event-banner .event-banner-logo{display:block;width:160px;height:auto;opacity:1;transform:none;flex-shrink:0}
+@media(max-width:850px){.landing-hub .landing-hero-copy{max-width:65%;padding:28px}.landing-hub .landing-hero h1.official-hero-brand{width:340px;max-width:100%}}
+@media(max-width:550px){.topbar .brand{width:80px}.public-nav{gap:16px}.landing-hub .landing-hero-copy{max-width:100%;padding:28px 24px}.landing-hub .landing-hero h1.official-hero-brand{width:300px}.official-tagline{font-size:17px}.auth-official-brand{width:150px}#tv .tv-brand{width:78px;padding-right:10px}.event-banner .event-banner-logo{width:100px}.footer-brand{width:80px}}
