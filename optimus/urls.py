@@ -30,3 +30,8 @@ urlpatterns += [path('events/<int:pk>/coach/feed/',v.coach_feed,name='coach_feed
 
 from optimus.health import health
 urlpatterns += [path("healthz/",health,name="health")]
+
+# Browser fallback for clients that request the conventional icon URL.
+from django.views.generic.base import RedirectView
+from django.templatetags.static import static as static_asset
+urlpatterns += [path('favicon.ico', RedirectView.as_view(url=static_asset('images/brand/icon-32.png'), permanent=False))]
