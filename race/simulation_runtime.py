@@ -12,6 +12,8 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from pathlib import Path
 from copy import deepcopy
+from datetime import datetime, timedelta, timezone as datetime_timezone
+from django.utils import timezone
 
 from django.conf import settings
 from django.core import serializers
@@ -154,6 +156,7 @@ def create(event_id, actor):
                         for row in serializers.deserialize('json', json.dumps(data)):
                             row.save()
                     connection.check_constraints()
+                    activate_calendar(meta)
                 (folder(token)/'session.json').write_text(json.dumps(meta), encoding='utf-8')
             except Exception:
                 remove(token)
@@ -161,8 +164,35 @@ def create(event_id, actor):
         return meta
 
 
+def activate_calendar(meta):
+    """Move only the disposable calendar to now; retain relative price windows."""
+    from .event_policy import instant
+    event = m.Event.objects.get(pk=meta['event'])
+    now = timezone.now()
+    start = now - timedelta(minutes=1)
+    offset = start - event.date
+    rules = deepcopy(event.rules)
+    for key in ['registration_start', 'reception_start', 'reception_end', 'event_end']:
+        if rules.get(key):
+            rules[key] = (instant(rules[key]) + offset).isoformat()
+    for key in ['price_tiers', 'discounts']:
+        for item in rules.get(key, []):
+            for boundary in ['start', 'end']:
+                if item.get(boundary):
+                    item[boundary] = (instant(item[boundary]) + offset).isoformat()
+    # Practice remains usable for the lifetime of the copy, even for a past event.
+    expiry = datetime.fromtimestamp(meta['expires'], tz=datetime_timezone.utc)
+    rules['reception_start'] = start.isoformat()
+    rules['reception_end'] = expiry.isoformat()
+    rules['event_end'] = expiry.isoformat()
+    event.date = start
+    event.registration_end += offset
+    event.rules = rules
+    event.save(update_fields=['date', 'registration_end', 'rules'])
+
+
 def reset_captures(meta):
-    """Restart only the snapshot. Rules, dates, people and prices stay unchanged."""
+    """Restart only the snapshot. Rules, people and prices stay unchanged; refresh the practice calendar."""
     with transaction.atomic():
         m.TieBreakMark.objects.all().delete()
         m.TieBreakMatch.objects.all().delete()
@@ -173,6 +203,7 @@ def reset_captures(meta):
             active_test=0, active_batch=1, station_capture_closed=False)
         m.EventStation.objects.all().update(is_open=False, opened=False, revision=0)
         m.Registration.objects.all().update(attendance='pending', revision=0)
+        activate_calendar(meta)
         m.Audit.objects.create(event_id=meta['event'], actor_id=meta['owner'], action='simulation_reset', details={})
 
 

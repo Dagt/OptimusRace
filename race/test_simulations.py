@@ -41,7 +41,8 @@ class SimulationTests(TestCase):
         original=connections['default']
         meta=self.make()
         with database(meta):
-            self.assertEqual(Event.objects.get().rules,self.event.rules)
+            self.assertEqual(Event.objects.get().rules['tests'],self.event.rules['tests'])
+            self.assertEqual(Event.objects.get().rules['categories'],self.event.rules['categories'])
             self.assertEqual(Registration.objects.get().bib,7)
             self.assertEqual(Result.objects.get().value,15)
             self.assertEqual(CoachAssignment.objects.get().coach_id,self.coach.pk)
@@ -157,7 +158,8 @@ class SimulationTests(TestCase):
             from .simulation_runtime import reset_captures
             reset_captures(meta)
             self.assertEqual(Participant.objects.get().name,'Ana')
-            self.assertEqual(Event.objects.get().rules,self.event.rules)
+            self.assertEqual(Event.objects.get().rules['tests'],self.event.rules['tests'])
+            self.assertEqual(Event.objects.get().rules['categories'],self.event.rules['categories'])
 
     def test_creation_endpoint_and_private_list_leave_public_event_count_unchanged(self):
         response=self.client.post(f'/events/{self.event.pk}/simulate/')
@@ -170,3 +172,32 @@ class SimulationTests(TestCase):
         self.assertNotContains(anonymous.get('/'),'COPIA TEMPORAL')
         self.client.force_login(self.coach)
         self.assertEqual(self.client.post(f'/events/{self.event.pk}/simulate/').status_code,403)
+
+    def test_future_calendar_moves_to_now_without_modifying_real_event(self):
+        from datetime import timedelta
+        from .event_policy import validate_policies, instant
+        from .stations import switch_station
+        future=timezone.now()+timedelta(days=60)
+        self.event.date=future
+        self.event.registration_end=future-timedelta(hours=1)
+        self.event.status='open'
+        self.event.rules['schema_version']=2
+        self.event.rules['tests'][0].update(max_points=100,scoring='relative',parameters={})
+        self.event.rules.update(registration_start=(future-timedelta(days=30)).isoformat(),
+            reception_start=future.isoformat(),reception_end=(future+timedelta(hours=2)).isoformat(),
+            event_end=(future+timedelta(hours=4)).isoformat(),
+            price_tiers=[{'name':'Early','amount':20000,'start':(future-timedelta(days=20)).isoformat(),'end':(future-timedelta(days=2)).isoformat()}])
+        self.event.save()
+        original_rules=json.loads(json.dumps(self.event.rules))
+        meta=self.make()
+        with database(meta):
+            copied=Event.objects.get()
+            self.assertLess(copied.date,timezone.now())
+            self.assertGreater(instant(copied.rules['event_end']),timezone.now()+timedelta(hours=23))
+            self.assertLess(instant(copied.rules['reception_start']),timezone.now())
+            validate_policies(copied.rules,copied)
+            switch_station(copied.pk,User.objects.get(pk=self.admin.pk),0,True,0)
+            self.assertEqual(Event.objects.get().status,'live')
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.date,future)
+        self.assertEqual(self.event.rules,original_rules)

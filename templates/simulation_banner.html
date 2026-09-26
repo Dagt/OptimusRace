@@ -1,6 +1,6 @@
 {% load race_labels %}
 <section class="simulation-banner" role="region" aria-label="Simulación privada">
- <div><strong>SIMULACIÓN · COPIA TEMPORAL</strong><span>{{ request.simulation.name }} · Los cambios solo afectan esta copia. Caduca en 24 horas desde su creación.</span></div>
+ <div><strong>SIMULACIÓN · COPIA TEMPORAL</strong><span>{{ request.simulation.name }} · Calendario ajustado para practicar ahora. Los cambios solo afectan esta copia. Caduca en 24 horas desde su creación.</span></div>
  <div class="simulation-actions">
   <a class="button secondary small" href="/simulation-exit/">Salir de simulación</a>
   {% if user.is_superuser %}<details><summary class="button secondary small">Opciones de práctica</summary><div class="simulation-options">

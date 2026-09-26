@@ -6,7 +6,7 @@ En **Operación → Resumen → Crear simulación**, un administrador crea una c
 
 En la franja de simulación:
 - **Salir** vuelve al sistema real, conservando la práctica para los demás.
-- **Reiniciar capturas** elimina marcas y desempates de la copia, conserva parámetros, participantes y asignaciones, y permite iniciar sus estaciones otra vez. Las fechas y condiciones de inscripción originales se conservan.
+- **Reiniciar capturas** elimina marcas y desempates de la copia, conserva parámetros, participantes y asignaciones, y permite iniciar sus estaciones otra vez. El calendario de la copia se traslada al momento de la práctica; recepción y fin del evento duran hasta su caducidad. Las ventanas de tarifas y descuentos se desplazan junto con el calendario. Las condiciones de inscripción se conservan.
 - **Terminar y eliminar** elimina la base y las fotos creadas en esa práctica para todos los usuarios. Cerrar competitivamente el evento permite revisar sus resultados antes de eliminar la práctica.
 
 ## Aislamiento y despliegue
