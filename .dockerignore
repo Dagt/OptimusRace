@@ -23,3 +23,5 @@ node_modules
 .wrangler
 .dev.vars*
 deploy/cloudflare/node_modules
+
+.simulations/

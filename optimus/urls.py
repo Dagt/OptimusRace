@@ -35,3 +35,11 @@ urlpatterns += [path("healthz/",health,name="health")]
 from django.views.generic.base import RedirectView
 from django.templatetags.static import static as static_asset
 urlpatterns += [path('favicon.ico', RedirectView.as_view(url=static_asset('images/brand/icon-32.png'), permanent=False))]
+
+from race import simulation_views as simulation
+urlpatterns += [
+    path('simulations/', simulation.index, name='simulations'),
+    path('events/<int:pk>/simulate/', simulation.start, name='simulation_start'),
+    path('practice-control/', simulation.control, name='simulation_control'),
+    path('practice-media/<path:name>', simulation.media, name='simulation_media'),
+]

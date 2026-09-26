@@ -10,6 +10,8 @@ from optimus.wsgi import application
 from waitress import serve
 
 if __name__ == '__main__':
+    from race.simulation_runtime import start_cleanup_worker
+    start_cleanup_worker()
     serve(application, host='0.0.0.0', port=int(os.getenv('PORT', '8000')),
           threads=int(os.getenv('WEB_THREADS', '4')),
           max_request_body_size=8 * 1024 * 1024,

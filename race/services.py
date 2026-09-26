@@ -166,7 +166,7 @@ def configure(event_id, actor, data):
     e=Event.objects.select_for_update().get(pk=event_id)
     if Registration.objects.filter(event=e).exists() or e.status!='draft': raise ValidationError('Las reglas se bloquean al publicar o inscribir. Crea otro evento para nuevas reglas.')
     validate_rules(data['rules'],False)
-    e.name=data['name']; e.location=data['location']; e.rules=data['rules']; e.capacity=data['capacity']; e.price=data['price']; e.date=data['date']; e.registration_end=data['registration_end']; e.demo=data['demo']; e.description=data.get('description',''); e.allow_onsite=data.get('allow_onsite',False)
+    e.name=data['name']; e.location=data['location']; e.rules=data['rules']; e.capacity=data['capacity']; e.price=data['price']; e.date=data['date']; e.registration_end=data['registration_end']; e.demo=data.get('demo',e.demo); e.description=data.get('description',''); e.allow_onsite=data.get('allow_onsite',False)
     validate_policies(e.rules,e)
     e.version+=1; e.full_clean(); e.save()
     audit(e,actor,'configuration',{'version':e.version,'rules':e.rules})

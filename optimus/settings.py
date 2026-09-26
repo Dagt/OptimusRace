@@ -20,7 +20,7 @@ railway_domain=os.getenv('RAILWAY_PUBLIC_DOMAIN','').strip()
 if railway_domain:ALLOWED_HOSTS.append(railway_domain)
 if os.getenv('RAILWAY_ENVIRONMENT_ID'):ALLOWED_HOSTS.append('healthcheck.railway.app')
 INSTALLED_APPS = ['django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions', 'django.contrib.messages', 'django.contrib.staticfiles', 'race']
-MIDDLEWARE = ['optimus.proxy.WorkerProxyMiddleware','django.middleware.security.SecurityMiddleware','whitenoise.middleware.WhiteNoiseMiddleware','django.contrib.sessions.middleware.SessionMiddleware','django.middleware.common.CommonMiddleware','django.middleware.csrf.CsrfViewMiddleware','django.contrib.auth.middleware.AuthenticationMiddleware','django.contrib.messages.middleware.MessageMiddleware','django.middleware.clickjacking.XFrameOptionsMiddleware']
+MIDDLEWARE = ['optimus.proxy.WorkerProxyMiddleware','django.middleware.security.SecurityMiddleware','whitenoise.middleware.WhiteNoiseMiddleware','django.contrib.sessions.middleware.SessionMiddleware','django.middleware.common.CommonMiddleware','django.middleware.csrf.CsrfViewMiddleware','django.contrib.auth.middleware.AuthenticationMiddleware','race.simulation_middleware.SimulationMiddleware','django.contrib.messages.middleware.MessageMiddleware','django.middleware.clickjacking.XFrameOptionsMiddleware']
 ROOT_URLCONF = 'optimus.urls'
 TEMPLATES = [{'BACKEND':'django.template.backends.django.DjangoTemplates','DIRS':[BASE_DIR/'templates'],'APP_DIRS':True,'OPTIONS':{'context_processors':['django.template.context_processors.request','django.contrib.auth.context_processors.auth','django.contrib.messages.context_processors.messages','race.context.navigation','race.context.site_brand']}}]
 DATABASES = {'default':{'ENGINE':'django.db.backends.sqlite3','NAME':os.getenv('DATABASE_PATH',str(BASE_DIR/'db.sqlite3')),'OPTIONS':{'timeout':30,'transaction_mode':'IMMEDIATE'}}}
@@ -104,3 +104,8 @@ if WORKER_PUBLIC_HOST:
     ALLOWED_HOSTS.append(WORKER_PUBLIC_HOST)
     CSRF_TRUSTED_ORIGINS.append('https://'+WORKER_PUBLIC_HOST)
 PORTRAIT_MODEL_PATH=Path(os.getenv('PORTRAIT_MODEL_PATH',str(BASE_DIR/'.models'/'modnet.onnx')))
+
+# Disposable private event copies: kept outside PostgreSQL and R2.
+SIMULATION_ROOT = Path(os.getenv('SIMULATION_ROOT', str(BASE_DIR / '.simulations')))
+STORAGES['production_media'] = STORAGES['default']
+STORAGES['default'] = {'BACKEND': 'race.simulation_storage.SimulationMediaStorage'}

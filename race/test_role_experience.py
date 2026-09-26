@@ -94,7 +94,7 @@ class RoleExperienceTests(TestCase):
             self.assertEqual(self.client.get(path).status_code,403)
 
     def test_participant_home_is_not_promotional_landing(self):
-        self.assertContains(self.client.get('/'),'Encuentra a un competidor')
+        self.assertContains(self.client.get('/'),'action="/results/"')
         athlete=User.objects.create_user('runner',first_name='Laura')
         self.client.force_login(athlete)
         response=self.client.get('/')

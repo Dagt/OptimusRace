@@ -1,0 +1,12 @@
+{% load race_labels %}
+<section class="simulation-banner" role="region" aria-label="Simulación privada">
+ <div><strong>SIMULACIÓN · COPIA TEMPORAL</strong><span>{{ request.simulation.name }} · Los cambios solo afectan esta copia. Caduca en 24 horas desde su creación.</span></div>
+ <div class="simulation-actions">
+  <a class="button secondary small" href="/simulation-exit/">Salir de simulación</a>
+  {% if user.is_superuser %}<details><summary class="button secondary small">Opciones de práctica</summary><div class="simulation-options">
+   <p>Comparte la dirección de esta copia con tus coaches. Deben ingresar con su cuenta habitual.</p>
+   <form method="post" action="{% url 'simulation_control' %}">{% csrf_token %}<input type="hidden" name="action" value="reset"><p>Reiniciar borra las marcas y desempates de esta copia, conserva participantes y reglas, y permite iniciar otra vez.</p><button class="button secondary small">Reiniciar capturas de la copia</button></form>
+   <form method="post" action="{% url 'simulation_control' %}">{% csrf_token %}<input type="hidden" name="action" value="finish"><p>Al terminar se elimina toda la simulación para todos sus usuarios. El original se conserva.</p><button class="button small">Terminar y eliminar simulación</button></form>
+  </div></details>{% endif %}
+ </div>
+</section>

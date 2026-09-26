@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="section-heading"><div><p class="eyebrow">CAPACITACIÓN PRIVADA</p><h1>Simulaciones</h1><p>Copias temporales de eventos reales. Las capturas y participantes de cada copia están aislados del sistema real.</p></div></div>
+{% if user.is_superuser %}<p>Para crear una, entra al evento y elige <strong>Crear simulación</strong> en Resumen. Se copia su estado actual; dentro puedes reiniciar las capturas para practicar desde cero.</p>{% endif %}
+<div class="simulation-list">{% for sim in simulations %}<article class="panel"><span class="badge">SIMULACIÓN PRIVADA</span><h2>{{ sim.name }}</h2><p>{{ sim.participants }} inscripciones copiadas · Duración máxima: 24 horas</p><a class="button" href="{{ sim.prefix }}/events/{{ sim.event }}/{% if user.is_superuser %}operations/{% else %}coach/{% endif %}">Entrar a la copia →</a></article>{% empty %}<div class="panel"><h2>No hay simulaciones activas.</h2><p>Al terminar o caducar se eliminan las capturas, los cambios y las fotos añadidas durante la práctica.</p></div>{% endfor %}</div>
+{% endblock %}

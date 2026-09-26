@@ -49,7 +49,7 @@ class EventForm(forms.ModelForm):
     def clean_price(self): return int(self.cleaned_data['price']*100)
     class Meta:
         model=Event
-        fields=['name','description','location','date','registration_end','price','capacity','allow_onsite','demo']
+        fields=['name','description','location','date','registration_end','price','capacity','allow_onsite']
         labels={'name':'Nombre del evento','description':'Descripción del desafío','location':'Sede','date':'Fecha del evento','registration_end':'Cierre de inscripciones','price':'Precio · MXN','capacity':'Cupo de participantes','allow_onsite':'Permitir inscripción presencial durante competencia','demo':'Evento de pruebas (datos no oficiales)'}
         widgets={'description':forms.Textarea(attrs={'rows':3}),'date':forms.DateTimeInput(attrs={'type':'datetime-local'},format='%Y-%m-%dT%H:%M'),'registration_end':forms.DateTimeInput(attrs={'type':'datetime-local'},format='%Y-%m-%dT%H:%M')}
     def clean(self):
