@@ -27,6 +27,12 @@ class SimulationMiddleware:
     def __call__(self, request):
         match = PREFIX.match(request.path_info)
         if not match:return self.get_response(request)
+        response = self.simulation_response(request, match)
+        response['X-Robots-Tag'] = 'noindex, nofollow, noarchive'
+        patch_cache_control(response, private=True, no_store=True)
+        return response
+
+    def simulation_response(self, request, match):
         token, inner = match.groups()
         # Resolve real authentication before swapping the thread-local DB connection.
         user = request.user
@@ -69,8 +75,6 @@ class SimulationMiddleware:
                         # Only this marked link can leave the snapshot.
                         html = html.replace('href="'+meta['prefix']+'/simulation-exit/"','href="/simulations/"')
                         response.content = html.encode(response.charset)
-                    response['X-Robots-Tag']='noindex, nofollow, noarchive'
-                    patch_cache_control(response, private=True, no_store=True)
             finally:
                 request.user = user
                 request.path_info = original_path

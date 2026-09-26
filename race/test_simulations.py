@@ -63,7 +63,9 @@ class SimulationTests(TestCase):
         self.assertContains(response,'SIMULACIÓN · COPIA TEMPORAL')
         self.assertContains(response,'href="/simulations/"')
         self.assertContains(response,self.prefix+f'/events/{self.event.pk}/tv/')
-        self.assertEqual(Client().get(path).status_code,302)
+        visitor=Client().get(path)
+        self.assertEqual(visitor.status_code,302)
+        self.assertIn('no-store',visitor['Cache-Control'])
         self.client.force_login(self.coach)
         self.assertEqual(self.client.get(self.prefix+f'/events/{self.event.pk}/coach/').status_code,200)
         response=self.client.post(self.prefix+f'/events/{self.event.pk}/coach/',
