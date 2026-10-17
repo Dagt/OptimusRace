@@ -77,8 +77,8 @@ class GalleryTests(TestCase):
                 self.assertFalse(image.getexif())
                 # The source was a solid color: the center must contain translucent logo pixels.
                 center = image.crop((image.width * .1, image.height * .35, image.width * .9, image.height * .65))
-                self.assertGreater(center.getextrema()[0][1], 155)
-                self.assertLess(center.getextrema()[0][1], 210)
+                self.assertGreater(center.getextrema()[0][1], 210)
+                self.assertLess(center.getextrema()[0][1], 245)
                 self.assertAlmostEqual(image.getpixel((image.width-10, image.height-10))[0], 110, delta=5)
                 self.assertLess(max(image.getpixel((10, 10))), 190)
         self.assertEqual(len(list(Path(self.temp.name).rglob('*.jpg'))), 2)
@@ -92,6 +92,55 @@ class GalleryTests(TestCase):
         photo.save(update_fields=['caption'])
         with photo.image.open('rb') as file:
             self.assertEqual(file.read(), before)
+
+    def test_existing_watermarks_upgrade_once_to_match_new_uploads(self):
+        from django.core.management import call_command
+        from io import StringIO
+        with patch('race.gallery.WATERMARK_OPACITY', 45):
+            existing = self.photo()
+        self.assertEqual(existing.watermark_opacity, 45)
+        old = [(field.storage, field.name) for field in (existing.image, existing.thumbnail)]
+        expected = self.photo()
+        with self.captureOnCommitCallbacks(execute=True):
+            call_command('update_gallery_watermarks', stdout=StringIO())
+        existing.refresh_from_db()
+        self.assertEqual(existing.watermark_opacity, 75)
+        self.assertTrue(all(not storage.exists(name) for storage, name in old))
+        for field in ['image', 'thumbnail']:
+            with getattr(existing, field).open('rb') as first, getattr(expected, field).open('rb') as second:
+                with Image.open(first) as actual, Image.open(second) as target:
+                    region = (actual.width*.1, actual.height*.35, actual.width*.9, actual.height*.65)
+                    self.assertAlmostEqual(actual.crop(region).getextrema()[0][1],
+                                           target.crop(region).getextrema()[0][1], delta=5)
+        names = (existing.image.name, existing.thumbnail.name)
+        output = StringIO()
+        call_command('update_gallery_watermarks', stdout=output)
+        existing.refresh_from_db()
+        self.assertEqual(names, (existing.image.name, existing.thumbnail.name))
+        self.assertIn('Fotos actualizadas a 75% de opacidad: 0.', output.getvalue())
+
+    def test_failed_existing_watermark_upgrade_keeps_current_files(self):
+        from django.core.management import call_command
+        from .simulation_storage import SimulationMediaStorage
+        with patch('race.gallery.WATERMARK_OPACITY', 45):
+            photo = self.photo()
+        old = [(field.storage, field.name) for field in (photo.image, photo.thumbnail)]
+        original = SimulationMediaStorage._save
+
+        def fail_thumbnail(storage, name, content):
+            if 'thumbnails/' in name:
+                raise OSError('Storage unavailable')
+            return original(storage, name, content)
+
+        with patch.object(SimulationMediaStorage, '_save', fail_thumbnail):
+            with self.assertRaises(OSError):
+                call_command('update_gallery_watermarks')
+        photo.refresh_from_db()
+        self.assertEqual(photo.watermark_opacity, 45)
+        self.assertEqual(photo.image.name, old[0][1])
+        self.assertEqual(photo.thumbnail.name, old[1][1])
+        self.assertTrue(all(storage.exists(name) for storage, name in old))
+        self.assertEqual(len(list(Path(self.temp.name).rglob('*.jpg'))), 2)
 
     def test_camera_orientation_is_corrected_and_metadata_removed(self):
         exif = Image.Exif()
