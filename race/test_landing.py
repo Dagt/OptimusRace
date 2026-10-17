@@ -4,6 +4,11 @@ from django.utils import timezone
 from .models import Event
 
 class LandingNavigationTests(TestCase):
+    def test_profile_navigation_is_present_on_home_and_gallery(self):
+        for path in ['/', '/gallery/']:
+            response = self.client.get(path)
+            self.assertContains(response, 'class="public-profile-link" href="/results/">Optimus Profile</a>')
+
     def event(self,name,status,days):
         return Event.objects.create(name=name,status=status,date=timezone.now()+timedelta(days=days),registration_end=timezone.now(),capacity=10,rules={})
 

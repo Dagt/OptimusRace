@@ -78,7 +78,7 @@ class GalleryTests(TestCase):
                 # The source was a solid color: the center must contain translucent logo pixels.
                 center = image.crop((image.width * .1, image.height * .35, image.width * .9, image.height * .65))
                 self.assertGreater(center.getextrema()[0][1], 210)
-                self.assertLess(center.getextrema()[0][1], 245)
+                self.assertLess(center.getextrema()[0][1], 255)
                 self.assertAlmostEqual(image.getpixel((image.width-10, image.height-10))[0], 110, delta=5)
                 self.assertLess(max(image.getpixel((10, 10))), 190)
         self.assertEqual(len(list(Path(self.temp.name).rglob('*.jpg'))), 2)
@@ -104,7 +104,8 @@ class GalleryTests(TestCase):
         with self.captureOnCommitCallbacks(execute=True):
             call_command('update_gallery_watermarks', stdout=StringIO())
         existing.refresh_from_db()
-        self.assertEqual(existing.watermark_opacity, 75)
+        self.assertEqual(existing.watermark_opacity, 85)
+        self.assertEqual(existing.watermark_version, 2)
         self.assertTrue(all(not storage.exists(name) for storage, name in old))
         for field in ['image', 'thumbnail']:
             with getattr(existing, field).open('rb') as first, getattr(expected, field).open('rb') as second:
@@ -117,7 +118,61 @@ class GalleryTests(TestCase):
         call_command('update_gallery_watermarks', stdout=output)
         existing.refresh_from_db()
         self.assertEqual(names, (existing.image.name, existing.thumbnail.name))
-        self.assertIn('Fotos actualizadas a 75% de opacidad: 0.', output.getvalue())
+        self.assertIn('Fotos actualizadas a 85% de opacidad: 0.', output.getvalue())
+
+    def test_diagonal_logos_cover_five_regions_in_both_photo_orientations(self):
+        for size in [(600, 1500), (1500, 600)]:
+            full, _ = prepare_photo(upload(size=size))
+            with Image.open(full) as image:
+                for cx, cy in ((.25,.18),(.75,.18),(.5,.5),(.25,.82),(.75,.82)):
+                    region = image.crop((int((cx-.20)*size[0]), int((cy-.12)*size[1]),
+                                         int((cx+.20)*size[0]), int((cy+.12)*size[1])))
+                    self.assertGreater(region.getextrema()[0][1], 220)
+
+    def test_previous_single_logo_gets_diagonal_pattern_once(self):
+        from django.core.management import call_command
+        from django.core.files.base import ContentFile
+        from django.conf import settings
+        from .gallery import branded_logo
+        from io import StringIO
+        photo = self.photo()
+        legacy = Image.new('RGBA', (1000, 700), (110, 150, 180, 255))
+        with Image.open(settings.BASE_DIR/'static/images/partners/appex-dark.jpg') as source:
+            with patch('race.gallery.WATERMARK_OPACITY', 75):
+                logo = branded_logo(source.crop((237, 474, 943, 655)).convert('RGBA'), 780)
+        legacy.alpha_composite(logo, ((1000-logo.width)//2, (700-logo.height)//2))
+        buffer = BytesIO()
+        legacy.convert('RGB').save(buffer, 'JPEG')
+        storage, name = photo.image.storage, photo.image.name
+        storage.delete(name)
+        self.assertEqual(storage.save(name, ContentFile(buffer.getvalue())), name)
+        EventPhoto.objects.filter(pk=photo.pk).update(watermark_opacity=75, watermark_version=1)
+        before = photo.image.name
+        call_command('update_gallery_watermarks', stdout=StringIO())
+        photo.refresh_from_db()
+        self.assertNotEqual(photo.image.name, before)
+        self.assertEqual(photo.watermark_opacity, 85)
+        self.assertEqual(photo.watermark_version, 2)
+        with photo.image.open('rb') as file, Image.open(file) as updated:
+            for cx, cy in ((.25,.18),(.75,.18),(.5,.5),(.25,.82),(.75,.82)):
+                region = updated.crop((int((cx-.2)*1000), int((cy-.12)*700),
+                                       int((cx+.2)*1000), int((cy+.12)*700)))
+                self.assertGreater(region.getextrema()[0][1], 220)
+        after = photo.image.name
+        call_command('update_gallery_watermarks', stdout=StringIO())
+        photo.refresh_from_db()
+        self.assertEqual(photo.image.name, after)
+
+    def test_old_pattern_is_upgraded_even_with_current_opacity(self):
+        from django.core.management import call_command
+        from io import StringIO
+        photo = self.photo()
+        EventPhoto.objects.filter(pk=photo.pk).update(watermark_version=1)
+        before = photo.image.name
+        call_command('update_gallery_watermarks', stdout=StringIO())
+        photo.refresh_from_db()
+        self.assertNotEqual(photo.image.name, before)
+        self.assertEqual(photo.watermark_version, 2)
 
     def test_failed_existing_watermark_upgrade_keeps_current_files(self):
         from django.core.management import call_command

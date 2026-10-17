@@ -1,6 +1,6 @@
 {% extends 'base.html' %}{% load static %}
 {% block title %}Galería fotográfica · Optimus Race{% endblock %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'gallery.css' %}?v=center-2">{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'gallery.css' %}?v=diagonal-3">{% endblock %}
 {% block content %}
 <div class="page-heading"><div><p class="eyebrow">ASÍ SE VIVIÓ</p><h1>Galería <em>fotográfica.</em></h1><p>El esfuerzo, la emoción y los momentos de cada competencia.</p></div></div>
 {% if role == 'admin' %}<div class="notice"><span>Elige un evento para subir fotos. Todas llevarán automáticamente la marca de agua de Appex.</span></div>{% endif %}

@@ -68,7 +68,8 @@ class EventPhoto(models.Model):
     image = models.ImageField(upload_to='gallery/')
     thumbnail = models.ImageField(upload_to='gallery/thumbnails/', editable=False)
     caption = models.CharField(max_length=200, blank=True)
-    watermark_opacity = models.PositiveSmallIntegerField(default=75, db_default=45, editable=False)
+    watermark_opacity = models.PositiveSmallIntegerField(default=85, db_default=45, editable=False)
+    watermark_version = models.PositiveSmallIntegerField(default=2, db_default=1, editable=False)
     uploaded_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -78,10 +79,11 @@ class EventPhoto(models.Model):
     def save(self, *args, **kwargs):
         # Every uploaded file is flattened with the watermark before entering storage.
         if self.image and not self.image._committed:
-            from .gallery import prepare_photo, cleanup_files, WATERMARK_OPACITY
+            from .gallery import prepare_photo, cleanup_files, WATERMARK_OPACITY, WATERMARK_VERSION
             import uuid
             image, thumbnail = prepare_photo(self.image)
             self.watermark_opacity = WATERMARK_OPACITY
+            self.watermark_version = WATERMARK_VERSION
             name = f'{uuid.uuid4().hex}.jpg'
             stored = []
             try:
@@ -89,7 +91,7 @@ class EventPhoto(models.Model):
                     field.save(name, content, save=False)
                     stored.append((field.storage, field.name))
                 if kwargs.get('update_fields') is not None:
-                    kwargs['update_fields'] = set(kwargs['update_fields']) | {'image', 'thumbnail', 'watermark_opacity'}
+                    kwargs['update_fields'] = set(kwargs['update_fields']) | {'image', 'thumbnail', 'watermark_opacity', 'watermark_version'}
                 return super().save(*args, **kwargs)
             except Exception:
                 cleanup_files(stored)

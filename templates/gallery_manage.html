@@ -1,6 +1,6 @@
 {% extends 'base.html' %}{% load static %}
 {% block title %}Administrar fotos · {{ event.name }}{% endblock %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'gallery.css' %}?v=center-2"><script src="{% static 'gallery.js' %}?v=center-2" defer></script>{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'gallery.css' %}?v=diagonal-3"><script src="{% static 'gallery.js' %}?v=diagonal-3" defer></script>{% endblock %}
 {% block content %}
 <a class="back-link" href="{% url 'operations' event.pk %}">← Administrar evento</a>
 <div class="page-heading"><div><p class="eyebrow">GALERÍA FOTOGRÁFICA</p><h1>{{ event.name }}</h1><p>Comparte los momentos de esta edición.</p></div><a class="button secondary" href="{% url 'event_gallery' event.pk %}">Ver galería</a></div>
