@@ -1,0 +1,8 @@
+{% extends 'base.html' %}{% load static %}
+{% block title %}Fotos de {{ event.name }} · Optimus Race{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'gallery.css' %}?v=center-2"><script src="{% static 'gallery.js' %}?v=center-2" defer></script>{% endblock %}
+{% block content %}
+<a class="back-link" href="{% url 'gallery' %}">← Todas las galerías</a>
+<div class="page-heading"><div><p class="eyebrow">GALERÍA FOTOGRÁFICA{% if event.status == 'draft' %} · BORRADOR{% endif %}</p><h1>{{ event.name }}</h1><p>{{ event.date|date:'d M Y' }} · {{ event.location }} · {{ page.paginator.count }} foto{{ page.paginator.count|pluralize:'s' }}</p></div><div class="action-group"><a class="button secondary" href="{% url 'event' event.pk %}">Ver evento</a>{% if role == 'admin' %}<a class="button" href="{% url 'gallery_manage' event.pk %}">Administrar fotos</a>{% endif %}</div></div>
+{% include 'gallery_grid.html' %}
+{% endblock %}

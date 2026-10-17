@@ -71,6 +71,7 @@ Las nuevas inscripciones solo registran **efectivo en mostrador**. No hay alta p
 - [Validación](docs/VALIDACION.md)
 - [Pendientes externos y límites](docs/PENDIENTES.md)
 - [Recursos visuales](docs/RECURSOS_VISUALES.md)
+- [Galería fotográfica y marca de agua Appex](docs/GALERIA.md)
 
 ## Gestión dentro de la plataforma
 

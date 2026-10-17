@@ -8,9 +8,9 @@ from django.core.files.base import ContentFile
 MAX_BYTES=5*1024*1024
 MAX_PIXELS=25000000
 
-def validate_photo(upload):
+def validate_photo(upload, max_bytes=MAX_BYTES):
     if not upload or upload is False:return upload
-    if upload.size>MAX_BYTES:raise ValidationError('La foto debe pesar menos de 5 MB.')
+    if upload.size>max_bytes:raise ValidationError(f'La foto debe pesar menos de {max_bytes // (1024*1024)} MB.')
     try:
         with warnings.catch_warnings():
             warnings.simplefilter('error',Image.DecompressionBombWarning)

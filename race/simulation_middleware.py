@@ -12,7 +12,7 @@ ALLOWED = {'home','event','operations','configure','event_information','coach','
            'participants','participant_new','participant_edit','participant_photo','event_availability',
            'price_quote','coach_tiebreaks','coach_feed','public_search','public_participant',
            'portrait_preview','team','catalog','catalog_new','catalog_edit','desk_register',
-           'simulation_control','simulation_media'}
+           'simulation_control','simulation_media','gallery','event_gallery','gallery_manage','gallery_delete'}
 
 
 def scoped_url(url, prefix):

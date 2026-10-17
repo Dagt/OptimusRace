@@ -1,4 +1,5 @@
 /* Official event identity; preserve the artwork's proportions on every surface. */
+.public-nav{flex-wrap:wrap;justify-content:flex-end}.public-nav>a.public-gallery-link{display:inline-flex}@media(max-width:550px){.topbar .public-nav{gap:8px 12px}.public-nav>a.public-gallery-link{font-size:12px}}
 .official-logo{display:block;width:100%;height:auto;object-fit:contain}
 .topbar .brand{flex-shrink:0;width:100px}
 .sidebar>.brand{justify-content:center;padding:0;margin-bottom:24px}

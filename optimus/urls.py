@@ -5,6 +5,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from race import views as v
 from race import participant_views as people
+from race import gallery_views as gallery
 urlpatterns=[path('events/<int:pk>/information/',v.event_information,name='event_information'),path('',v.home,name='home'),path('login/',v.signin,name='login'),path('signup/',people.retired,name='signup'),path('logout/',v.signout,name='logout'),path('profile/',v.profile,name='profile'),path('events/new/',v.event_edit,name='new_event'),path('events/<int:pk>/',v.event_detail,name='event'),path('events/<int:pk>/enroll/',people.retired,name='enroll'),path('events/<int:pk>/configure/',v.event_edit,name='configure'),path('events/<int:pk>/operations/',v.operations,name='operations'),path('events/<int:pk>/coach/',v.coach,name='coach'),path('events/<int:pk>/tv/',v.tv,name='tv'),path('events/<int:pk>/live/',v.live_data,name='live_data'),path('stripe/webhook/',v.webhook),path('admin/',admin.site.urls),path('reset/',v.RecoveryView.as_view(),name='password_reset'),path('reset/sent/',auth.PasswordResetDoneView.as_view(template_name='registration/password_reset_done.html'),name='password_reset_done'),path('reset/<uidb64>/<token>/',auth.PasswordResetConfirmView.as_view(template_name='registration/password_reset_confirm.html'),name='password_reset_confirm'),path('reset/complete/',auth.PasswordResetCompleteView.as_view(template_name='registration/password_reset_complete.html'),name='password_reset_complete')]
 if settings.DEBUG: urlpatterns+=static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
 urlpatterns += [path('participants/lookup/',people.retired,name='participant_lookup'),path('events/<int:pk>/status/',v.registration_status,name='registration_status'),path('events/<int:pk>/cancel-payment/',people.retired,name='cancel_payment')]
@@ -27,6 +28,13 @@ urlpatterns += [path('results/',people.public_search,name='public_search'),path(
 urlpatterns += [path('events/<int:pk>/tiebreaks/',v.coach_tiebreaks,name='coach_tiebreaks')]
 
 urlpatterns += [path('events/<int:pk>/coach/feed/',v.coach_feed,name='coach_feed')]
+
+urlpatterns += [
+    path('gallery/', gallery.index, name='gallery'),
+    path('events/<int:pk>/gallery/', gallery.album, name='event_gallery'),
+    path('events/<int:pk>/gallery/manage/', gallery.manage, name='gallery_manage'),
+    path('events/<int:pk>/gallery/<int:photo_pk>/delete/', gallery.delete, name='gallery_delete'),
+]
 
 from optimus.health import health
 urlpatterns += [path("healthz/",health,name="health")]

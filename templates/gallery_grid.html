@@ -1,0 +1,13 @@
+<div class="gallery-grid">
+{% for photo in page %}<article class="gallery-photo">
+ <button type="button" class="gallery-photo-open" data-gallery-photo data-preview="{{ photo.image.url }}" data-caption="{{ photo.caption|default:event.name }}" aria-label="Ver foto {{ photo.pk }}"><img src="{{ photo.thumbnail.url }}" alt="{{ photo.caption|default:event.name }} · foto {{ photo.pk }}" loading="lazy" draggable="false" width="720" height="480"><span class="gallery-open">Ver foto</span></button>
+ {% if photo.caption %}<p class="gallery-caption">{{ photo.caption }}</p>{% endif %}
+ {% if managing %}<details class="gallery-delete"><summary>Eliminar foto {{ photo.pk }}</summary><p>Se quitará de la galería pública.</p><form method="post" action="{% url 'gallery_delete' event.pk photo.pk %}">{% csrf_token %}<button class="button danger small" type="submit">Confirmar eliminación</button></form></details>{% endif %}
+</article>{% empty %}<div class="panel empty-state"><h2>Aún no hay fotos de este evento.</h2><p>{% if managing %}Selecciona tus fotos arriba para empezar la galería.{% else %}Vuelve pronto para revivir la competencia.{% endif %}</p></div>{% endfor %}
+</div>
+{% include 'gallery_pagination.html' %}
+<dialog class="gallery-viewer" data-gallery-viewer aria-label="Visor de fotografías">
+ <div class="gallery-viewer-toolbar"><p data-gallery-counter aria-live="polite"></p><button class="button secondary small" type="button" data-gallery-close aria-label="Cerrar fotografía">Cerrar ✕</button></div>
+ <div class="gallery-viewer-stage"><button class="icon-button" type="button" data-gallery-prev aria-label="Foto anterior">←</button><img data-gallery-full alt="" draggable="false"><button class="icon-button" type="button" data-gallery-next aria-label="Foto siguiente">→</button></div>
+ <div class="gallery-viewer-footer"><p data-gallery-caption></p></div>
+</dialog>

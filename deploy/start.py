@@ -14,6 +14,7 @@ if __name__ == '__main__':
     start_cleanup_worker()
     serve(application, host='0.0.0.0', port=int(os.getenv('PORT', '8000')),
           threads=int(os.getenv('WEB_THREADS', '4')),
-          max_request_body_size=8 * 1024 * 1024,
+          # Gallery batches allow 100 MiB of files plus multipart form overhead.
+          max_request_body_size=101 * 1024 * 1024,
           trusted_proxy='*', trusted_proxy_count=1,
           trusted_proxy_headers={'x-forwarded-proto'})

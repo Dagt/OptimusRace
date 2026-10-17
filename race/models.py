@@ -63,6 +63,38 @@ class Event(models.Model):
         return current_price(self)
     def __str__(self): return self.name
 
+class EventPhoto(models.Model):
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='gallery_photos')
+    image = models.ImageField(upload_to='gallery/')
+    thumbnail = models.ImageField(upload_to='gallery/thumbnails/', editable=False)
+    caption = models.CharField(max_length=200, blank=True)
+    uploaded_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at', '-pk']
+
+    def save(self, *args, **kwargs):
+        # Every uploaded file is flattened with the watermark before entering storage.
+        if self.image and not self.image._committed:
+            from .gallery import prepare_photo, cleanup_files
+            import uuid
+            image, thumbnail = prepare_photo(self.image)
+            name = f'{uuid.uuid4().hex}.jpg'
+            stored = []
+            try:
+                for field, content in [(self.image, image), (self.thumbnail, thumbnail)]:
+                    field.save(name, content, save=False)
+                    stored.append((field.storage, field.name))
+                if kwargs.get('update_fields') is not None:
+                    kwargs['update_fields'] = set(kwargs['update_fields']) | {'image', 'thumbnail'}
+                return super().save(*args, **kwargs)
+            except Exception:
+                cleanup_files(stored)
+                raise
+        return super().save(*args, **kwargs)
+
+
 class Registration(models.Model):
     request_key = models.CharField(max_length=32,unique=True,null=True,blank=True)
     event = models.ForeignKey(Event, on_delete=models.PROTECT)

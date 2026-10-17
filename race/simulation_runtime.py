@@ -126,7 +126,7 @@ def create(event_id, actor):
             objects = [*Group.objects.all(), *users,
                        *m.Profile.objects.filter(user_id__in=[u.pk for u in users]),
                        *m.AccountName.objects.all(), *m.Exercise.objects.all(),
-                       *people, event, *entries,
+                       *people, event, *entries, *m.EventPhoto.objects.filter(event=event),
                        *m.Result.objects.filter(registration__event=event),
                        *m.Payment.objects.filter(registration__event=event),
                        *m.Audit.objects.filter(event=event), *m.TieBreak.objects.filter(event=event),

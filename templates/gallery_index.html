@@ -1,0 +1,14 @@
+{% extends 'base.html' %}{% load static %}
+{% block title %}Galería fotográfica · Optimus Race{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'gallery.css' %}?v=center-2">{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">ASÍ SE VIVIÓ</p><h1>Galería <em>fotográfica.</em></h1><p>El esfuerzo, la emoción y los momentos de cada competencia.</p></div></div>
+{% if role == 'admin' %}<div class="notice"><span>Elige un evento para subir fotos. Todas llevarán automáticamente la marca de agua de Appex.</span></div>{% endif %}
+<div class="gallery-albums">
+{% for event in page %}<article class="panel gallery-album-card">
+ <a class="gallery-cover" href="{% url 'event_gallery' event.pk %}">{% if event.gallery_cover %}<img src="{{ event.gallery_cover.0.thumbnail.url }}" alt="Fotos de {{ event.name }}" loading="lazy" width="720" height="480">{% else %}<span>Tu evento, en imágenes.</span>{% endif %}</a>
+ <div class="gallery-album-copy"><p class="eyebrow">{{ event.date|date:'d M Y' }}{% if event.status == 'draft' %} · BORRADOR{% endif %}</p><h2><a href="{% url 'event_gallery' event.pk %}">{{ event.name }}</a></h2><p>{{ event.photo_count }} foto{{ event.photo_count|pluralize:'s' }} · {{ event.location }}</p><div class="action-group"><a class="button secondary small" href="{% url 'event_gallery' event.pk %}">Ver galería</a>{% if role == 'admin' %}<a class="button small" href="{% url 'gallery_manage' event.pk %}">Administrar fotos</a>{% endif %}</div></div>
+</article>{% empty %}<div class="panel empty-state"><h2>Los recuerdos están por llegar.</h2><p>Las fotos aparecerán aquí cuando estén disponibles.</p>{% if role == 'admin' %}<a class="button" href="{% url 'new_event' %}">Crear evento</a>{% endif %}</div>{% endfor %}
+</div>
+{% include 'gallery_pagination.html' %}
+{% endblock %}
